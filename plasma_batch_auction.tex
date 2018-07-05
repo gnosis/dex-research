@@ -181,7 +181,7 @@ The DKG algorithm generates a public key represented as an elliptic point $aG\la
 
 \subsubsection{Order collection}
 \label{orderblock}
-Once the public key for the encryption process is available, every trader can submit an order. In the plasma chain, all assets of the ERC20 tokens are represented with unspent transaction outputs (utxo). An order will refer to a utxo of an ERC20 token A and this utxo will be exchanged for the specified token B for a price below the given, encrypted limit price.
+Once the public key for the encryption process is available, every trader can submit orders. In the plasma chain, all assets of the ERC20 tokens are represented with unspent transaction outputs (utxo). An order will refer to a utxo of an ERC20 token A and this utxo will be exchanged for the specified token B for a price below or equal to the given, encrypted limit price.
 \begin{lstlisting}
 Order[   UTXO TokenA,
 	Encrypted(limit price),
@@ -190,7 +190,8 @@ Order[   UTXO TokenA,
 	Other data: references and signatures]
 \end{lstlisting} 
 The encryption salt is the elliptic point used for encryption:  $bG$ (cp. \ref{salt}).
-All orders will be collected and board-casted in one block per auction, the order-block. All orders included in this order-block will be able to participate in the next auction. Theoretically, the chain operator can censor orders, but since they are encrypted, he does not know what he is censoring. Sometimes the operator needs to censor some orders since, in a single batch, there shouldn't be more than $2^{16}$ orders.  If users want to cancel their order, they should spend their utxo referred in their order.
+All orders will be collected and board-casted in one block per auction, the order-block. All orders included in this order-block will be able to participate in the next auction. Theoretically, the chain operator can censor orders, but since they are encrypted, he does not know what he is censoring. Sometimes the operator needs to censor some orders since, in a single batch, there shouldn't be more than $2^{16}$ orders. \newline
+If users want to cancel their order, they should spend their utxo referred in their order.
 
 \subsubsection{Double signing process}
 Once the block with the orders is published and the Merkleroot hash is submitted in the root-chain, every participant in the batch auction needs to validate this new block and the complete chain. Once they commit that their order should be included in the next batch, they will all be able to withdraw their order funds only with the priority of this order-block. (This will be explained in detail here: \ref{exitRules}).
@@ -201,7 +202,7 @@ DoubleSign      [OrderHash,
 		BatchIndex,
 		Signature]
 \end{lstlisting}
-The operator collects all these double signed messages and constructs a bitmap, in order to generate a crypto-economic signature aggregation (cp. \cite{sig}). If the operator gets a double signed message for the order at the i-th place in the block, then the operator puts a 1 into the bitmap at the i-th place. Otherwise, he puts a 0 in there. Next, the operator publishes the bitmap and all signature messages in a next plasma block. If the bitmap is not available or incorrect, anyone can ask the operator to publish it on the main-chain and then each bit of the map could be challenged by asking the operator to show the double signed message. \newline
+The operator collects all these double signed messages and constructs a bitmap, in order to generate a crypto-economic signature aggregation (cp. \cite{sig}). If the operator gets a double signed message for the order at the i-th place in the block, then the operator puts a 1 into the bitmap at the i-th place. Otherwise, he puts a 0 in there. Next, the operator publishes the bitmap and all signature messages in a next plasma block. If the bitmap is not available or incorrect, anyone can ask the operator to publish it on the root-chain and then each bit of the map could be challenged by asking the operator to show the Doublesign message. \newline
 Placing an order, which will not be executed by the limit price, is for free. If people miss-use this free option to spam the plasma chain, they will be censored by the plasma chain operator. The operator could keep on censoring their data, so that they are forced to withdraw their funds from the exchange.\newline
 This double signing process will hinder a very smooth user experience. Hence, we would allow users outsource this process of double signing to another service. This involves some trust, but the trust is limited, as this service can not change a order, it can just double sign the order. 
 
