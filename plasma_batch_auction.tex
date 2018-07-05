@@ -173,14 +173,14 @@ Once the bitmap is seen by many parties on the plasma chain, the private key for
 In our (batch) auctions all trading will occur between a fixed set, $\Tau = \{\tau_i\}_{i=1}^n$, of $n$ \erc tokens. The collection of orders for which token $i$ is being sold in exchange for token $j$ will be denoted by $\pO_{i\ra j}$. 
 
 After an auction has closed uniform clearing prices have been determined, the price matrix can be represented as an $n\times n$ a matrix 
-\[P = \{p_{ij}| \tau_i, \tau_j \in \Tau \}.\]
+$\[P = \{p_{ij}| \tau_i, \tau_j \in \Tau \}.\]$
 For any order $\sigma \in \pO_{i\ra j}$ we define $\nu_p(\sigma)$ as the volume of an order denominated in token $\tau_i$ at clearing prices $p$.
 
 \subsubsection{Plasma chain setup}
 We are following the description of the Plasma Minimal Viable Product, as it is described in \cite{MVP}. This means all assets are represented in the plasma chain as unspent transaction outputs (utxo). These utxos can be transferred to a new owner by making a transaction, waiting for its inclusion into the plasma chain, validating the chain, waiting for the plasma block to be submitted to the main-chain and then, sending a double-sign message to the receiver. 
 
 Any utxo may be exited at any time, by providing a Merkle proof of the receiving transaction. However, if the exit is not valid, then it will be canceled via a challenge process.
-Note that the plasma implementation will require users to be online and validate the chain's state at least once a week\todo{Why is this?}. If one seeks to participate in an auction, they would need to be online to broadcast their order, double sign and to receive/validate the order-output block message.
+Note that the plasma implementation will require users to be online and validate the chain's state at least once a week\todo{Why is this?}. If one seeks to participate in an auction, they would need to be online to broadcast their order, double sign and to receive/validate the volume-block message.
 
 
 \subsubsection{Plasma chain setup}
@@ -280,6 +280,7 @@ If $\{p_{A|B}| A,B \in \Tau \}$  are the uniform clearing prices, they are satis
   p_{A|B} \cdot p_{B|C} = p_{A|C}\\
   p_{A|B} = p_{B|A}
 \end{align}
+
 Due to these equations, it is enough for the operator to publish only the $k$ prices $\{p_{A,B}| A \in \Tau \}$ for a $B\in \Tau$ and all other prices are implied. 
 
 The operator would additionally publish another block, which contains the information about which order was matched and by which volume. 
@@ -289,15 +290,17 @@ The block would have the leaves:
 We want to call this block the "output-block" \label{outputBlock}. 
 We need to specify the trading volume for each order since not every order below the limit price will be completely executed. 
 This is non-intuitive but this is one of the things we have to deal with in a batch auction. 
+
 \paragraph{Optional mechanism: Price submission by a third party}
 Usually the price would be submitted by the chain operator only. 
 But if the chain operator does not publish the prices, we could accept price submission root-chain by any person. 
 The smart contract on the root-chain would select the price submission as the final price, which is valid, has a valid proof of correctness and fairness and has the biggest trading volume measured in Ether. 
 
-Note that in this case, the price submitter would also need to provide the "output-block" \ref{outputBlock} or at least assist traders with their exits games, by providing the Merkle proofs for their trading volumes \ref{exitRules}. 
+Note that in this case, the price submitter would also need to provide the volume-block \ref{volumeBlock} or at least assist traders with their exits games, by providing the Merkle proofs for their trading volumes \ref{exitRules}. 
 
 \subsubsection{Proof of correctness and fairness}
 Once the prices are calculated by the chain operator, he needs to prove that this set of prices is actually valid and fair.A price set and a output-block (oB) \ref{outputBlock} is valid and fair, if
+
 \begin{itemize}
 
 \item if the price set satisfies \ref{eq:arbitrage_freeness} 
@@ -314,6 +317,7 @@ Once the prices are calculated by the chain operator, he needs to prove that thi
 \item If an $\text{Orders}_{(B\rightarrow A)}$ with a limit price p has a positive trading volume, then every $\text{Orders}_{(B\rightarrow A)}$ with a lower limit price as p should be traded completely. 
 \end{itemize}
 
+
 In order to prove this, we will use snarks (Succinct non-interactive arguments of knowledge) \cite{snarks}. 
 They are a powerful tool, which enables us to encode the above mentioned checking logic into an algebraical formulation. 
 This allows us to generate some verification keys, which compactify this checking logic. 
@@ -323,16 +327,16 @@ Also, the execution of the proof is not too costly: it is around 1.6 million gas
 The library Zokrates demonstrates these methods very well for the ethereum eco-system. 
 
 Now, we will describe the snark mechanism in more detail: We assume that there are n tokens traded on the exchange. 
-In the following we denote the block containing all orders OrB \ref{orderblock}, the order-output block OoB \ref{outputBlock}, the bitmap B and $M_R(OrB)$, $M_R(OoB)$, $M_R(B)$ their Merkleroot hashes, respectively.
+In the following we denote the block containing all orders OB \ref{orderblock}, the volume-block VB \ref{volumeBlock}, the bitmap B and $M_R(OB)$, $M_R(VB)$, $M_R(B)$ their Merkleroot hashes, respectively.
 Let us denote the decrypted orders from the block OrB as list $\text{[orders]= [order}_1\text{, order}_2\text{,...]}$ and the trading volume of each order by the list $\text{[volumes] = [volume}_1\text{, volume}_2\text{...]}$, where the $\text{volume}_i$ corresponds to the $\text{order}_i$. 
-Also, we denote  $p_{A,B}$ as the price between Token A and Token B. 
+
 
 Then the program P(i,w) should prove the above mentioned facts. 
 The public input into P is declared by the variable i and w will be the witness. 
 In details it will look like:
 
 \begin{equation}
-\text{P(i=(}M_R\text{(OoB),}M_R\text{(OrB),}M_R\text{(B),} \text{key}_p),\newline
+\text{P(i=(}M_R\text{(OB),}M_R\text{(VB),}M_R\text{(B),} \text{key}_p),\newline
 \text{w=([orders],[volumes],[prices],[bitmap]))} 
 \end{equation}
 And P would check that:
@@ -391,8 +395,9 @@ We use again the same mechanism as before.
 
 
 \subsubsection{Order-output transactions}
-After the prices and a price verification proof are published, the operator will publish another block with all Order-output transactions. 
+After the prices and a price verification proof are published, the operator will publish another block with all order-output transactions. 
 An order-output transaction will have the following format for a previously included order to buy Token B with Token A:
+
 \begin{lstlisting}
 OrderOutput [ Order input tx ID,
     Order output denominated in Token B, 
@@ -404,9 +409,10 @@ OrderOutput [ Order input tx ID,
 where the order-output denominated in Token A should be zero is the most cases, as orders will be most likely be fully filled. 
 The order-output ($oo_B$) denominated in Token B will be calculated by the price 
 \begin{equation}
-  oo_B = p_{A|B} \times \text{OrderInputAmount} \times (1-\text{fee}_{\text{ratio}})
+	oo_B = p_{A|B} \times \text{OrderInputAmount} \times \text{volume}_{\text{order}} \times (1-\text{fee}_{\text{ratio}})
     \label{fee_equ}
 \end{equation}
+where $\text{volume}_{\text{order}}$ is the volume declared in the volume-block.  
 
 These order-outputs can then be spent again via a transaction, but can not be used as an input for another an order. 
 If any of these order-outputs is not correctly created by the chain operator, people have to leave the plasma chain. 
@@ -417,26 +423,30 @@ After each batch auction, the plasma-contract on the root-chain will hold some t
 The chain operator is allowed to create a new utxo with the number of uncovered tokens, in order to claim the fees. 
 
 \subsubsection{Auction scheduling process}
+
 An auction can have variable time. 
-The operator can decide on his own when to close the batch and create the "order block" \ref{orderblock}. 
+The operator can decide on his own when to close the batch and create the order-block \ref{orderblock}. 
 Once this block is posted, it will take some time until the orders are processed. 
 But the operator will ensure a smooth flow by accepting new orders right away. 
 But of course, these orders and all transfers will not be executed if the chain will halt. 
 Hence batch auctions can be scheduled pretty fast and smooth one after the other. 
 But the finality of an auction is only guaranteed after the client sees all the data available for a batch auction, including the bitmap, decryption key, prices, and price verification data. 
 
+
 \subsection{Exit rules of the plasma chain}
 \label{exitRules}
 \paragraph{Transfer transactions} have exactly the same exit rules, as in the usual plasma mvp. 
 But there are two differences.
 \begin{itemize}
+
  \item We would maintain a variable $highestExitPriority$. 
 This highestExitPriority would be infinity in normal cases. 
 But if the plasma chain is halted, because a data-unavailability request \ref{enforceAvailablity} was not answered in a certain time frame, then this variable will play an important role. 
-It will set the highest exit priority to the priority of the last block, before the order block submission. 
+It will set the highest exit priority to the priority of the last block, before the order-block submission. 
 Any utxo generated after $highestExitPriority$ will not be able to withdraw and any exit request cannot be challenged with a utxo spend after this highestExitPriority. 
 Effectively, we are resetting the plasma state to a previous state by setting highestExitPriority. 
 \item Any utxo can be challenged as spent and not exit-able, by showing an order, a double signing of the order and that the trading volume of this order is positive in this double signed batch. 
+
 \end{itemize}
 
 \paragraph{Order transactions} need to be double signed in a batch and must be touched in the auction with a positive trading volume for an allowance of withdrawn. 
