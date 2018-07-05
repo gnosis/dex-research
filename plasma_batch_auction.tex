@@ -129,59 +129,59 @@ It is recommended for the reader to familiarize themselves with Plasma\cite{plas
 
 \paragraph{Multi-batch auctions with uniform clearing prices}
 
-This specification outlines a trading mechanism between several ERC20 tokens.Each batch accepts orders to buy any \erc token with any other \erc token for a maximal specified limit price. 
-All orders are collected over some time interval and then an \emph{uniform clearing price} over all token pairs is calculated. 
-For a list of $k$ trading tokens denoted by $\Tau$ with clearing prices $\{p_{A|B}\}$, we call the set of prices $\{p_{A|B}| A,B \in \Tau \}$ an uniform clearing price, if
-\begin{align}
-  p_{A|B} \cdot p_{B|C} = p_{A|C}\\
-  p_{A|B} = p_{B|A}
-\end{align}
-Finding the uniform clearing prices, which also maximize trading volume or other metrics is a complicated task. 
-The paper [] describes a mechanism in detail. 
-Uniform clearing prices are beneficial for any trader since they are arbitrage-free and ensure good liquidity via built in ring trades. 
-We will assume for the following that these uniform clearing prices for a multi-batch auction can be found fairly quickly. 
+This specification outlines a trading mechanism between several \erc tokens. Each batch accepts orders to buy any \erc token with any other \erc token for a maximal specified limit price. All orders are collected over some time interval and then an \emph{uniform clearing price} over all token pairs is calculated. 
 
-We secure the multi-token batch mechanism against any front-running attacks by allowing people to submit encrypted orders into the batch auction. 
-Only once the batch is closed, they have to reveal their order and then the prices can be calculated. 
+For a list of $k$ trading tokens denoted by $\Tau$ with clearing prices $\{p_{A|B}\}$, we call the set of prices $\{p_{A|B}| A,B \in \Tau \}$ an uniform clearing price, if
+\begin{align} \label{eq:arbitrage_freeness}
+  p_{A|B} \cdot p_{B|C} &= p_{A|C}\\
+  p_{A|B} &= p_{B|A}^{-1}
+\end{align}
+
+
+Finding the uniform clearing prices, which also maximize trading volume or another predefined metric is a complicated task. The paper []\todo{cite Tom?} describes a mechanism in detail. Uniform clearing prices are beneficial for any trader since they are arbitrage-free and ensure good liquidity via built-in ring trades. For the purpose of this document, it is assumed that these uniform clearing prices for a multi-batch auction can be efficiently determined. \newline
+The multi-token batch mechanism is secured against front-running \footnote{Front-running is when a broker/operator enters into an equity/asset trade with foreknowledge of a block transaction which will influence the price} by allowing users to submit encrypted orders into the batch auction. Only after the batch has closed will the orders be revealed and then the prices can be computed. 
+
 
 \paragraph{Plasma minimal viable product}
 
-This paper describes the specification for porting this new auction mechanism on a plasma chain.Plasma chains are a second layer scaling solution for blockchains. 
-They allow processing much more transactions as the underlying blockchain with the same security guarantees, as the underlying blockchain. 
-The main reason for implementing this mechanism on a plasma chain, instead of the main chain, is to enable much cheaper trades in terms of gas costs. 
-Although plasma chains have great advantages, they also come with burdens in terms of usability and complexity. 
+This paper describes the specification for porting this auction mechanism onto a plasma chain. Plasma chains are a second layer scaling solution for blockchains which allow processing a much higher volume of transactions as the underlying blockchain (a.k.a. \emph{root-chain}) with the same security guarantees. This is the main motivation for implementing such mechanism on a plasma chain as it will result in significantly trade costs with respect to gas fees. Although plasma chains have this great advantages, they also come with burdens in terms of usability and complexity. We are planning to use Ethereum as the root-chain. 
 
 \paragraph{The trade-flow of a batch auction}  
 
-The batch auction exchange is built on a plasma chain operated by a single entity on top of a root-chain (Ethereum).A single batch auction consists of several phases;
+The batch auction exchange is built on a plasma chain operated by a single entity on top of a root-chain (Ethereum). A single batch auction consists of several phases;
 \begin{itemize}
-\item[(i)] Encryption Key generation,
-\item[(ii)] Order Collection,
-\item[(iii)] Double Signing,
-\item[(iv)] Batch Price Calculation,
-\item[(v)] Batch Challenging and
+\item[(i)] Encryption Key generation, 
+\item[(ii)] Order Collection, 
+\item[(iii)] Double Signing, 
+\item[(iv)] Batch Price Calculation, 
+\item[(v)] Batch Challenging and 
 \item[(vi)] Order Executions. 
 \end{itemize}
-In brief, a batch will proceed as follows: Users will post encrypted orders to the plasma operator, who will then bundle these orders and commit them by posting a single order-block on the plasma chain. 
-Each client will have to validate all orders in the committed hash and only once they validate the orders, they may double sign their orders to participate in the current batch. 
-The participation acknowledgment will be compactly represented using a crypto-economic signature aggregation schema. 
-With this construction many data-unavailability problems will be avoided because the orders can be represented on the main-chain using only a bitmap. 
-Once the bitmap is seen by many parties on the plasma chain, the private key for decrypting the orders will be generated using distributed key generation (DKG). 
-Finally, all the data is available to calculate correct prices from the orders and the batch can be settled. 
+In brief, a batch will proceed as follows: Users will post encrypted orders to the plasma operator, who will then bundle these orders and commit them by posting a single order-block on the plasma chain. Each client will have to validate the orders of this order-block. Only once they have validated the orders, they may double sign their orders to participate in the current batch. The participation acknowledgment will be compactly represented using a crypto-economic signature aggregation schema. With this construction many data-unavailability problems will be avoided because the orders can be represented on the main-chain using only a bitmap.
+Once the bitmap is seen by many parties on the plasma chain, the private key for decrypting the orders will be generated using distributed key generation (DKG). Finally, all the data is available to calculate correct prices from the orders and the batch can be settled. 
 
 
-\clearpage
+\newpage
+
 \section{Detailed specification overview}
 \subsection{Setup description}
 
 \subsubsection{Definitions}
-%Let us start of with writing down some very basic definitions, which we will use throughout this paper. 
-In our (batch) auctions all trading will occur between a fixed set, $\Tau = \{\tau_i\}_{i=1}^n$, of $n$ \erc tokens. 
-The collection of orders for which token $i$ is being sold in exchange for token $j$ will be denoted by $\pO_{i\ra j}$. 
+
+
+%Let us start of with writing down some very basic definitions, which we will use throughout this paper.
+In our (batch) auctions all trading will occur between a fixed set, $\Tau = \{\tau_i\}_{i=1}^n$, of $n$ \erc tokens. The collection of orders for which token $i$ is being sold in exchange for token $j$ will be denoted by $\pO_{i\ra j}$. 
 
 After an auction has closed uniform clearing prices have been determined, the price matrix can be represented as an $n\times n$ a matrix 
 \[P = \{p_{ij}| \tau_i, \tau_j \in \Tau \}.\]
-For any order $\sigma \in \pO_{i\ra j}$ we define $\nu_p(\sigma)$ as the volume of an order denominated in token $\tau_i$ at clearing prices $p$. 
+For any order $\sigma \in \pO_{i\ra j}$ we define $\nu_p(\sigma)$ as the volume of an order denominated in token $\tau_i$ at clearing prices $p$.
+
+\subsubsection{Plasma chain setup}
+We are following the description of the Plasma Minimal Viable Product, as it is described in \cite{MVP}. This means all assets are represented in the plasma chain as unspent transaction outputs (utxo). These utxos can be transferred to a new owner by making a transaction, waiting for its inclusion into the plasma chain, validating the chain, waiting for the plasma block to be submitted to the main-chain and then, sending a double-sign message to the receiver. 
+
+Any utxo may be exited at any time, by providing a Merkle proof of the receiving transaction. However, if the exit is not valid, then it will be canceled via a challenge process.
+Note that the plasma implementation will require users to be online and validate the chain's state at least once a week\todo{Why is this?}. If one seeks to participate in an auction, they would need to be online to broadcast their order, double sign and to receive/validate the order-output block message.
+
 
 \subsubsection{Plasma chain setup}
 We are following the description of the Plasma Minimal Viable Product, as it is described in \cite{MVP}. 
@@ -589,4 +589,5 @@ Batch Trading
 https://www.investopedia.com/terms/b/batchtrading.asp
 
 \end{thebibliography}
+
 \end{document}
