@@ -109,7 +109,7 @@
 
 \begin{abstract}
 
-This document outlines a formal specification of a batch auction exchange of ERC20 tokens using the plasma technologies. The batch auction mechanism will enable the execution of ring trades between different tokens. Plasma technologies will provide the same security for users as if the tokens were held in the ethereum blockchain. But gas costs will be significantly reduced due to the off-chain nature of the exchange mechanism. It is recommended for the reader to familiarize themselves with Plasma \cite{plasma}, Plasma MVP \cite{MVP}, snarks \cite{snarks} and batch auctions \cite{batch} before reading this spec.
+This document outlines a formal specification of a batch auction exchange of ERC20 tokens using the plasma technologies. The batch auction mechanism will enable the execution of ring trades between different tokens. Plasma technologies will provide the same security for users as if the tokens were held in the ethereum blockchain. But gas costs will be significantly reduced due to the off-chain nature of the exchange mechanism. It is recommended for the reader to familiarize themselves with Plasma\cite{plasma}, Plasma MVP\cite{MVP}, snarks\cite{snarks} and batch auctions\cite{batch} before reading this spec.
 
 \end{abstract}
 
@@ -127,7 +127,7 @@ For a list of $k$ trading tokens denoted by $\Tau$ with clearing prices $\{p_{A|
   p_{A|B} \cdot p_{B|C} = p_{A|C}\\
   p_{A|B} = p_{B|A}
 \end{align}
-Finding the uniform clearing prices, which also maximize trading volume and "traders welfare" is a complicated task. The paper [] describes a mechanism in detail. Uniform clearing prices are beneficial for any trader since they are arbitrage-free and ensure good liquidity via built in ring trades. We will assume for the following that these uniform clearing prices for a multi-batch auction can be found fairly quickly. \newline
+Finding the uniform clearing prices, which also maximize trading volume or other metrics is a complicated task. The paper [] describes a mechanism in detail. Uniform clearing prices are beneficial for any trader since they are arbitrage-free and ensure good liquidity via built in ring trades. We will assume for the following that these uniform clearing prices for a multi-batch auction can be found fairly quickly. \newline
 We secure the multi-token batch mechanism against any front-running attacks by allowing people to submit encrypted orders into the batch auction. Only once the batch is closed, they have to reveal their order and then the prices can be calculated. 
 
 \paragraph{Plasma minimal viable product}
@@ -146,16 +146,16 @@ Once the bitmap is seen by many parties on the plasma chain, the private key for
 \subsection{Setup description}
 
 \subsubsection{Definitions}
-Let us start of with writing down some very basic definitions, which we will use throughout this paper.
+Let us begin with writing down some very basic definitions, which we will use throughout this paper.
 In a batch auction we are trading ERC20 tokens against each other. Let us denote the set of ERC20 token, which participate in a batch by $\Tau$. \newline
-Order selling a Token A and intending to buy a Token B for $A,B\in \Tau$, will be denoted by $\text{Orders}_{A\rightarrow B}$. \newline
-Once a batch is closed, we there will be the set of uniform clearning prices. If we have n tokens in batch, then this price can be represented by a matrix $\{p_{A|B}| A,B \in \Tau \}$. \newline
+An Order selling a Token A and intending to buy a Token B for $A,B\in \Tau$, will be denoted by $\text{Orders}_{A\rightarrow B}$. \newline
+Once a batch is closed, we will need to publish a set of uniform clearning prices. If we have n tokens in batch, then this price can be represented by a nxn matrix $\{p_{A|B}| A,B \in \Tau \}$. \newline
 For any order $o \in \text{Orders}_{A\rightarrow B}$ we define $\text{vol}_p(o)$ the volume of an order denominated in token A for some clearing prices p.
 
 \subsubsection{Plasma chain setup}
-We are following the description of the Plasma Minimal Viable Product, as it is described here: \cite{MVP}. This means all assets are represented in the plasma chain as unspent transaction outputs (utxo). These utxo can be send to a new owner by making a transaction, waiting for its inclusion into the plasma chain, validating the chain, waiting for the plasma block to be submitted to the main-chain and then, sending a double-sign message to the receiver.
+We are following the description of the Plasma Minimal Viable Product\cite{MVP}. This means all assets are represented in the plasma chain as unspent transaction outputs (utxo). These utxo can be send to a new owner by making a transaction, waiting for its inclusion into the plasma chain, validating the chain, waiting for the plasma block to be submitted to the main-chain and then, sending a double-sign message to the receiver.
 Any utxo can be exited at any time, by providing a Merkle proof of the receiving transaction. But, if the exit is not valid, then the exit will be canceled by a challenging process.
-The plasma implementation will require users to be online and validate the chain in general at least once a week. If they want to participate in an auction, they need to be online to broadcast their order, to double sign the order and to receive and validate the order-output block message.
+The plasma implementation will require users to be online and validate the chain in general at least once a week. 
 
 
 
@@ -280,7 +280,7 @@ Once the proof is calculated, the chain operator will publish it on the plasma c
 \label{enforceAvailablity}
 In case the operator goes off-line and we get a data-unavailability, we still want to make sure that the last auction can be completed by all participants or will be cleanly un-rolled. Since data availability on the plasma chain is subjective, we need to make sure that all necessary information will be loaded into the root-chain, in the worst case.
 The data is the bitmap, the private key for decrypting the orders, the prices and the proof for correct volumes.
-\paragraph{bitmap} It is essential for everyone to know, what the bitmap of an auction is, in order to know which orders are in the batch. If the bitmap has not been sent out by the chain operator, we have to make it available on the root chain. Everyone can request - in exchange for a small fee - that the bitmap gets published on the root chain. Then anyone can publish the bitmap along with a plasma containment proof of this bitmap and get the fee. If no one publishes it, then the last batch will be rolled back completely. This means that only utxos, which were submitted before the last order book hash submission, will be accepted for any withdraw.
+\paragraph{bitmap} It is essential for everyone to know, what the bitmap of an auction is, in order to know which orders are in the batch. If the bitmap has not been sent out by the chain operator, we have to make it available on the root-chain. Everyone can request - in exchange for a small fee - that the bitmap gets published on the root-chain. Then anyone can publish the bitmap along with a plasma containment proof of this bitmap and get the fee. If no one publishes it, then the last batch will be rolled back completely. This means that only utxos, which were submitted before the last order book hash submission, will be accepted for any withdraw.
 \paragraph{decryption keys} Also, it is essential for everyone to know, what the decryption key of an auction is, in order to know the limit prices of the encrypted orders. If the decryption key is not publicly available, we can apply the same process as for the bitmap to make it public.
 
 \paragraph{prices} The prices are also essential to know for each participant. If they are not public, again they can be made public with the same mechanism. We note that the gas costs for publishing the prices increase linearly with the number of tokens.
@@ -336,7 +336,7 @@ But unfortunately, some actors have an advantage. If many DKG key holders do not
 \subsection{Safety in case of a data-unavailability}
 For token transfers, we have the same data-unavailability fallbacks, as the MVP product. Hence a double sign mechanism protects people from losing funds. It is only getting a little bit more complex, as users should not double sign a transaction, which happens right after the closing of a batch, before they validated the WHOLE process of the batch closing, including the publishing of valid prices, snark proofs of correctness and a correct order-output block.
 Also for traders, the safety is guaranteed by a  double signing mechanism. If there is anything incorrect, before the double signing step, traders will just not double sign their batch.
-If there is any data-unavailability after the double signing step, then this data can be requested on the root chain. The was constructed in such a way with snarks and bitmaps, that it is easy and relatively cheap to publish on the root-chain. Then still any trader can get his trade settle, or the batch is reverted if the data is not uploaded to the root-chain. For a detailed description of the data, which needs to be made available, see here: \ref{enforceAvailablity}. The proof that these data are enough to settle the trade either on the plasma chain or on the root-chain is left to the reader.  
+If there is any data-unavailability after the double signing step, then this data can be requested on the root-chain. The was constructed in such a way with snarks and bitmaps, that it is easy and relatively cheap to publish on the root-chain. Then still any trader can get his trade settle, or the batch is reverted if the data is not uploaded to the root-chain. For a detailed description of the data, which needs to be made available, see here: \ref{enforceAvailablity}. The proof that these data are enough to settle the trade either on the plasma chain or on the root-chain is left to the reader.  
 
 \subsection{Non-custody of funds}
 From the above analysis, we can conclude that the plasma chain operator does never have the ability to steal tokens if all users come online regularly and behave correctly. This is one of the key features of this construction.
@@ -344,7 +344,7 @@ From the above analysis, we can conclude that the plasma chain operator does nev
 \subsection{Grieving vectors and tragedy of the common}
 Unfortunately, our specification had to take some trade-offs. The main problem is that data-unavailability is subjective. Hence, people can always claim that data is missing. Then someone is required to publish these data on the main chain including a Merkle proof attesting that the published data is the same as on the plasma chain.
 This is a problem, since providing data on the root-chain can be quite costly. Our solution is that the requester needs to pay some decent fee to the data-provider, in order to prevent grieving attacks. But this leaves the construction with a tragedy of the commons, as no one, in particular, would have the incentive to ask for the data in case of a real data-unavailability case. But still, this action would be required from someone. \newline 
-Since we estimate the costs of this data-request on the root chain to be definitively lower than 10 Dollar, the tragedy of the commons is very small. There should always be a party, which request the data for everyone else. Hence, it is a reasonable trade-off. \newline Since the plasma chain operator will never intentionally generate these situations, as it will hurt his reputation, the incentives are well set. 
+Since we estimate the costs of this data-request on the root-chain to be definitively lower than 10 Dollar, the tragedy of the commons is very small. There should always be a party, which request the data for everyone else. Hence, it is a reasonable trade-off. \newline Since the plasma chain operator will never intentionally generate these situations, as it will hurt his reputation, the incentives are well set. 
 
 \subsection{Performance}
 There are some bottlenecks, which are considered for evaluating the performance:
@@ -352,7 +352,7 @@ There are some bottlenecks, which are considered for evaluating the performance:
   \item Price calculation. Finding these uniform clearing prices is a non-linear optimization problem. The solving time to find these prices increases exponentially with the number of tokens involved. 
 \item Generating the public verification keys for the snark proofs is a very challenging task having its own limitations. But we think that we can generate these verification keys for trade blocks with $2^{16}$ transactions.The calculation of the actual proof should then be feasible within a minute.
 \item Gas costs for bitmap and other data, which needs to be made available on the root-chain. Uploading a bitmap with 9000 entries costs about 100k gas.
-\item Plasma exists. Plasma exits are controversially discussed in the community. If there are too many utxo, which want to exit all at the same time, - maybe triggered by a data-unavailability, the root chain will be under heavy load and gas prices might spike.
+\item Plasma exists. Plasma exits are controversially discussed in the community. If there are too many utxo, which want to exit all at the same time, - maybe triggered by a data-unavailability, the root-chain will be under heavy load and gas prices might spike.
 \end{itemize}
 We think that the price calculation is the biggest bottleneck. But still, we are confident that we will be able to schedule auctions every 3 minutes with about $2^{16}$ orders.
 \subsection{Complexity}
