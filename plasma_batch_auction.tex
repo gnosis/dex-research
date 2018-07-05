@@ -207,7 +207,8 @@ Placing an order, which will not be executed by the limit price, is for free. If
 This double signing process will hinder a very smooth user experience. Hence, we would allow users outsource this process of double signing to another service. This involves some trust, but the trust is limited, as this service can not change a order, it can just double sign the order. 
 
 \subsubsection{DKG private key generation}
-Once the plasma block, containing the bitmap. is published and submitted to the main chain, the DKG participants will publish their hidden messages used for generating the DKG-public key. They do it by sending their inputs to the chain operator. Once the threshold is reached and there are enough messages available to generate the private key, the operator will do it and publish it in a next plasma block.
+Once the plasma block containing the bitmap is published and submitted to the root-chain, the DKG participants will publish their hidden messages used for generating the DKG-public key. They do it by sending their inputs to the chain operator. Once the threshold is reached and there are enough messages available to generate the private key, the operator will do it and publish it in a next plasma block.
+
 \subsubsection{Price submission}
 Once the previous step is finished, the chain operator can calculate the optimal prices between all ERC20 tokens with the current orders. If $\{p_{A|B}| A,B \in \Tau \}$  are the uniform clearing prices, they are satisfying the following equation
 \begin{align}
@@ -221,12 +222,13 @@ The operator would additionally publish another block, which contains the inform
 	[[\text{order}_1, \text{volume}_1], [\text{order}_2, \text{volume}_2],...].
 \end{align} 
 We want to call this block the "output-block" \label{outputBlock}. 
-We need to specify the trading volume for each order since not every order below the limit price will be completely executed. This is non-intuitive but this is one of the things we have to deal with in a batch auction.
-\paragraph{Optional mechanism: Price submission by a third party} Usually the price would be submitted by the chain operator only. But if the chain operator does not publish the prices, we could accept price submission root-chain by any person. The smart contract on the root-chain would select the price submission as the final price, which is valid, has a valid proof of correctness and fairness and has the biggest trading volume measured in Ether. \newline
+We need to specify the trading volume for each order since not every order below the limit price will be completely executed. This is non-intuitive, but this is one of the things we have to deal with in a batch auction.
+
+\paragraph{Optional mechanism: Price submission by a third party} Usually the price would be submitted by the chain operator only. But if the chain operator does not publish the prices, we could accept price submission on the root-chain by anyone. The smart contract on the root-chain would select the price submission as the final price, which is valid, has a valid proof of correctness and fairness and has the biggest trading volume measured in Ether. \newline
 Note that in this case, the price submitter would also need to provide the "output-block" \ref{outputBlock} or at least assist traders with their exits games, by providing the Merkle proofs for their trading volumes \ref{exitRules}.
 
 \subsubsection{Proof of correctness and fairness}
-Once the prices are calculated by the chain operator, he needs to prove that this set of prices is actually valid and fair. A  price set and a output-block (oB) \ref{outputBlock} is valid and fair, if
+Once the prices are calculated by the chain operator, he needs to prove that this set of prices is actually valid and fair. A price set and a output-block (oB) \ref{outputBlock} is valid and fair, if
 \begin{itemize}
 
 \item if the price set satisfies \ref{eq:arbitrage_freeness} 
@@ -243,9 +245,9 @@ Once the prices are calculated by the chain operator, he needs to prove that thi
 \item If an $\text{Orders}_{(B\rightarrow A)}$ with a limit price p has a positive trading volume, then every $\text{Orders}_{(B\rightarrow A)}$ with a lower limit price as p should be traded completely.
 \end{itemize}
 
-In order to prove this, we will use snarks (Succinct non-interactive arguments of knowledge) \cite{snarks}. They are a powerful tool, which enables us to encode the above mentioned checking logic into an algebraical formulation. This allows us to generate some verification keys, which compactify this checking logic. Then for each set of prices and any output-block, we can generate quite quickly a proof that they satisfy the constraints using the verification keys. The proof size is very small (8 bytes64 variables) and can easily be provided to the main chain. Also, the execution of the proof is not too costly: it is around 1.6 million gas on the main chain. The library Zokrates demonstrates these methods very well for the ethereum eco-system.
+In order to prove this, we will use snarks (Succinct non-interactive arguments of knowledge) \cite{snarks}. They are a powerful tool, which enables us to encode the above mentioned checking logic into an algebraic formulation. This allows us to generate some verification keys, which compactify this checking logic. Then for each set of prices and any output-block, we can generate quite quickly a proof that they satisfy the constraints using the verification keys. The proof size is very small (8 bytes64 variables) and can easily be provided to the root-chain. Also, the execution of the proof is not too costly: it is around 1.6 million gas on the ethereum chain. The library Zokrates demonstrates these methods very well for the ethereum eco-system.
 
-Now, we will describe the snark mechanism in more detail: We assume that there are n tokens traded on the exchange. In the following we denote the block containing all orders OrB \ref{orderblock}, the order-output block OoB \ref{outputBlock}, the bitmap B and $M_R(OrB)$, $M_R(OoB)$, $M_R(B)$ their Merkleroot hashes, respectively. Let us denote the decrypted orders from the block OrB as list $\text{[orders]= [order}_1\text{, order}_2\text{,...]}$ and the trading volume of each order by the list $\text{[volumes] = [volume}_1\text{, volume}_2\text{...]}$, where the $\text{volume}_i$ corresponds to the $\text{order}_i$. Also, we denote  $p_{A,B}$ as the price between Token A and Token B.
+Now, we will describe the snark mechanism in more detail: We assume that there are n tokens traded on the exchange. In the following we denote the block containing all orders OrB \ref{orderblock}, the order-output block OoB \ref{outputBlock}, the bitmap B and $M_R(OrB)$, $M_R(OoB)$, $M_R(B)$ their Merkleroot hashes, respectively. Let us denote the decrypted orders from the block OrB as list $\text{[orders]= [order}_1\text{, order}_2\text{,...]}$ and the trading volume of each order by the list $\text{[volumes] = [volume}_1\text{, volume}_2\text{...]}$, where the $\text{volume}_i$ corresponds to the $\text{order}_i$.
 
 Then the program P(i,w) should prove the above mentioned facts. The public input into P is declared by the variable i and w will be the witness. In details it will look like:
 \begin{equation}
@@ -271,7 +273,7 @@ where $\text{[orders]} \cup \text{[volumes]} = \text{[order}_1, \text{volume}_1,
 \end{split}
 \end{equation}
 
-\item For each trading pair, P loops through all orders and memorizes the highest limit price of an order of this pair, which is still has a positive trading volume. Then it loops through them again and checks that no other order with a lower limit price has not been filled.
+\item For each trading pair, P loops through all orders and memorizes the highest limit price of an order of this pair, which still has a positive trading volume. Then it loops through them again and checks that no other order with a lower limit price has not been filled.
 \end{itemize}
 
 Once the proof is calculated, the chain operator will publish it on the plasma chain. 
