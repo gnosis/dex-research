@@ -109,7 +109,7 @@
 
 \begin{abstract}
 
-This document outlines a formal specification of a batch auction exchange of ERC20 tokens using the plasma technologies. The batch auction mechanism will enable the execution of ring trades between different tokens. Plasma technologies will provide the same security for customers as if the tokens were held in the ethereum blockchain. But gas costs will be significantly lower than for any on-chain exchanges. It is recommended for the reader to familiarize himself with Plasma, Plasma MVP, snarks and batch auctions before reading this spec.
+This document outlines a formal specification of a batch auction exchange of ERC20 tokens using the plasma technologies. The batch auction mechanism will enable the execution of ring trades between different tokens. Plasma technologies will provide the same security for users as if the tokens were held in the ethereum blockchain. But gas costs will be significantly reduced due to the off-chain nature of the exchange mechanism. It is recommended for the reader to familiarize themselves with Plasma \cite{plasma}, Plasma MVP \cite{mvp}, snarks \cite{snarks} and batch auctions \cite{batch} before reading this spec.
 
 \end{abstract}
 
@@ -380,6 +380,11 @@ Caimu Tang
 Curve Discrete Logarithm.}  
 https://pdfs.semanticscholar.org/3c52/35523be1d305de6dbf3433965c99d9fe4aea.pdf
  
+\bibitem{plasma} 
+Vitalik Buterin and Joseph Poon
+\textit{Plasma}. 
+https://plasma.io/plasma.pdf
+
 \bibitem{MVP} 
 Vitalik Buterin
 \textit{Plasma minimal viable product}. 
@@ -403,6 +408,12 @@ https://crypto.stackexchange.com/questions/31602/how-does-encryption-work-in-ell
 Knudsen-Nyberg cipher
 \\\texttt{ Knudsen-Nyberg cipher}
 https://eprint.iacr.org/2016/492.pdf
+
+
+\bibitem{batch} 
+Batch Trading
+\\\texttt{}
+https://www.investopedia.com/terms/b/batchtrading.asp
 
 \end{thebibliography}
 \end{document}
