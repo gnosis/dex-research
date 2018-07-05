@@ -174,7 +174,7 @@ For any order $\sigma \in \pO_{i\ra j}$ we define $\nu_p(\sigma)$ as the volume 
 We are following the description of the Plasma Minimal Viable Product, as it is described in \cite{MVP}. This means all assets are represented in the plasma chain as unspent transaction outputs (utxo). These utxos can be transferred to a new owner by making a transaction, waiting for its inclusion into the plasma chain, validating the chain, waiting for the plasma block to be submitted to the main-chain and then, sending a double-sign message to the receiver. 
 
 Any utxo may be exited at any time, by providing a Merkle proof of the receiving transaction. However, if the exit is not valid, then it will be canceled via a challenge process.
-Note that the plasma implementation will require users to be online and validate the chain's state at least once a week\todo{Why is this?}. If one seeks to participate in an auction, they would need to be online to broadcast their order, double sign and to receive/validate the order-output block message.
+Note that the plasma implementation will require users to be online and validate the chain's state at least once a week\todo{Why is this?}. If one seeks to participate in an auction, they would need to be online to broadcast their order, double sign and to receive/validate the volume-block message.
 
 
 
@@ -262,9 +262,9 @@ Once the prices are calculated by the chain operator, he needs to prove that thi
 \item If an $\text{Orders}_{(B\rightarrow A)}$ with a limit price p has a positive trading volume, then every $\text{Orders}_{(B\rightarrow A)}$ with a lower limit price as p should be traded completely.
 \end{itemize}
 
-In order to prove this, we will use snarks (Succinct non-interactive arguments of knowledge) \cite{snarks}. They are a powerful tool, which enables us to encode the above mentioned checking logic into an algebraical formulation. This allows us to generate some verification keys, which compactify this checking logic. Then for each set of prices and any output-block, we can generate quite quickly a proof that they satisfy the constraints using the verification keys. The proof size is very small (8 bytes64 variables) and can easily be provided to the main chain. Also, the execution of the proof is not too costly: it is around 1.6 million gas on the main chain. The library Zokrates demonstrates these methods very well for the ethereum eco-system.
+In order to prove this, we will use snarks (Succinct non-interactive arguments of knowledge) \cite{snarks}. They are a powerful tool, which enables us to encode the above mentioned checking logic into an algebraical formulation. This allows us to generate some verification keys, which compactify this checking logic. Then for each set of prices and any volume-block, we can generate quite quickly a proof that they satisfy the constraints using the verification keys. The proof size is very small (8 bytes64 variables) and can easily be provided to the main chain. Also, the execution of the proof is not too costly: it is around 1.6 million gas on the main chain. The library Zokrates demonstrates these methods very well for the ethereum eco-system.
 
-Now, we will describe the snark mechanism in more detail: We assume that there are n tokens traded on the exchange. In the following we denote the block containing all orders OrB \ref{orderblock}, the order-output block OoB \ref{outputBlock}, the bitmap B and $M_R(OrB)$, $M_R(OoB)$, $M_R(B)$ their Merkleroot hashes, respectively. Let us denote the decrypted orders from the block OrB as list $\text{[orders]= [order}_1\text{, order}_2\text{,...]}$ and the trading volume of each order by the list $\text{[volumes] = [volume}_1\text{, volume}_2\text{...]}$, where the $\text{volume}_i$ corresponds to the $\text{order}_i$. Also, we denote  $p_{A,B}$ as the price between Token A and Token B.
+Now, we will describe the snark mechanism in more detail: We assume that there are n tokens traded on the exchange. In the following we denote the block containing all orders OB \ref{orderblock}, the volume-block VB \ref{volumeBlock}, the bitmap B and $M_R(OrB)$, $M_R(OoB)$, $M_R(B)$ their Merkleroot hashes, respectively. Let us denote the decrypted orders from the block OrB as list $\text{[orders]= [order}_1\text{, order}_2\text{,...]}$ and the trading volume of each order by the list $\text{[volumes] = [volume}_1\text{, volume}_2\text{...]}$, where the $\text{volume}_i$ corresponds to the $\text{order}_i$. Also, we denote  $p_{A,B}$ as the price between Token A and Token B.
 
 Then the program P(i,w) should prove the above mentioned facts. The public input into P is declared by the variable i and w will be the witness. In details it will look like:
 \begin{equation}
@@ -323,7 +323,7 @@ The order-output ($oo_B$) denominated in Token B will be calculated by the price
 	oo_B = p_{A|B} \times \text{OrderInputAmount} \times \text{volume}_{\text{order}} \times (1-\text{fee}_{\text{ratio}})
     \label{fee_equ}
 \end{equation}
-where $\text{volume}_{\text{order}}$ is the volume declared in the output-block.  
+where $\text{volume}_{\text{order}}$ is the volume declared in the volume-block.  
 
 These order-outputs can then be spent again via a transaction, but can not be used as an input for another an order.
 If any of these order-outputs is not correctly created by the chain operator, people have to leave the plasma chain. Then the last batch will be settled on the root-chain or reverted.
@@ -331,7 +331,7 @@ If any of these order-outputs is not correctly created by the chain operator, pe
 \subsubsection{Claiming Fees} After each batch auction, the plasma-contract on the root-chain will hold some tokens, which are not covered by transaction outputs in the plasma chain, due to fee mechanism specified in \ref{fee_equ}. The chain operator is allowed to create a new utxo with the number of uncovered tokens, in order to claim the fees.
 
 \subsubsection{Auction scheduling process}
-An auction can have variable time. The operator can decide on his own when to close the batch and create the "order block" \ref{orderblock}. Once this block is posted, it will take some time until the orders are processed. But the operator will ensure a smooth flow by accepting new orders right away. But of course, these orders and all transfers will not be executed if the chain will halt.
+An auction can have variable time. The operator can decide on his own when to close the batch and create the order-block \ref{orderblock}. Once this block is posted, it will take some time until the orders are processed. But the operator will ensure a smooth flow by accepting new orders right away. But of course, these orders and all transfers will not be executed if the chain will halt.
 Hence batch auctions can be scheduled pretty fast and smooth one after the other. But the finality of an auction is only guaranteed after the client sees all the data available for a batch auction, including the bitmap, decryption key, prices, and price verification data.  
 
 
@@ -339,7 +339,7 @@ Hence batch auctions can be scheduled pretty fast and smooth one after the other
 \label{exitRules}
 \paragraph{Transfer transactions} have exactly the same exit rules, as in the usual plasma mvp. But there are two differences. 
 \begin{itemize}
-  \item We would maintain a variable $highestExitPriority$. This highestExitPriority would be infinity in normal cases. But if the plasma chain is halted, because a data-unavailability request \ref{enforceAvailablity} was not answered in a certain time frame, then this variable will play an important role. It will set the highest exit priority to the priority of the last block, before the order block submission. Any utxo generated after $highestExitPriority$ will not be able to withdraw and any exit request cannot be challenged with a utxo spend after this highestExitPriority. Effectively, we are resetting the plasma state to a previous state by setting highestExitPriority.
+  \item We would maintain a variable $highestExitPriority$. This highestExitPriority would be infinity in normal cases. But if the plasma chain is halted, because a data-unavailability request \ref{enforceAvailablity} was not answered in a certain time frame, then this variable will play an important role. It will set the highest exit priority to the priority of the last block, before the order-block submission. Any utxo generated after $highestExitPriority$ will not be able to withdraw and any exit request cannot be challenged with a utxo spend after this highestExitPriority. Effectively, we are resetting the plasma state to a previous state by setting highestExitPriority.
 \item Any utxo can be challenged as spent and not exit-able, by showing an order, a double signing of the order and that the trading volume of this order is positive in this double signed batch.
 \end{itemize}
 \paragraph{Order transactions} need to be double signed in a batch and must be touched in the auction with a positive trading volume for an allowance of withdrawn. That means every withdrawal request would need to prove this - by providing Merkle proofs. For these  "touched" orders only the target token can be withdrawn, but not the input token. Hence, trades are enforced and cannot be reverted arbitrarily.
