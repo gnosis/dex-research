@@ -122,7 +122,7 @@ This document outlines a formal specification of a batch auction exchange of ERC
 \paragraph{Multi-batch auctions with uniform clearing prices}
 
 This specification outlines a trading mechanism between several ERC20 tokens. Each batch accepts orders to buy any ERC20 token with any other ERC20 token for a maximal specified limit price. All orders are collected over some time interval and then an \emph{uniform clearing price} over all token pairs is calculated. 
-For a list of k trading tokens denoted by $\Tau$ with clearing prices $\{p_{A|B}\}$, we call the set of prices $\{p_{A|B}| A,B \in \Tau \}$ an uniform clearing price, if
+For a list of $k$ trading tokens denoted by $\Tau$ with clearing prices $\{p_{A|B}\}$, we call the set of prices $\{p_{A|B}| A,B \in \Tau \}$ an uniform clearing price, if
 \begin{align}
   p_{A|B} \cdot p_{B|C} = p_{A|C}\\
   p_{A|B} = p_{B|A}
