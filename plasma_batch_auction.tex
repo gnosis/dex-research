@@ -109,7 +109,7 @@
 
 \begin{abstract}
 
-This document outlines a formal specification of a batch auction exchange of ERC20 tokens using the plasma technologies. The batch auction mechanism will enable the execution of ring trades between different tokens. Plasma technologies will provide the same security for users as if the tokens were held in the ethereum blockchain. But gas costs will be significantly reduced due to the off-chain nature of the exchange mechanism. It is recommended for the reader to familiarize themselves with Plasma \cite{plasma}, Plasma MVP \cite{MVP}, snarks \cite{snarks} and batch auctions \cite{batch} before reading this spec.
+This document outlines a formal specification of a batch auction exchange of ERC20 tokens using the plasma technologies. The batch auction mechanism will enable the execution of ring trades between different tokens. Plasma technologies will provide the same security for users as if the tokens were held in the ethereum blockchain. But gas costs will be significantly reduced due to the off-chain nature of the exchange mechanism. It is recommended for the reader to familiarize themselves with Plasma\cite{plasma}, Plasma MVP\cite{MVP}, snarks\cite{snarks} and batch auctions\cite{batch} before reading this spec.
 
 \end{abstract}
 
@@ -127,7 +127,7 @@ For a list of $k$ trading tokens denoted by $\Tau$ with clearing prices $\{p_{A|
   p_{A|B} \cdot p_{B|C} = p_{A|C}\\
   p_{A|B} = p_{B|A}
 \end{align}
-Finding the uniform clearing prices, which also maximize trading volume and "traders welfare" is a complicated task. The paper [] describes a mechanism in detail. Uniform clearing prices are beneficial for any trader since they are arbitrage-free and ensure good liquidity via built in ring trades. We will assume for the following that these uniform clearing prices for a multi-batch auction can be found fairly quickly. \newline
+Finding the uniform clearing prices, which also maximize trading volume or other metrics is a complicated task. The paper [] describes a mechanism in detail. Uniform clearing prices are beneficial for any trader since they are arbitrage-free and ensure good liquidity via built in ring trades. We will assume for the following that these uniform clearing prices for a multi-batch auction can be found fairly quickly. \newline
 We secure the multi-token batch mechanism against any front-running attacks by allowing people to submit encrypted orders into the batch auction. Only once the batch is closed, they have to reveal their order and then the prices can be calculated. 
 
 \paragraph{Plasma minimal viable product}
@@ -146,16 +146,16 @@ Once the bitmap is seen by many parties on the plasma chain, the private key for
 \subsection{Setup description}
 
 \subsubsection{Definitions}
-Let us start of with writing down some very basic definitions, which we will use throughout this paper.
+Let us begin with writing down some very basic definitions, which we will use throughout this paper.
 In a batch auction we are trading ERC20 tokens against each other. Let us denote the set of ERC20 token, which participate in a batch by $\Tau$. \newline
-Order selling a Token A and intending to buy a Token B for $A,B\in \Tau$, will be denoted by $\text{Orders}_{A\rightarrow B}$. \newline
-Once a batch is closed, we there will be the set of uniform clearning prices. If we have n tokens in batch, then this price can be represented by a matrix $\{p_{A|B}| A,B \in \Tau \}$. \newline
+An Order selling a Token A and intending to buy a Token B for $A,B\in \Tau$, will be denoted by $\text{Orders}_{A\rightarrow B}$. \newline
+Once a batch is closed, we will need to publish a set of uniform clearning prices. If we have n tokens in batch, then this price can be represented by a nxn matrix $\{p_{A|B}| A,B \in \Tau \}$. \newline
 For any order $o \in \text{Orders}_{A\rightarrow B}$ we define $\text{vol}_p(o)$ the volume of an order denominated in token A for some clearing prices p.
 
 \subsubsection{Plasma chain setup}
-We are following the description of the Plasma Minimal Viable Product, as it is described here: \cite{MVP}. This means all assets are represented in the plasma chain as unspent transaction outputs (utxo). These utxo can be send to a new owner by making a transaction, waiting for its inclusion into the plasma chain, validating the chain, waiting for the plasma block to be submitted to the main-chain and then, sending a double-sign message to the receiver.
+We are following the description of the Plasma Minimal Viable Product\cite{MVP}. This means all assets are represented in the plasma chain as unspent transaction outputs (utxo). These utxo can be send to a new owner by making a transaction, waiting for its inclusion into the plasma chain, validating the chain, waiting for the plasma block to be submitted to the main-chain and then, sending a double-sign message to the receiver.
 Any utxo can be exited at any time, by providing a Merkle proof of the receiving transaction. But, if the exit is not valid, then the exit will be canceled by a challenging process.
-The plasma implementation will require users to be online and validate the chain in general at least once a week. If they want to participate in an auction, they need to be online to broadcast their order, to double sign the order and to receive and validate the order-output block message.
+The plasma implementation will require users to be online and validate the chain in general at least once a week. 
 
 
 
@@ -174,14 +174,14 @@ In the following section we will describe the general tradeflow through all its 
 
 
 \subsubsection{Encryption Key Generation}
-All orders will be encrypted with a public key generated by the Distributed Key Generation (DKG) algorithm \cite{DKG}. A predefined number of bonded participants will be part of the DKG algorithm.  By exchanging special messages and withholding others, they will generate a new public key, for which the private decryption key is not known to any single participant. Only later, after the closing of the batch auction, the participants are asked to publish their private key for the generation of the private key for the decryption of the orders. If a predefined threshold is met, then this will allow anyone to generate the private key. If the participants publish their key previous to the closing of the batch and its documentation on the main-chain, the protocol will allow to slash them on-chain. Using this approach, we will have encrypted orders, unless a big portion of bonded DKG participants is malicious.
+All orders will be encrypted with a public key generated by the Distributed Key Generation (DKG) algorithm \cite{DKG}. A predefined number of bonded participants will be part of the DKG algorithm.  By exchanging special messages and withholding others, they will generate a new public key, for which the private decryption key is not known to any single participant. Only later, after the closing of the batch auction, the participants are asked to publish their private messages for the generation of the private key for the decryption of the orders. If a predefined threshold of participation is met, then this will allow anyone to generate the private key. If the participants publish their key previous to the closing of the batch and its documentation on the root-chain, the protocol will allow to slash them. Using this approach, we will have encrypted orders, unless a big portion of bonded DKG participants is malicious.
 
-The DKG algorithm generates a public key represented as an elliptic point $aG\label{public key}$, for a generator G and a secret $a\in \mathbb{N}$. This public key can then be used to encrypt messages via the ECIES \cite{ECIES}. Each trader calculates $bG \label{salt}$ for a random natural number b and publishes this number in his order. Then he calculates: $baG$ and determines from this number the symmetric key pair for encrypting his order. A good symmetric encryption mechanism might be \cite{cipher}. Later, once a is public, we can decrypt the orders by calculating $abG$, which equals $baG$.
+The DKG algorithm generates a public key represented as an elliptic point $aG\label{public key}$, for a generator G and a secret $a\in \mathbb{N}$. This public key can then be used to encrypt messages via the ECIES \cite{ECIES}. Each trader calculates $bG \label{salt}$ for a random natural number b and publishes this number in his order. Then he calculates: $baG$ and determines from this number the symmetric key pair for encrypting his order. A good symmetric encryption mechanism for our purpose would be Knudsen-Nyberg cipher \cite{cipher}. Later, once $a$ is public, we can decrypt the orders by calculating $abG$, which equals $baG$.
 
 
 \subsubsection{Order collection}
 \label{orderblock}
-Once the public key for the encryption process is available, every trader can submit an order. In the plasma chain, all assets of the ERC20 tokens are represented with unspent transaction outputs (utxo). An order will refer to a utxo of an ERC20 token A and this utxo will be exchanged for the specified token B for a price below the given, encrypted limit price.
+Once the public key for the encryption process is available, every trader can submit orders. In the plasma chain, all assets of the ERC20 tokens are represented with unspent transaction outputs (utxo). An order will refer to a utxo of an ERC20 token A and this utxo will be exchanged for the specified token B for a price below or equal to the given, encrypted limit price.
 \begin{lstlisting}
 Order[   UTXO TokenA,
 	Encrypted(limit price),
@@ -190,7 +190,8 @@ Order[   UTXO TokenA,
 	Other data: references and signatures]
 \end{lstlisting} 
 The encryption salt is the elliptic point used for encryption:  $bG$ (cp. \ref{salt}).
-All orders will be collected and board-casted in one block per auction, the order-block. All orders included in this order-block will be able to participate in the next auction. Theoretically, the chain operator can censor orders, but since they are encrypted, he does not know what he is censoring. Sometimes the operator needs to censor some orders since, in a single batch, there shouldn't be more than $2^{16}$ orders.  If users want to cancel their order, they should spend their utxo referred in their order.
+All orders will be collected and board-casted in one block per auction, the order-block. All orders included in this order-block will be able to participate in the next auction. Theoretically, the chain operator can censor orders, but since they are encrypted, he does not know what he is censoring. Sometimes the operator needs to censor some orders since, in a single batch, there shouldn't be more than $2^{16}$ orders. \newline
+If users want to cancel their order, they should spend their utxo referred in their order.
 
 \subsubsection{Double signing process}
 Once the block with the orders is published and the Merkleroot hash is submitted in the root-chain, every participant in the batch auction needs to validate this new block and the complete chain. Once they commit that their order should be included in the next batch, they will all be able to withdraw their order funds only with the priority of this order-block. (This will be explained in detail here: \ref{exitRules}).
@@ -201,12 +202,13 @@ DoubleSign      [OrderHash,
 		BatchIndex,
 		Signature]
 \end{lstlisting}
-The operator collects all these double signed messages and constructs a bitmap, in order to generate a crypto-economic signature aggregation (cp. \cite{sig}). If the operator gets a double signed message for the order at the i-th place in the block, then the operator puts a 1 into the bitmap at the i-th place. Otherwise, he puts a 0 in there. Next, the operator publishes the bitmap and all signature messages in a next plasma block. If the bitmap is not available or incorrect, anyone can ask the operator to publish it on the main-chain and then each bit of the map could be challenged by asking the operator to show the double signed message. \newline
+The operator collects all these double signed messages and constructs a bitmap, in order to generate a crypto-economic signature aggregation (cp. \cite{sig}). If the operator gets a double signed message for the order at the i-th place in the block, then the operator puts a 1 into the bitmap at the i-th place. Otherwise, he puts a 0 in there. Next, the operator publishes the bitmap and all signature messages in a next plasma block. If the bitmap is not available or incorrect, anyone can ask the operator to publish it on the root-chain and then each bit of the map could be challenged by asking the operator to show the Doublesign message. \newline
 Placing an order, which will not be executed by the limit price, is for free. If people miss-use this free option to spam the plasma chain, they will be censored by the plasma chain operator. The operator could keep on censoring their data, so that they are forced to withdraw their funds from the exchange.\newline
 This double signing process will hinder a very smooth user experience. Hence, we would allow users outsource this process of double signing to another service. This involves some trust, but the trust is limited, as this service can not change a order, it can just double sign the order. 
 
 \subsubsection{DKG private key generation}
-Once the plasma block, containing the bitmap. is published and submitted to the main chain, the DKG participants will publish their hidden messages used for generating the DKG-public key. They do it by sending their inputs to the chain operator. Once the threshold is reached and there are enough messages available to generate the private key, the operator will do it and publish it in a next plasma block.
+Once the plasma block containing the bitmap is published and submitted to the root-chain, the DKG participants will publish their hidden messages used for generating the DKG-public key. They do it by sending their inputs to the chain operator. Once the threshold is reached and there are enough messages available to generate the private key, the operator will do it and publish it in a next plasma block.
+
 \subsubsection{Price submission}
 Once the previous step is finished, the chain operator can calculate the optimal prices between all ERC20 tokens with the current orders. If $\{p_{A|B}| A,B \in \Tau \}$  are the uniform clearing prices, they are satisfying the following equation
 \begin{align}
@@ -220,12 +222,13 @@ The operator would additionally publish another block, which contains the inform
 	[[\text{order}_1, \text{volume}_1], [\text{order}_2, \text{volume}_2],...].
 \end{align} 
 We want to call this block the "output-block" \label{outputBlock}. 
-We need to specify the trading volume for each order since not every order below the limit price will be completely executed. This is non-intuitive but this is one of the things we have to deal with in a batch auction.
-\paragraph{Optional mechanism: Price submission by a third party} Usually the price would be submitted by the chain operator only. But if the chain operator does not publish the prices, we could accept price submission root-chain by any person. The smart contract on the root-chain would select the price submission as the final price, which is valid, has a valid proof of correctness and fairness and has the biggest trading volume measured in Ether. \newline
+We need to specify the trading volume for each order since not every order below the limit price will be completely executed. This is non-intuitive, but this is one of the things we have to deal with in a batch auction.
+
+\paragraph{Optional mechanism: Price submission by a third party} Usually the price would be submitted by the chain operator only. But if the chain operator does not publish the prices, we could accept price submission on the root-chain by anyone. The smart contract on the root-chain would select the price submission as the final price, which is valid, has a valid proof of correctness and fairness and has the biggest trading volume measured in Ether. \newline
 Note that in this case, the price submitter would also need to provide the "output-block" \ref{outputBlock} or at least assist traders with their exits games, by providing the Merkle proofs for their trading volumes \ref{exitRules}.
 
 \subsubsection{Proof of correctness and fairness}
-Once the prices are calculated by the chain operator, he needs to prove that this set of prices is actually valid and fair. A  price set and a output-block (oB) \ref{outputBlock} is valid and fair, if
+Once the prices are calculated by the chain operator, he needs to prove that this set of prices is actually valid and fair. A price set and a output-block (oB) \ref{outputBlock} is valid and fair, if
 \begin{itemize}
 
 \item if the price set satisfies \ref{eq:arbitrage_freeness} 
@@ -242,9 +245,9 @@ Once the prices are calculated by the chain operator, he needs to prove that thi
 \item If an $\text{Orders}_{(B\rightarrow A)}$ with a limit price p has a positive trading volume, then every $\text{Orders}_{(B\rightarrow A)}$ with a lower limit price as p should be traded completely.
 \end{itemize}
 
-In order to prove this, we will use snarks (Succinct non-interactive arguments of knowledge) \cite{snarks}. They are a powerful tool, which enables us to encode the above mentioned checking logic into an algebraical formulation. This allows us to generate some verification keys, which compactify this checking logic. Then for each set of prices and any output-block, we can generate quite quickly a proof that they satisfy the constraints using the verification keys. The proof size is very small (8 bytes64 variables) and can easily be provided to the main chain. Also, the execution of the proof is not too costly: it is around 1.6 million gas on the main chain. The library Zokrates demonstrates these methods very well for the ethereum eco-system.
+In order to prove this, we will use snarks (Succinct non-interactive arguments of knowledge) \cite{snarks}. They are a powerful tool, which enables us to encode the above mentioned checking logic into an algebraic formulation. This allows us to generate some verification keys, which compactify this checking logic. Then for each set of prices and any output-block, we can generate quite quickly a proof that they satisfy the constraints using the verification keys. The proof size is very small (8 bytes64 variables) and can easily be provided to the root-chain. Also, the execution of the proof is not too costly: it is around 1.6 million gas on the ethereum chain. The library Zokrates demonstrates these methods very well for the ethereum eco-system.
 
-Now, we will describe the snark mechanism in more detail: We assume that there are n tokens traded on the exchange. In the following we denote the block containing all orders OrB \ref{orderblock}, the order-output block OoB \ref{outputBlock}, the bitmap B and $M_R(OrB)$, $M_R(OoB)$, $M_R(B)$ their Merkleroot hashes, respectively. Let us denote the decrypted orders from the block OrB as list $\text{[orders]= [order}_1\text{, order}_2\text{,...]}$ and the trading volume of each order by the list $\text{[volumes] = [volume}_1\text{, volume}_2\text{...]}$, where the $\text{volume}_i$ corresponds to the $\text{order}_i$. Also, we denote  $p_{A,B}$ as the price between Token A and Token B.
+Now, we will describe the snark mechanism in more detail: We assume that there are n tokens traded on the exchange. In the following we denote the block containing all orders OrB \ref{orderblock}, the order-output block OoB \ref{outputBlock}, the bitmap B and $M_R(OrB)$, $M_R(OoB)$, $M_R(B)$ their Merkleroot hashes, respectively. Let us denote the decrypted orders from the block OrB as list $\text{[orders]= [order}_1\text{, order}_2\text{,...]}$ and the trading volume of each order by the list $\text{[volumes] = [volume}_1\text{, volume}_2\text{...]}$, where the $\text{volume}_i$ corresponds to the $\text{order}_i$.
 
 Then the program P(i,w) should prove the above mentioned facts. The public input into P is declared by the variable i and w will be the witness. In details it will look like:
 \begin{equation}
@@ -270,7 +273,7 @@ where $\text{[orders]} \cup \text{[volumes]} = \text{[order}_1, \text{volume}_1,
 \end{split}
 \end{equation}
 
-\item For each trading pair, P loops through all orders and memorizes the highest limit price of an order of this pair, which is still has a positive trading volume. Then it loops through them again and checks that no other order with a lower limit price has not been filled.
+\item For each trading pair, P loops through all orders and memorizes the highest limit price of an order of this pair, which still has a positive trading volume. Then it loops through them again and checks that no other order with a lower limit price has not been filled.
 \end{itemize}
 
 Once the proof is calculated, the chain operator will publish it on the plasma chain. 
@@ -280,7 +283,7 @@ Once the proof is calculated, the chain operator will publish it on the plasma c
 \label{enforceAvailablity}
 In case the operator goes off-line and we get a data-unavailability, we still want to make sure that the last auction can be completed by all participants or will be cleanly un-rolled. Since data availability on the plasma chain is subjective, we need to make sure that all necessary information will be loaded into the root-chain, in the worst case.
 The data is the bitmap, the private key for decrypting the orders, the prices and the proof for correct volumes.
-\paragraph{bitmap} It is essential for everyone to know, what the bitmap of an auction is, in order to know which orders are in the batch. If the bitmap has not been sent out by the chain operator, we have to make it available on the root chain. Everyone can request - in exchange for a small fee - that the bitmap gets published on the root chain. Then anyone can publish the bitmap along with a plasma containment proof of this bitmap and get the fee. If no one publishes it, then the last batch will be rolled back completely. This means that only utxos, which were submitted before the last order book hash submission, will be accepted for any withdraw.
+\paragraph{bitmap} It is essential for everyone to know, what the bitmap of an auction is, in order to know which orders are in the batch. If the bitmap has not been sent out by the chain operator, we have to make it available on the root-chain. Everyone can request - in exchange for a small fee - that the bitmap gets published on the root-chain. Then anyone can publish the bitmap along with a plasma containment proof of this bitmap and get the fee. If no one publishes it, then the last batch will be rolled back completely. This means that only utxos, which were submitted before the last order book hash submission, will be accepted for any withdraw.
 \paragraph{decryption keys} Also, it is essential for everyone to know, what the decryption key of an auction is, in order to know the limit prices of the encrypted orders. If the decryption key is not publicly available, we can apply the same process as for the bitmap to make it public.
 
 \paragraph{prices} The prices are also essential to know for each participant. If they are not public, again they can be made public with the same mechanism. We note that the gas costs for publishing the prices increase linearly with the number of tokens.
@@ -336,7 +339,7 @@ But unfortunately, some actors have an advantage. If many DKG key holders do not
 \subsection{Safety in case of a data-unavailability}
 For token transfers, we have the same data-unavailability fallbacks, as the MVP product. Hence a double sign mechanism protects people from losing funds. It is only getting a little bit more complex, as users should not double sign a transaction, which happens right after the closing of a batch, before they validated the WHOLE process of the batch closing, including the publishing of valid prices, snark proofs of correctness and a correct order-output block.
 Also for traders, the safety is guaranteed by a  double signing mechanism. If there is anything incorrect, before the double signing step, traders will just not double sign their batch.
-If there is any data-unavailability after the double signing step, then this data can be requested on the root chain. The was constructed in such a way with snarks and bitmaps, that it is easy and relatively cheap to publish on the root-chain. Then still any trader can get his trade settle, or the batch is reverted if the data is not uploaded to the root-chain. For a detailed description of the data, which needs to be made available, see here: \ref{enforceAvailablity}. The proof that these data are enough to settle the trade either on the plasma chain or on the root-chain is left to the reader.  
+If there is any data-unavailability after the double signing step, then this data can be requested on the root-chain. The was constructed in such a way with snarks and bitmaps, that it is easy and relatively cheap to publish on the root-chain. Then still any trader can get his trade settle, or the batch is reverted if the data is not uploaded to the root-chain. For a detailed description of the data, which needs to be made available, see here: \ref{enforceAvailablity}. The proof that these data are enough to settle the trade either on the plasma chain or on the root-chain is left to the reader.  
 
 \subsection{Non-custody of funds}
 From the above analysis, we can conclude that the plasma chain operator does never have the ability to steal tokens if all users come online regularly and behave correctly. This is one of the key features of this construction.
@@ -344,7 +347,7 @@ From the above analysis, we can conclude that the plasma chain operator does nev
 \subsection{Grieving vectors and tragedy of the common}
 Unfortunately, our specification had to take some trade-offs. The main problem is that data-unavailability is subjective. Hence, people can always claim that data is missing. Then someone is required to publish these data on the main chain including a Merkle proof attesting that the published data is the same as on the plasma chain.
 This is a problem, since providing data on the root-chain can be quite costly. Our solution is that the requester needs to pay some decent fee to the data-provider, in order to prevent grieving attacks. But this leaves the construction with a tragedy of the commons, as no one, in particular, would have the incentive to ask for the data in case of a real data-unavailability case. But still, this action would be required from someone. \newline 
-Since we estimate the costs of this data-request on the root chain to be definitively lower than 10 Dollar, the tragedy of the commons is very small. There should always be a party, which request the data for everyone else. Hence, it is a reasonable trade-off. \newline Since the plasma chain operator will never intentionally generate these situations, as it will hurt his reputation, the incentives are well set. 
+Since we estimate the costs of this data-request on the root-chain to be definitively lower than 10 Dollar, the tragedy of the commons is very small. There should always be a party, which request the data for everyone else. Hence, it is a reasonable trade-off. \newline Since the plasma chain operator will never intentionally generate these situations, as it will hurt his reputation, the incentives are well set. 
 
 \subsection{Performance}
 There are some bottlenecks, which are considered for evaluating the performance:
@@ -352,7 +355,7 @@ There are some bottlenecks, which are considered for evaluating the performance:
   \item Price calculation. Finding these uniform clearing prices is a non-linear optimization problem. The solving time to find these prices increases exponentially with the number of tokens involved. 
 \item Generating the public verification keys for the snark proofs is a very challenging task having its own limitations. But we think that we can generate these verification keys for trade blocks with $2^{16}$ transactions.The calculation of the actual proof should then be feasible within a minute.
 \item Gas costs for bitmap and other data, which needs to be made available on the root-chain. Uploading a bitmap with 9000 entries costs about 100k gas.
-\item Plasma exists. Plasma exits are controversially discussed in the community. If there are too many utxo, which want to exit all at the same time, - maybe triggered by a data-unavailability, the root chain will be under heavy load and gas prices might spike.
+\item Plasma exists. Plasma exits are controversially discussed in the community. If there are too many utxo, which want to exit all at the same time, - maybe triggered by a data-unavailability, the root-chain will be under heavy load and gas prices might spike.
 \end{itemize}
 We think that the price calculation is the biggest bottleneck. But still, we are confident that we will be able to schedule auctions every 3 minutes with about $2^{16}$ orders.
 \subsection{Complexity}
