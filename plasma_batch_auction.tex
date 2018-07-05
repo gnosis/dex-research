@@ -239,13 +239,13 @@ The operator would additionally publish another block, which contains the inform
 \begin{align}
 	[[\text{order}_1, \text{volume}_1], [\text{order}_2, \text{volume}_2],...].
 \end{align} 
-We want to call this block the "output-block" \label{outputBlock}. 
+We want to call this block the "volume-block" \label{volumeBlock}. 
 We need to specify the trading volume for each order since not every order below the limit price will be completely executed. This is non-intuitive but this is one of the things we have to deal with in a batch auction.
 \paragraph{Optional mechanism: Price submission by a third party} Usually the price would be submitted by the chain operator only. But if the chain operator does not publish the prices, we could accept price submission root-chain by any person. The smart contract on the root-chain would select the price submission as the final price, which is valid, has a valid proof of correctness and fairness and has the biggest trading volume measured in Ether. \newline
-Note that in this case, the price submitter would also need to provide the "output-block" \ref{outputBlock} or at least assist traders with their exits games, by providing the Merkle proofs for their trading volumes \ref{exitRules}.
+Note that in this case, the price submitter would also need to provide the "volume-block" \ref{volumeBlock} or at least assist traders with their exits games, by providing the Merkle proofs for their trading volumes \ref{exitRules}.
 
 \subsubsection{Proof of correctness and fairness}
-Once the prices are calculated by the chain operator, he needs to prove that this set of prices is actually valid and fair. A  price set and a output-block (oB) \ref{outputBlock} is valid and fair, if
+Once the prices are calculated by the chain operator, he needs to prove that this set of prices is actually valid and fair. A  price set and a volume-block (oB) \ref{volumeBlock} is valid and fair, if
 \begin{itemize}
 
 \item if the price set satisfies \ref{eq:arbitrage_freeness} 
@@ -308,7 +308,7 @@ The data is the bitmap, the private key for decrypting the orders, the prices an
 \paragraph{price verification} The proof of the correct data is initially only stored in the plasma chain. But anyone can request the operator to publish the proof also on the main chain. We use again the same mechanism as before.
 
 
-\subsubsection{Order-output transactions} After the prices and a price verification proof are published, the operator will publish another block with all Order-output transactions. An order-output transaction will have the following format for a previously included order to buy Token B with Token A:
+\subsubsection{Order-output transactions} After the prices and a price verification proof are published, the operator will publish another block with all order-output transactions. An order-output transaction will have the following format for a previously included order to buy Token B with Token A:
 \begin{lstlisting}
 OrderOutput [ Order input tx ID,
 		Order output denominated in Token B, 
@@ -320,9 +320,10 @@ OrderOutput [ Order input tx ID,
 where the order-output denominated in Token A should be zero is the most cases, as orders will be most likely be fully filled.
 The order-output ($oo_B$) denominated in Token B will be calculated by the price 
 \begin{equation}
-	oo_B = p_{A|B} \times \text{OrderInputAmount} \times (1-\text{fee}_{\text{ratio}})
+	oo_B = p_{A|B} \times \text{OrderInputAmount} \times \text{volume}_{\text{order}} \times (1-\text{fee}_{\text{ratio}})
     \label{fee_equ}
 \end{equation}
+where $\text{volume}_{\text{order}}$ is the volume declared in the output-block.  
 
 These order-outputs can then be spent again via a transaction, but can not be used as an input for another an order.
 If any of these order-outputs is not correctly created by the chain operator, people have to leave the plasma chain. Then the last batch will be settled on the root-chain or reverted.
