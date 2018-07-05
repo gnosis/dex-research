@@ -87,6 +87,12 @@
 \newtheorem{lemma}[theorem]{Lemma}
 
 
+%Notational abbreviations
+
+\def\pO{\mathcal{O}}
+\def\ra{\rightarrow}
+
+\newcommand*{\erc}{ERC20 } 
 
 %%%%%%%%%%%%%%
 %% DOCUMENT %%
@@ -121,7 +127,7 @@ This document outlines a formal specification of a batch auction exchange of ERC
 
 \paragraph{Multi-batch auctions with uniform clearing prices}
 
-This specification outlines a trading mechanism between several ERC20 tokens. Each batch accepts orders to buy any ERC20 token with any other ERC20 token for a maximal specified limit price. All orders are collected over some time interval and then an \emph{uniform clearing price} over all token pairs is calculated. 
+This specification outlines a trading mechanism between several \erc tokens. Each batch accepts orders to buy any \erc token with any other \erc token for a maximal specified limit price. All orders are collected over some time interval and then an \emph{uniform clearing price} over all token pairs is calculated. 
 For a list of $k$ trading tokens denoted by $\Tau$ with clearing prices $\{p_{A|B}\}$, we call the set of prices $\{p_{A|B}| A,B \in \Tau \}$ an uniform clearing price, if
 \begin{align} \label{eq:arbitrage_freeness}
   p_{A|B} \cdot p_{B|C} &= p_{A|C}\\
@@ -155,16 +161,18 @@ Once the bitmap is seen by many parties on the plasma chain, the private key for
 \subsection{Setup description}
 
 \subsubsection{Definitions}
-Let us start of with writing down some very basic definitions, which we will use throughout this paper.
-In a batch auction we are trading ERC20 tokens against each other. Let us denote the set of ERC20 token, which participate in a batch by $\Tau$. \newline
-Order selling a Token A and intending to buy a Token B for $A,B\in \Tau$, will be denoted by $\text{Orders}_{A\rightarrow B}$. \newline
-Once a batch is closed, we there will be the set of uniform clearning prices. If we have n tokens in batch, then this price can be represented by a matrix $\{p_{A|B}| A,B \in \Tau \}$. \newline
-For any order $o \in \text{Orders}_{A\rightarrow B}$ we define $\text{vol}_p(o)$ the volume of an order denominated in token A for some clearing prices p.
+%Let us start of with writing down some very basic definitions, which we will use throughout this paper.
+In our (batch) auctions all trading will occur between a fixed set, $\Tau = \{\tau_i\}_{i=1}^n$, of $n$ \erc tokens. The collection of orders for which token $i$ is being sold in exchange for token $j$ will be denoted by $\pO_{i\ra j}$. 
+
+After an auction has closed uniform clearing prices have been determined, the price matrix can be represented as an $n\times n$ a matrix 
+\[P = \{p_{ij}| \tau_i, \tau_j \in \Tau \}.\]
+For any order $\sigma \in \pO_{i\ra j}$ we define $\nu_p(\sigma)$ as the volume of an order denominated in token $\tau_i$ at clearing prices $p$.
 
 \subsubsection{Plasma chain setup}
-We are following the description of the Plasma Minimal Viable Product, as it is described here: \cite{MVP}. This means all assets are represented in the plasma chain as unspent transaction outputs (utxo). These utxo can be send to a new owner by making a transaction, waiting for its inclusion into the plasma chain, validating the chain, waiting for the plasma block to be submitted to the main-chain and then, sending a double-sign message to the receiver.
-Any utxo can be exited at any time, by providing a Merkle proof of the receiving transaction. But, if the exit is not valid, then the exit will be canceled by a challenging process.
-The plasma implementation will require users to be online and validate the chain in general at least once a week. If they want to participate in an auction, they need to be online to broadcast their order, to double sign the order and to receive and validate the order-output block message.
+We are following the description of the Plasma Minimal Viable Product, as it is described in \cite{MVP}. This means all assets are represented in the plasma chain as unspent transaction outputs (utxo). These utxos can be transferred to a new owner by making a transaction, waiting for its inclusion into the plasma chain, validating the chain, waiting for the plasma block to be submitted to the main-chain and then, sending a double-sign message to the receiver. 
+
+Any utxo may be exited at any time, by providing a Merkle proof of the receiving transaction. However, if the exit is not valid, then it will be canceled via a challenge process.
+Note that the plasma implementation will require users to be online and validate the chain's state at least once a week\todo{Why is this?}. If one seeks to participate in an auction, they would need to be online to broadcast their order, double sign and to receive/validate the order-output block message.
 
 
 
