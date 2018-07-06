@@ -145,7 +145,7 @@ For a list of $k$ trading tokens denoted by $\Tau$ with clearing prices $\{p_{ij
 \end{align}
 
 
-Finding the uniform clearing prices, which also maximize trading volume or other predefined metrics is a complicated task. The paper []\todo{cite Tom?} describes a mechanism in detail. Uniform clearing prices are beneficial for any trader since they are arbitrage-free and ensure good liquidity via built-in ring trades. For the purpose of this document, it is assumed that these uniform clearing prices for a multi-batch auction can be efficiently determined. \newline
+Finding the uniform clearing prices, which also maximize trading volume or other predefined metrics is a complicated task. The paper \cite{priceOptimization} describes a mechanism in detail. Uniform clearing prices are beneficial for any trader since they are arbitrage-free and ensure good liquidity via built-in ring trades. For the purpose of this document, it is assumed that these uniform clearing prices for a multi-batch auction can be efficiently determined. \newline
 The multi-token batch mechanism is secured against front-running \footnote{Front-running is when a broker/operator enters into an equity/asset trade with foreknowledge of a block transaction which will influence the price} by allowing users to submit encrypted orders into the batch auction. Only after the batch has closed the orders be revealed and then the prices can be computed. 
 
 
@@ -293,6 +293,7 @@ We need to specify the trading volume for each order since not every order below
 This is non-intuitive but this is one of the things we have to deal with in a batch auction. 
 
 \paragraph{Optional mechanism: Price submission by a third party}
+\label{publicPrices}
 Usually the price would be submitted by the chain operator only. 
 But if the chain operator does not publish the prices, we could accept price submission root-chain by any person. 
 The smart contract on the root-chain would select the price submission as the final price, which is valid, has a snark valid proof of correctness and fairness and has the biggest trading volume measured in Ether. 
@@ -518,7 +519,7 @@ There are some bottlenecks, which are considered for evaluating the performance:
 \begin{itemize}
 \item Price calculation. 
 Finding these uniform clearing prices is a non-linear optimization problem. 
-The solving time to find these prices increases exponentially with the number of tokens involved. 
+The solving time to find these prices increases exponentially with the number of tokens involved. For concrete timings, take a look at this paper \cite{priceOptimization}
 \item Generating the public verification keys for the snark proofs is a very challenging task having its own limitations. 
 But we think that we can generate these verification keys for trade blocks with $2^{16}$ transactions. 
 The calculation of the actual proof should then be feasible within a minute. 
@@ -526,7 +527,7 @@ The calculation of the actual proof should then be feasible within a minute.
 Uploading a bitmap with 9000 entries costs about 100k gas. 
 \item Plasma exists.
 Plasma exits are controversially discussed in the community. 
-If there are too many utxo, which want to exit all at the same time, - maybe triggered by a data-unavailability, the root chain will be under heavy load and gas prices might spike. 
+If there are too many utxo, which want to exit all at the same time, - maybe triggered by a data-unavailability -, the root chain will be under heavy load and gas prices might spike. 
 \end{itemize}
 We think that the price calculation is the biggest bottleneck. 
 But still, we are confident that we will be able to schedule auctions every 3 minutes with about $2^{16}$ orders. 
@@ -542,8 +543,7 @@ DKG can be replaced with one single entity, which is very trustworthy.
 This single entity would only generate the public keys and later reveal the private keys for it. 
 This does not put customers funds at risk at any point in time. 
 \item
-The described mechanism, had a backup solution, in case the operator does not provide any prices for a batch. 
-This mechanism can be left out.
+The described mechanism \ref{publicPrices} making it possible to everyone to submit the best prices can be left out. 
 \end{enumerate}
 
 \section{Open research questions}
@@ -568,6 +568,12 @@ Caimu Tang
 Curve Discrete Logarithm.}  
 https://pdfs.semanticscholar.org/3c52/35523be1d305de6dbf3433965c99d9fe4aea.pdf
  
+
+\bibitem{priceOptimization} 
+Gnosis
+\textit{Multi-token Batch auctions with uniform clearning prices}  
+https://pdfs.semanticscholar.org/3c52/35523be1d305de6dbf3433965c99d9fe4aea.pdf
+
 \bibitem{plasma} 
 Vitalik Buterin and Joseph Poon
 \textit{Plasma}.
