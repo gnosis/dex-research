@@ -229,13 +229,14 @@ Once the public key for the encryption process is available, every trader can su
 In the plasma chain, all assets of the ERC20 tokens are represented by unspent transaction outputs (utxo). 
 An order $\pO_{i\ra j}$ will refer to a utxo of an \erc token $\tau_i$ and this utxo will be exchanged for the specified target token $\tau_j$ for a price below the given, encrypted limit price. 
 
-\begin{lstlisting}
-Order[  Utxo, 
-    Token  $\tau_j$,
-    Limit price, 
-    Encryption salt,
-    Signatures]
-\end{lstlisting} 
+
+\begin{verbatim}
+Order[UTXO, 
+      Token j,
+      LimitPrice 
+      EncryptionSalt,
+      Signatures]
+\end{verbatim} 
 The encryption salt is the elliptic point used for encryption:  $bG$ (cp. \ref{salt}). 
 All orders will be collected and board-casted in one block per auction, the \emph{order-block}. 
 All orders included in this order-block will be able to participate in the next auction. 
@@ -247,6 +248,7 @@ If a user wants to cancel their order, they should spend their utxo referred in 
 Once the block with the orders is published and the Merkleroot hash is submitted in the root-chain, every participant in the batch auction needs to validate this new block and the complete chain. 
 Once they commit that their order should be included in the next batch, they will be able to withdraw their order funds only with the priority\footnote{The priority-queue is an important concept in the plasma MVP} of this order-block - this will be explained in detail here: \ref{exitRules}. \newline
 If participants validated the whole chain, they can send the operator the double signing message to signal that they want to participate. 
+
 \begin{verbatim}
 DoubleSign [OrderHash,
             OrderbookBlockHash,
@@ -308,16 +310,16 @@ Once the prices are calculated by the chain operator, he needs to prove that thi
 
 \item the price set satisfies \ref{eq:arbitrage_freeness} 
 \item Orders are only touched, if the limit price is below the calculated price:\newline
-\begin{equation} \forall \tau_i ,\tau_j \in \Tau \quad \forall o \in \pO_{i\ra j}, \quad \nu_{p_{ij}}(o)>0 \Rightarrow p_{ij}\geq \text{p}(o)
+\begin{equation} \forall \tau_i ,\tau_j \in \Tau \quad \forall \sigma \in \pO_{i\ra j}, \quad \nu_{p_{ij}}(\sigma)>0 \Rightarrow p_{ij}\geq \text{p}(\sigma)
 \end{equation}
 \item the amount of sell volume for a token equals its buy volume: 
 \begin{equation}
 \begin{split}
 \forall \tau_i \in \Tau \quad \sum_{\tau_j\in \Tau} \,
-\sum_{ o\in \pO_{(\tau_i \rightarrow \tau_j)}} \nu_{p_{ij}}(o) == \sum_{\tau_j\in \Tau} \, \sum_{o\in \pO_{(\tau_j\rightarrow \tau_i)}} \frac{\nu_{p_{ji}}(o)}{p_{ji}}
+\sum_{ \sigma\in \pO_{i \rightarrow j}} \nu_{p_{ij}}(\sigma) = \sum_{\tau_j\in \Tau} \, \sum_{\sigma\in \pO_{(j\rightarrow i)}} \frac{\nu_{p_{ji}}(\sigma)}{p_{ji}}
 \end{split}
 \end{equation}
-\item If an $\pO_{(\tau_i\rightarrow \tau_j)}$ with a limit price p has a positive trading volume, then every $\pO_{(\tau_i\rightarrow \tau_j)}$ with a lower limit price as p should be traded completely. 
+\item If an $\pO_{i\rightarrow j}$ with a limit price p has a positive trading volume, then every $\pO_{i\rightarrow j}$ with a lower limit price as p should be traded completely. 
 \end{itemize}
 
 
@@ -334,7 +336,7 @@ In the following we denote the block containing all orders OB \ref{orderblock}, 
 Let us denote the decrypted orders from the block OB as list $\text{[orders]= [order}_1\text{, order}_2\text{,...]}$ and the trading volume of each order by the list $\text{[volumes] = [volume}_1\text{, volume}_2\text{...]}$, where the $\text{volume}_i$ corresponds to the $\text{order}_i$. 
 
 
-Then the program P(i,w) should prove the above mentioned facts. 
+Then the program $P(i,w)$ should prove the above mentioned facts. 
 The public input into P is declared by the variable i and w will be the witness. 
 In details it will look like:
 
