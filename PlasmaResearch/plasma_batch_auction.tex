@@ -139,7 +139,7 @@ It is recommended for the reader to familiarize themselves with Plasma\cite{plas
 This specification outlines a trading mechanism between several \erc tokens. Each batch accepts orders to buy any \erc token with any other \erc token for a maximal specified limit price. All orders are collected over some time interval and then an \emph{uniform clearing price} over all token pairs is calculated. 
 
 For a list of $k$ trading tokens denoted by $\Tau$ with clearing prices $\{p_{ij}\}$, we call the set of prices $\{p_{ij}| \tau_i, \tau_j \in \Tau\}$ an uniform clearing price, if
-\begin{align} \label{eq:arbitrage_freeness}
+\begin{align} 
   p_{ij} \cdot p_{jk} &= p_{ik}\\
   p_{ij} &= p_{ji}^{-1}
 \end{align}
@@ -419,7 +419,6 @@ where $\nu(\text{order})$ is the volume declared in the volume-block.
 Whereas, the order-output ($oo_i$) denominated in Token $\tau_i$ is simply the left over, if the trade could not be executed completely: 
 \begin{equation}
   oo_i =  \text{OrderInputAmount} - \nu(\text{order})
-    \label{fee_equ}
 \end{equation}
 These order-outputs can then be spent again via a transaction, but cannot be used as an input for another order. 
 If any of these order-outputs is not correctly created by the chain operator, people have to leave the plasma chain. 
