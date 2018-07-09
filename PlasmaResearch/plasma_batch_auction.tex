@@ -314,7 +314,7 @@ Once the prices are calculated by the chain operator, he needs to prove that thi
 \begin{equation}
 \begin{split}
 \forall \tau_i \in \Tau \quad \sum_{\tau_j\in \Tau} \,
-\sum_{ o\in \pO_{(\tau_i \rightarrow \tau_j)}} \nu_{p_{ij}}(o) == \sum_{\tau_i\in \Tau} \, \sum_{o\in \pO_{(\tau_j\rightarrow \tau_i)}} \frac{\nu_{p_{ji}}(o)}{p_{ji}}
+\sum_{ o\in \pO_{(\tau_i \rightarrow \tau_j)}} \nu_{p_{ij}}(o) == \sum_{\tau_j\in \Tau} \, \sum_{o\in \pO_{(\tau_j\rightarrow \tau_i)}} \frac{\nu_{p_{ji}}(o)}{p_{ji}}
 \end{split}
 \end{equation}
 \item If an $\pO_{(\tau_i\rightarrow \tau_j)}$ with a limit price p has a positive trading volume, then every $\pO_{(\tau_i\rightarrow \tau_j)}$ with a lower limit price as p should be traded completely. 
@@ -357,7 +357,7 @@ where $\text{[orders]} \cup \text{[volumes]} = \text{[order}_1, \text{volume}_1,
 \begin{equation}
 \begin{split}
 \forall \tau_i \in \Tau \quad \sum_{\tau_j\in \Tau} \,
-\sum_{ o\in \pO_{(\tau_i \rightarrow \tau_j)}} \nu_{p_{ij}}(o) == \sum_{\tau_i\in \Tau} \, \sum_{o\in \pO_{(\tau_j\rightarrow \tau_i)}} \frac{\nu_{p_{ji}}(o)}{p_{ji}}
+\sum_{ o\in \pO_{(\tau_i \rightarrow \tau_j)}} \nu_{p_{ij}}(o) == \sum_{\tau_j\in \Tau} \, \sum_{o\in \pO_{(\tau_j\rightarrow \tau_i)}} \frac{\nu_{p_{ji}}(o)}{p_{ji}}
 \end{split}
 \end{equation}
 \item For each trading pair, P loops through all orders and memorizes the highest limit price of an order of this pair, which still has a positive trading volume. 
