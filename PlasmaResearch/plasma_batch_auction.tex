@@ -155,7 +155,7 @@ This paper describes the specification for porting this auction mechanism onto a
 
 \paragraph{The trade-flow of a batch auction}  
 
-The batch auction exchange is built on a plasma chain operated by a single entity on top of a root-chain. A single batch auction consists of several phases;
+The batch auction exchange is built on a plasma chain operated by a single entity on top of a root-chain. A single batch auction consists of several phases:
 \begin{itemize}
 \item[(i)] Encryption Key generation, 
 \item[(ii)] Order Collection, 
@@ -164,7 +164,7 @@ The batch auction exchange is built on a plasma chain operated by a single entit
 \item[(v)] Batch Challenging and 
 \item[(vi)] Order Executions. 
 \end{itemize}
-In brief, a batch will proceed as follows: Users will post encrypted orders to the plasma operator, who will then bundle these orders and commit them by posting a single order-block on the plasma chain. Each client will have to validate the orders of this order-block. Only once they have validated the orders, they may double sign their orders to participate in the current batch. The participation acknowledgment will be compactly represented using a crypto-economic signature aggregation schema. With this construction many data-unavailability problems will be avoided because the orders can be represented on the main-chain using only a bitmap.
+In brief, a batch will proceed as follows: Users will post encrypted orders to the plasma operator, who will then bundle these orders and commit them by posting a single order-block on the plasma chain. Each client will have to validate the orders of this order-block. Only once they have validated the orders, they may double sign their orders to participate in the current batch. The participation acknowledgment will be compactly represented using a crypto-economic signature aggregation schema. With this construction many data-unavailability problems will be avoided because the orders can be represented on the root-chain using only a bitmap.
 Once the bitmap is seen by many parties on the plasma chain, the private key for decrypting the orders will be generated using distributed key generation (DKG). Finally, all the data is available to calculate correct prices from the orders and the batch can be settled. 
 
 
@@ -197,7 +197,7 @@ Note that the plasma implementation will require users to be online and validate
 \subsection{The trade flow}
 \label{subsec:data}
 
-In the following section we will describe the general tradeflow through all its phases: Encryption Key generation, Order Collection, Double signing, Batch Price Calculation, Batch Challenging and Order Executions.\todo{Rewrite this sentence}
+In the following section we will describe the general tradeflow through all its phases: Encryption Key generation, Order Collection, Double signing, DKG Private Key Generation, Price submission, Price Proofs and Order Executions.
 
 \begin{figure}
 \centering
@@ -215,15 +215,15 @@ If a predefined threshold of participants publish it, this will allow anyone to 
 If the participants publish their messages previous to the closing of the batch and its documentation on the root-chain, the protocol will allow to slashed them. 
 With this approach, we have encrypted orders, unless a large portion of bonded DKG participants are malicious. 
 
-The DKG algorithm generates a public key represented as an elliptic point $aG\label{public key}$, for a generator G of a elliptic group and a secret $a\in \mathbb{N}$. 
+The DKG algorithm generates a public key represented as an elliptic point $aG\label{public key}$, for a generator G of a elliptic group and a secret $a\in \mathbb{N}$ (cp. \cite{DKG}). 
 This public key can then be used to encrypt messages via the ECIES \cite{ECIES}. 
 Each trader calculates $bG \label{salt}$ for a random natural number b and publishes the point $bG$  in his order. 
 Then he calculates: $baG$ and determines from this number the symmetric key pair for encrypting his order. 
-A good symmetric encryption mechanism might be the Knudsen-Nyberg cipher\cite{cipher}.
+A good symmetric encryption mechanism might be the Knudsen-Nyberg cipher\cite{cipher}, as this one would be efficient to calculate and verify using snarks in the price correctness proof\ref{proofprices}.
 Later, once $a$ is public, we can decrypt the orders by calculating the symmetric key pair from $abG$, which equals $baG$. 
 
 
-\subsubsection{Order collection}
+\subsubsection{Order Collection}
 \label{orderblock}
 Once the public key for the encryption process is available, every trader can submit orders. 
 In the plasma chain, all assets of the ERC20 tokens are represented by unspent transaction outputs (utxo). 
@@ -232,7 +232,7 @@ An order $\pO_{i\ra j}$ will refer to a utxo of an \erc token $\tau_i$ and this 
 \begin{lstlisting}
 Order[  Utxo, 
     Token  $\tau_j$,
-    Limit price 
+    Limit price, 
     Encryption salt,
     Signatures]
 \end{lstlisting} 
@@ -241,9 +241,9 @@ All orders will be collected and board-casted in one block per auction, the \emp
 All orders included in this order-block will be able to participate in the next auction. 
 Theoretically, the chain operator can censor orders, but since they are encrypted, he does not know what he is censoring. 
 Sometimes the operator needs to censor some orders since, in a single batch, there shouldn't be more than $2^{16}$ orders, due to a constraint of space. 
-If a user want to cancel their order, they should spend their utxo referred in their order or simple do not double sign the order. 
+If a user wants to cancel their order, they should spend their utxo referred in their order or simple do not double sign the order. 
 
-\subsubsection{Double signing process}
+\subsubsection{Double Signing}
 Once the block with the orders is published and the Merkleroot hash is submitted in the root-chain, every participant in the batch auction needs to validate this new block and the complete chain. 
 Once they commit that their order should be included in the next batch, they will be able to withdraw their order funds only with the priority\footnote{The priority-queue is an important concept in the plasma MVP} of this order-block - this will be explained in detail here: \ref{exitRules}. \newline
 If participants validated the whole chain, they can send the operator the double signing message to signal that they want to participate. 
@@ -268,12 +268,12 @@ This double signing process will hinder a very smooth user experience.
 Hence, we would allow users outsource this process of double signing to another service, if they prefer to. 
 This involves some trust, but the trust is limited, as this service can not change an order. It can just double sign the order. 
 
-\subsubsection{DKG private key generation}
+\subsubsection{DKG Private Key Generation}
 Once the plasma block, containing the bitmap is published and submitted to the root-chain, the DKG participants will publish their hidden messages used for generating the DKG-public key. 
 They do it by sending their inputs to the chain operator.
 Once the threshold is reached and there are enough messages available to generate the private key, the operator will do it and publish it in a next plasma block. 
 
-\subsubsection{Price submission}
+\subsubsection{Price Submission}
 Once the previous step is finished, the chain operator can calculate the optimal prices between all ERC20 tokens with the current batch orders. 
 If $\{p_{ij}| \tau_i, \tau_j \in \Tau \}$  are the uniform clearing prices, they are satisfying the following equation
 \begin{align}
@@ -288,7 +288,7 @@ The operator would additionally publish another block, which contains the inform
 The block would have the following structure:
 \[[[\text{order}_1, \text{volume}_1], [\text{order}_2, \text{volume}_2],...].\]
 
-We want to call this block the \emph{output-block}\label{volumeBlock}. 
+We want to call this block the \emph{volume-block}\label{volumeBlock}. 
 We need to specify the trading volume for each order since not every order below the limit price will be completely executed. 
 This is non-intuitive but this is one of the things we have to deal with in a batch auction. 
 
@@ -300,7 +300,8 @@ The smart contract on the root-chain would select the price submission as the fi
 
 Note that in this case, the price submitter would also need to provide the volume-block (cp. \ref{volumeBlock}) or at least assist traders with their exits games, by providing the Merkle proofs for their trading volumes (cp. \ref{exitRules}). 
 
-\subsubsection{Proof of correctness and fairness}
+\subsubsection{Proof of Correctness and Fairness}
+\label{proofprices}
 Once the prices are calculated by the chain operator, he needs to prove that this set of prices is actually valid and fair. A price set and a volume-block (VB) \ref{volumeBlock} is valid and fair, if
 
 \begin{itemize}
@@ -366,7 +367,7 @@ Then it loops through them again and checks that no other order with a lower lim
 Once the proof is calculated, the chain operator will publish it on the plasma chain. 
 
 
-\subsubsection{Enforcing published key variables}
+\subsubsection{Enforcing Publishment Key Variables}
 
 \label{enforceAvailablity}
 In case the operator goes off-line and we get a data-unavailability, we still want to make sure that the last auction can be completed by all participants or it will be cleanly un-rolled. 
@@ -396,7 +397,7 @@ But anyone can request to publish the proof also on the root-chain.
 We use again the same mechanism as before. 
 
 
-\subsubsection{Order-output transactions}
+\subsubsection{Order-output Transactions}
 After the prices and a price verification proof are published, the operator will publish another block with all order-output transactions. 
 An order-output transaction for an order within $\pO_{i\ra j}$ will have the following format:
 
