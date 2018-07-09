@@ -295,7 +295,7 @@ This block will be referred to as the \emph{volume-block}\label{volumeBlock}
 Note that, not every order below the limit price will be completely executed, the trading volume must be specified for each order.
 This may come across as non-intuitive but does occur in batch auction trading\todo{provide simple concrete example to justify this claim.}.
 
-\subsection*{Optional mechanism: Price submission by a third party}
+\subsection*{3rd Party Price Submission [Optional]}
 \label{publicPrices}
 Usually the price would be submitted by the chain operator only. 
 But if the chain operator does not publish the prices, we could accept price submission root-chain by any person. 
@@ -371,7 +371,7 @@ Then it loops through them again and checks that no other order with a lower lim
 Once the proof is calculated, the chain operator will publish it on the plasma chain. 
 
 
-\subsubsection{Enforcing Publishment Key Variables}
+\subsubsection{Enforcing Key Variable Publication}
 
 \label{enforceAvailablity}
 In case the operator goes off-line and we get a data-unavailability, we still want to make sure that the last auction can be completed by all participants or it will be cleanly un-rolled. 
