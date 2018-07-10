@@ -229,70 +229,73 @@ Once the public key for the encryption process is available, every trader can su
 In the plasma chain, all assets of the ERC20 tokens are represented by unspent transaction outputs (utxo). 
 An order $\pO_{i\ra j}$ will refer to a utxo of an \erc token $\tau_i$ and this utxo will be exchanged for the specified target token $\tau_j$ for a price below the given, encrypted limit price. 
 
-\begin{lstlisting}
-Order[  Utxo, 
-    Token  $\tau_j$,
-    Limit price, 
-    Encryption salt,
-    Signatures]
-\end{lstlisting} 
+\begin{verbatim}
+Order [utxo, Token j, LimitPrice, EncryptionSalt, Signatures]
+\end{verbatim} 
+
 The encryption salt is the elliptic point used for encryption:  $bG$ (cp. \ref{salt}). 
-All orders will be collected and board-casted in one block per auction, the \emph{order-block}. 
+All orders will be collected and boardcast in one block per auction, the \emph{order-block}. 
 All orders included in this order-block will be able to participate in the next auction. 
-Theoretically, the chain operator can censor orders, but since they are encrypted, he does not know what he is censoring. 
-Sometimes the operator needs to censor some orders since, in a single batch, there shouldn't be more than $2^{16}$ orders, due to a constraint of space. 
-If a user wants to cancel their order, they should spend their utxo referred in their order or simple do not double sign the order. 
+Theoretically, the chain operator could censor orders, but since they are encrypted, no meaningful information could be obtained.
+However, due to storage constraints (i.e. no more than $2^{16}$ orders per auction), the operator would be required to monitor the number of orders at any given time.
+In the case that a participant seeks to cancel their order, they should spend their utxo referred in their order or simply not double sign their order. 
 
 \subsubsection{Double Signing}
-Once the block with the orders is published and the Merkleroot hash is submitted in the root-chain, every participant in the batch auction needs to validate this new block and the complete chain. 
-Once they commit that their order should be included in the next batch, they will be able to withdraw their order funds only with the priority\footnote{The priority-queue is an important concept in the plasma MVP} of this order-block - this will be explained in detail here: \ref{exitRules}. \newline
-If participants validated the whole chain, they can send the operator the double signing message to signal that they want to participate. 
+Once the order-block is published and the Merkleroot hash is submitted to the root-chain, every participant in the batch auction must validate the current state of the system. 
+Once they commit that their order should be included in the next batch, they will be able to withdraw their order funds only with the priority\footnote{The priority-queue is an important concept in the plasma MVP} of this order-block - this will be explained in detail here: \ref{exitRules}.
+
+If participants validated the whole chain, they can send the operator the double signing message to signal their desire to participate. 
 \begin{verbatim}
-DoubleSign [OrderHash,
-            OrderbookBlockHash,
-            BatchIndex,
-            Signature]
+DoubleSign [OrderHash, OrderbookBlockHash, BatchIndex, Signature]
 \end{verbatim}
 
-The operator collects all these DoubleSign messages and constructs a bitmap, in order to generate a crypto-economic signature aggregation (cp.\cite{sig}). 
-If the operator gets a DoubleSign message for the order at the i-th place in the block, then the operator puts a 1 into the bitmap at the i-th place. 
-Otherwise, he puts a 0 in there.
-Next, the operator publishes the bitmap and all DoubleSign messages in a next plasma block. 
-If the bitmap is not available or incorrect, anyone can ask the operator to publish it on the root-chain and then each bit of the map could be challenged by asking the anyone to show the DoubleSign message and its Merkle-proof. 
+The operator collects all these DoubleSign messages and constructs a \emph{bitmap}, in order to generate a crypto-economic signature aggregation (cp.\cite{sig}). 
+The $i^{th}$ bit of this map is equal to 1 if the operator receives a DoubleSign message for the $i^{th}$ order, and is 0 otherwise.
+The operator then publishes this bitmap along with all DoubleSign messages in a next plasma block\todo{This could be refered to this as the Confirmation block}. 
+In the event that the bitmap is unavailable or incorrect, anyone may request the operator to publish it on the root-chain, then each bit of the map could be challenged by asking the anyone to show the DoubleSign message and its Merkle-proof. 
 
-Placing an order, which will not be executed by the limit price, is for free. 
-If people miss-use this free option to spam the plasma chain, they will be censored by the plasma chain operator. 
-The operator could keep on censoring their data, which would force a spammer to eventually withdraw their funds from the exchange. 
+Any unexecuted orders on this exchange will be free of charge. 
+If participants take advantage of this feature to spam the plasma chain, they will be censored by the plasma chain operator.\todo{what constitutes misuse in this context?} 
+The operator could continue censoring their data, and this would inevitably force a spammer to withdraw their funds from the exchange.
 
-This double signing process will hinder a very smooth user experience. 
-Hence, we would allow users outsource this process of double signing to another service, if they prefer to. 
-This involves some trust, but the trust is limited, as this service can not change an order. It can just double sign the order. 
+It is clear that the process of double signing will hinder the user experience (since users would have to remain online for the duration of the auction an then act again). 
+However, the possibility of granting allowance to a third-party service could be available if desired.
+This would, of course, involve some level of trust in the service, but this would be limited, as this service would not be capable of altering an order. That is to say, the service would only be granted permission to double sign.
 
 \subsubsection{DKG Private Key Generation}
 Once the plasma block, containing the bitmap is published and submitted to the root-chain, the DKG participants will publish their hidden messages used for generating the DKG-public key. 
-They do it by sending their inputs to the chain operator.
-Once the threshold is reached and there are enough messages available to generate the private key, the operator will do it and publish it in a next plasma block. 
+This is done by sending their inputs to the chain operator.
+Once the threshold is reached and there are enough messages available to generate the private key, this will be published in the next plasma block. 
 
 \subsubsection{Price Submission}
-Once the previous step is finished, the chain operator can calculate the optimal prices between all ERC20 tokens with the current batch orders. 
-If $\{p_{ij}| \tau_i, \tau_j \in \Tau \}$  are the uniform clearing prices, they are satisfying the following equation
-\begin{align}
-    \label{eq:arbitrage_freeness}
-  p_{ij} \cdot p_{jk} = p_{ik}\\
-  p_{ij} = p_{ji}^{-1}
-\end{align}
+Upon publication of the batch auction's private key, the operator may proceed in calculation of the optimal price-matrix between all \erc tokens from the current batch of orders. 
+The uniform clearing prices $\{p_{ij}| \tau_i, \tau_j \in \Tau \}$  must satisfy following equation of \emph{arbitrage-freeness} 
+\begin{equation}\label{arbitrage_freeness}
+p_{ij} \cdot p_{jk} = p_{ik}
+\end{equation}
+\begin{equation}\label{symmetric_pricing}
+p_{ij} = p_{ji}^{-1}
+\end{equation}
+Furthermore, it is because of this constraint that it suffices for the operator to publish only the $n=|\Tau|$ prices $\{p_{ij}| \tau_j \in \Tau \}$ for some fixed (reference) token $ \tau_i \in \Tau$ and all other prices are implied.
 
-Due to these equations, it is enough for the operator to publish only the $n=|\Tau|$ prices $\{p_{ij}| \tau_j \in \Tau \}$ for a $ \tau_i \in \Tau$ and all other prices are implied. 
+\begin{lemma}
+Any price matrix $P = [p_{ij}]$ subject to the constraint \ref{arbitrage_freeness} of arbitrage-freeness is enjoys the following properties;
+\begin{itemize}
+\item[(i)] $P$ is multiplicatively-symmetric\footnote{i.e. $P^\dagger = \frac{1}{P}$ where $P^\dagger$ denotes the point-wise transpose}. Equivalently, this the result of equation \ref{symmetric_pricing}.
+\item[(ii)] The diagonal of $P$ consists entirely of 1's.
+\item[(iii)]  $P$ is uniquely determined by its super-diagonal entries $\{p_{i, i+1}\}_{i=1}^{n-1}$.
+\end{itemize}
+\end{lemma}
 
-The operator would additionally publish another block, which contains the information about which order was matched and by which volume. 
-The block would have the following structure:
-\[[[\text{order}_1, \text{volume}_1], [\text{order}_2, \text{volume}_2],...].\]
+Along with the $n-1$ price entries, the operator would publish another block consisting of a list of tuples representing order-volume pairs, 
+\[[(\sigma_1, \nu_1), (\sigma_2,  \nu_2), \dots, (\sigma_N, \nu_N)]\]
+where $(\sigma_i, \nu_i)$ denotes the $i^{th}$ order along with the volume $\nu_i$ of fulfilment and $N$ is the number of orders in the batch. 
+This block will be referred to as the \emph{volume-block}\label{volumeBlock}
 
-We want to call this block the \emph{volume-block}\label{volumeBlock}. 
-We need to specify the trading volume for each order since not every order below the limit price will be completely executed. 
-This is non-intuitive but this is one of the things we have to deal with in a batch auction. 
+Note that, not every order below the limit price will be completely executed, the trading volume must be specified for each order.
+This may come across as non-intuitive but does occur in batch auction trading\todo{provide simple concrete example to justify this claim.}.
 
-\paragraph{Optional mechanism: Price submission by a third party}
+\subsection*{3rd Party Price Submission [Optional]}
 \label{publicPrices}
 Usually the price would be submitted by the chain operator only. 
 But if the chain operator does not publish the prices, we could accept price submission root-chain by any person. 
@@ -308,29 +311,30 @@ Once the prices are calculated by the chain operator, he needs to prove that thi
 
 \item the price set satisfies \ref{eq:arbitrage_freeness} 
 \item Orders are only touched, if the limit price is below the calculated price:\newline
-\begin{equation} \forall \tau_i ,\tau_j \in \Tau \quad \forall o \in \pO_{i\ra j}, \quad \nu_{p_{ij}}(o)>0 \Rightarrow p_{ij}\geq \text{p}(o)
+\begin{equation} \forall \tau_i ,\tau_j \in \Tau \quad \forall \sigma \in \pO_{i\ra j}, \quad \nu_{p_{ij}}(\sigma)>0 \Rightarrow p_{ij}\geq \text{p}(\sigma)
 \end{equation}
 \item the amount of sell volume for a token equals its buy volume: 
 \begin{equation}
 \begin{split}
 \forall \tau_i \in \Tau \quad \sum_{\tau_j\in \Tau} \,
-\sum_{ o\in \pO_{(\tau_i \rightarrow \tau_j)}} \nu_{p_{ij}}(o) == \sum_{\tau_j\in \Tau} \, \sum_{o\in \pO_{(\tau_j\rightarrow \tau_i)}} \frac{\nu_{p_{ji}}(o)}{p_{ji}}
+\sum_{ \sigma\in \pO_{i \rightarrow j}} \nu_{p_{ij}}(\sigma) = \sum_{\tau_j\in \Tau} \, \sum_{\sigma\in \pO_{j\rightarrow i}} \frac{\nu_{p_{ji}}(\sigma)}{p_{ji}}
 \end{split}
 \end{equation}
-\item If an $\pO_{(\tau_i\rightarrow \tau_j)}$ with a limit price p has a positive trading volume, then every $\pO_{(\tau_i\rightarrow \tau_j)}$ with a lower limit price as p should be traded completely. 
+\item If an order $\sigma \in \pO_{i\rightarrow j}$ with a limit price p has a positive trading volume, then every order in $\pO_{(\tau_i\rightarrow \tau_j)}$ with a lower limit price should be completely fulfilled. 
 \end{itemize}
 
 
-In order to prove this, we will use snarks (Succinct non-interactive arguments of knowledge) \cite{snarks}. 
-They are a powerful tool, which enables us to encode the above mentioned checking logic into an algebraical formulation. 
-This allows us to generate some verification keys, which compactify this checking logic. 
-Then for each set of prices and any volume-block, we can generate quite quickly a proof that they satisfy the constraints using the verification keys. 
-The proof size is very small (8 bytes64 variables) and can easily be provided to the main chain. 
-Also, the execution of the proof is not too costly: it is around 1.6 million gas on the root-chain. 
-The library Zokrates demonstrates these methods very well for the ethereum eco-system. 
+In order to prove this, we will use snarks (succinct non-interactive arguments of knowledge) \cite{snarks}. 
+In brief, snarks are a powerful tool enabling us to encode the above mentioned check-logic as an algebraical formulation. 
+%This allows us to generate some verification keys, which compactify this checking logic. 
+Then for each set of prices and any volume-block, one can quickly generate a proof that the above constraints are satisfied using verification keys. 
+The proof size is very small (8 variables of type bytes64) and can easily be provided to the root-chain. 
+It turns out that the execution of such a proof would cost approximately1.6 million gas on the root-chain. 
+The library ZoKrates \cite{zokrates} demonstrates these methods very well within the ethereum eco-system. 
 
-Now, we will describe the snark mechanism in more detail: 
-In the following we denote the block containing all orders OB \ref{orderblock}, the volume-block VB \ref{volumeBlock}, the bitmap B and $M_R(OB)$, $M_R(VB)$, $M_R(B)$ their Merkleroot hashes, respectively.
+\subsection*{An elaboration on the snark mechanism}
+Let $\mathcal{B}_O$, $\mathcal{B}_V$ and $\beta$ denote the order-block, volume-block and bitmap introduced above (respectively). 
+In the following we denote the block containing all orders OB\ref{orderblock}, the volume-block VB \ref{volumeBlock}, the bitmap B and $M_R(OB)$, $M_R(VB)$, $M_R(B)$ their Merkleroot hashes, respectively.
 Let us denote the decrypted orders from the block OB as list $\text{[orders]= [order}_1\text{, order}_2\text{,...]}$ and the trading volume of each order by the list $\text{[volumes] = [volume}_1\text{, volume}_2\text{...]}$, where the $\text{volume}_i$ corresponds to the $\text{order}_i$. 
 
 
@@ -367,7 +371,7 @@ Then it loops through them again and checks that no other order with a lower lim
 Once the proof is calculated, the chain operator will publish it on the plasma chain. 
 
 
-\subsubsection{Enforcing Publishment Key Variables}
+\subsubsection{Enforcing Key Variable Publication}
 
 \label{enforceAvailablity}
 In case the operator goes off-line and we get a data-unavailability, we still want to make sure that the last auction can be completed by all participants or it will be cleanly un-rolled. 
@@ -605,9 +609,9 @@ https://eprint.iacr.org/2016/492.pdf
 
 
 \bibitem{batch} 
-Batch Trading
-\\\texttt{}
-https://www.investopedia.com/terms/b/batchtrading.asp
+Batch Trading - \href{https://www.investopedia.com/terms/b/batchtrading.asp}{https://www.investopedia.com/terms/b/batchtrading.asp}
+
+\bibitem{zokrates} Snarks - \href{https://github.com/JacobEberhardt/ZoKrates}{https://github.com/JacobEberhardt/ZoKrates}
 
 \end{thebibliography}
 
