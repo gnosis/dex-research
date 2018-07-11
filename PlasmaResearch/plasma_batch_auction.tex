@@ -275,8 +275,8 @@ Once the plasma block, containing the bitmap is published and submitted to the r
 Once the threshold for the private key generation is reached and there are enough messages available to generate it, this will be published in the next plasma block by the plasma operator. 
 
 \subsubsection{Price Submission}
-Upon publication of the batch auction's private key, the operator may proceed in trying to find of the optimal price-matrix between all \erc tokens from the current batch of orders. 
-While trying to find the optimal solution, we are also calculating lower and upper bounds for the solutions. Once the difference between the upper and lower bounds is small enough the operator will stop the calculation and publish the uniform cleaning prices.
+Upon publication of the batch auction's private key, the operator will proceed in trying to find of the optimal price-matrix between all \erc tokens from the current batch of orders. 
+While trying to find the optimal solution, we are also calculating lower and upper bounds for the solutions. Once the difference between the upper and lower bounds is smaller than a predefined threshold, the plasma operator will stop the calculation and publish the uniform cleaning prices.\newline
 As stated in before, the uniform clearing prices $\{p_{ij}| \tau_i, \tau_j \in \Tau \}$  must satisfy following equation of \emph{arbitrage-freeness} 
 \begin{equation}\label{arbitrage_freeness}
 p_{ij} \cdot p_{jk} = p_{ik}
@@ -284,7 +284,13 @@ p_{ij} \cdot p_{jk} = p_{ik}
 \begin{equation}\label{symmetric_pricing}
 p_{ij} = p_{ji}^{-1}
 \end{equation}
-Furthermore, it is because of this constraint that it suffices for the operator to publish only the $n=|\Tau|$ prices $\{p_{ij}| \tau_j \in \Tau \}$ for some fixed (reference) token $ \tau_i \in \Tau$ and all other prices are implied.
+Furthermore, it is because of this constraint that it suffices for the operator to publish only the $n=|\Tau|$ prices $\{p_{ij}| \tau_j \in \Tau \}$ for some fixed (reference) token $ \tau_i \in \Tau$ and all other prices are implied. We want to call the vector
+\begin{equation}
+\{ p_{ij}| \tau_j \in \Tau \} \quad \text{with} \quad \tau_i =ETH
+\label{pricevector}
+\end{equation}
+the \emph{price vector}.
+
 \/* 
 \begin{lemma}
 Any price matrix $P = [p_{ij}]$ subject to the constraint \ref{arbitrage_freeness} of arbitrage-freeness is enjoys the following properties;
@@ -300,81 +306,84 @@ Along with the $n-1$ price entries, the operator would publish another block con
 where $(\sigma_i, \nu_i)$ denotes the $i^{th}$ order along with the volume $\nu_i$ of fulfilment and $N$ is the number of orders in the batch. 
 This block will be referred to as the \emph{volume-block}\label{volumeBlock}
 
-Note that, not every order below the limit price will be completely executed, the trading volume must be specified for each order.
+There is no guarantee that every order with a limit price below the uniform clearing price will be completely executed. Hence, the trading volume must be specified for each order.
 This may come across as non-intuitive but does occur in batch auction trading.
 
-\subsection*{3rd Party Price Submission [Optional]}
+\subsubsection*{3rd Party Price Submission [Optional]}
 \label{publicPrices}
-Usually the price would be submitted by the plasma operator only. 
-But if the plasma operator does not publish the prices, we could accept price submission root-chain by any person. 
-The smart contract on the root-chain would select the price submission as the final price, which is valid, has a snark valid proof of correctness and fairness and has the biggest trading volume measured in Ether. 
+In the simplest implementation, the chain operator will always provide the prices. But this requires some faith in the plasma operator, as there is no guarantee that the final prices are optimal, i.e. that they really optimize a predefined traders welfare metric.
+A little bit more advanced implementation could also accept price submission on the root-chain by any person. 
+The smart contract on the root-chain would select the price submission as the final price, which is valid, has a snark valid proof of correctness and fairness and has the best score with respect to the predefined metric. Of course, we would need to modify the snark proofs a little, since they would also be required to prove the score in the trader's welfare metric. 
 
-Note that in this case, the price submitter would also need to provide the volume-block (cp. \ref{volumeBlock}) or at least assist traders with their exits games, by providing the Merkle proofs for their trading volumes (cp. \ref{exitRules}). 
+In this case, the price submitter would also need to provide the volume-block (cp. \ref{volumeBlock}) or at least assist traders with their exits games, by providing the Merkle proofs for their trading volumes (cp. \ref{exitRules}). 
 
 \subsubsection{Proof of Correctness and Fairness}
 \label{proofprices}
 Once the prices are calculated by the plasma operator, he needs to prove that this set of prices is actually valid and fair. A price set and a volume-block (VB) \ref{volumeBlock} is valid and fair, if
 
-\begin{itemize}
+\begin{enumerate}
 
-\item the price set satisfies \ref{eq:arbitrage_freeness} 
+\item the price set is arbitrage free (cp. \ref{arbitrage_freeness} )
 \item Orders are only touched, if the limit price is below the calculated price:\newline
 \begin{equation} \forall \tau_i ,\tau_j \in \Tau \quad \forall \sigma \in \pO_{i\ra j}, \quad \nu_{p_{ij}}(\sigma)>0 \Rightarrow p_{ij}\geq \text{p}(\sigma)
+\label{limitprice_sat}
 \end{equation}
 \item the amount of sell volume for a token equals its buy volume: 
 \begin{equation}
 \begin{split}
 \forall \tau_i \in \Tau \quad \sum_{\tau_j\in \Tau} \,
 \sum_{ \sigma\in \pO_{i \rightarrow j}} \nu_{p_{ij}}(\sigma) = \sum_{\tau_j\in \Tau} \, \sum_{\sigma\in \pO_{j\rightarrow i}} \frac{\nu_{p_{ji}}(\sigma)}{p_{ji}}
+\label{volume_balance}
 \end{split}
 \end{equation}
-\item If an order $\sigma \in \pO_{i\rightarrow j}$ with a limit price p has a positive trading volume, then every order in $\pO_{(\tau_i\rightarrow \tau_j)}$ with a lower limit price should be completely fulfilled. 
-\end{itemize}
+\item If an order $\sigma \in \pO_{i\rightarrow j}$ with a limit price p has a positive trading volume, then every order in $\pO_{i\rightarrow j}$ with a lower limit price should be completely fulfilled. 
+\end{enumerate}
 
 
 In order to prove this, we will use snarks (succinct non-interactive arguments of knowledge) \cite{snarks}. 
 In brief, snarks are a powerful tool enabling us to encode the above mentioned check-logic as an algebraical formulation. 
-%This allows us to generate some verification keys, which compactify this checking logic. 
+This allows us to generate some verification keys, which compactify this checking logic. 
 Then for each set of prices and any volume-block, one can quickly generate a proof that the above constraints are satisfied using verification keys. 
 The proof size is very small (8 variables of type bytes64) and can easily be provided to the root-chain. 
-It turns out that the execution of such a proof would cost approximately1.6 million gas on the root-chain. 
+It turns out that the execution of such a proof would cost approximately 1.6 million gas on the root-chain. 
 The library ZoKrates \cite{zokrates} demonstrates these methods very well within the ethereum eco-system. 
 
 \subsection*{An elaboration on the snark mechanism}
-Let $\mathcal{B}_O$, $\mathcal{B}_V$ and $\beta$ denote the order-block, volume-block and bitmap introduced above (respectively). 
-In the following we denote the block containing all orders OB\ref{orderblock}, the volume-block VB \ref{volumeBlock}, the bitmap B and $M_R(OB)$, $M_R(VB)$, $M_R(B)$ their Merkleroot hashes, respectively.
-Let us denote the decrypted orders from the block OB as list $\text{[orders]= [order}_1\text{, order}_2\text{,...]}$ and the trading volume of each order by the list $\text{[volumes] = [volume}_1\text{, volume}_2\text{...]}$, where the $\text{volume}_i$ corresponds to the $\text{order}_i$. 
 
+Let $\mathcal{B}_O$, $\mathcal{B}_V$ and $\beta$ denote the order-block\ref{orderblock}, volume-block\ref{volumeBlock} and bitmap introduced above (respectively). 
+Let us denote the decrypted orders from the $\mathcal{B}_O$ as list $\text{[orders]= [}\sigma_1, \sigma_2\text{,...]}$ and the trading volume of each order by the list $\text{[volumes] = [}\nu_1, \nu_2\text{...]}$, where the volume $\nu_i$ corresponds to the order $\sigma_i$. 
+The public key used to encrypt all orders will be denoted by $\text{key}_p$.
+In order to run the proofs the most efficient, we need to calculate a special hash:
+\begin{equation}
+h = \text{sha256}(M_R(\mathcal{B}_O),M_R(\mathcal{B}_V), \text{sha256}(\beta), M_R(\vec{p}), \text{key}_p) 
+\end{equation}
+where $\vec{p}$ is the price vector \ref{pricevector}.
 
 Then the program P(i,w) should prove the above mentioned facts. 
 The public input into P is declared by the variable i and w will be the witness. 
 In details it will look like:
 
 \begin{equation}
-\text{P(i=(}M_R\text{(OB),}M_R\text{(VB),}M_R\text{(B),} \text{key}_p),\newline
+\text{P(i=h,}
 \text{w=([orders],[volumes],[prices],[bitmap]))} 
 \end{equation}
 And P would check that:
-\begin{itemize}
-\item  $M_R(\text{OB}) == M_R(\text{Encrypted[orders]})$
-\item  $M_R(\text{VB}) == M_R(\text{[orders]} \cup \text{[volumes]})$,\newline
+\begin{enumerate}
+\item  \begin{enumerate}
+  \item Calculate $M_R(\mathcal{B}_O) := M_R(\text{Encrypted[orders]})$
+    \item Calculate  $M_R(\mathcal{B}_V) := M_R(\text{[orders]} \cup \text{[volumes]})$,\newline
 where $\text{[orders]} \cup \text{[volumes]} = \text{[order}_1, \text{volume}_1, ...] $
-\item $ M_R(\text{B}) == M_R(\text{[bitmap]})$
-\item $\forall o \in \text{[orders], vol}(o)>0 \implies \text{bitmap}(o) = 1 $, 
-
-\item 
-\begin{equation}  \forall \tau_i ,\tau_j \in \Tau \quad \forall o \in \pO_{i\ra j}, \quad \nu_{p_{ij}}(o)>0 \Rightarrow p_{ij}\geq \text{p}(o)
-\end{equation}
-\item 
+  \item $M_R(\vec{p}) := M_R(\text{[prices]})$ and
+    \item check i equals $ \text{sha256}(M_R(\mathcal{B}_O),M_R(\mathcal{B}_V), \text{sha256}(\beta), M_R(\vec{p}), \text{key}_p) $
+    \end{enumerate}
+\item P would check that only orders which were double signed have a positive trading volume:
 \begin{equation}
-\begin{split}
-\forall \tau_i \in \Tau \quad \sum_{\tau_j\in \Tau} \,
-\sum_{ o\in \pO_{(\tau_i \rightarrow \tau_j)}} \nu_{p_{ij}}(o) == \sum_{\tau_j\in \Tau} \, \sum_{o\in \pO_{(\tau_j\rightarrow \tau_i)}} \frac{\nu_{p_{ji}}(o)}{p_{ji}}
-\end{split}
+\forall o \in \text{[orders], vol}(o)>0 \implies \text{bitmap}(o) = 1 
 \end{equation}
+\item The equations \ref{limitprice_sat} and \ref{volume_balance} hold
 \item For each trading pair, P loops through all orders and memorizes the highest limit price of an order of this pair, which still has a positive trading volume. 
 Then it loops through them again and checks that no other order with a lower limit price has not been filled. 
-\end{itemize}
+\end{enumerate}
 
 Once the proof is calculated, the plasma operator will publish it on the plasma chain. 
 
@@ -404,8 +413,8 @@ If they are not public, again they can be made public with the same mechanism.
 We note that the gas costs for publishing the prices increase linearly with the number of tokens. 
 
 \paragraph{price verification}
-The proof of the correctness is initially only stored in the plasma chain. 
-But anyone can request to publish the proof also on the root-chain. 
+The proof of the correctness including the volumes-block hash is initially only stored in the plasma chain. 
+But anyone can request to publish the proof and the volume-block hash also on the root-chain. 
 We use again the same mechanism as before. 
 
 
@@ -421,7 +430,9 @@ OrderOutput [ Order txHash,
     orderCreator]
 
 \end{lstlisting}
-where the order-output denominated in Token $\tau_i$ should be zero is the most cases, as orders will be most likely be fully filled. 
+The first order output denomiated in token $\tau_j$ is the trade output, which a trader gets for his input via the trade. 
+The second order output handles potential left overs.
+This second order output should be zero in most cases as orders are usually completely filled.
 The order-output ($oo_j$) denominated in Token $\tau_j$ will be calculated by the price 
 \begin{equation}
   oo_j = p_{ij} \times \text{OrderInputAmount} \times \nu(\text{order}) \times (1-\text{fee}_{\text{ratio}})
@@ -430,11 +441,13 @@ The order-output ($oo_j$) denominated in Token $\tau_j$ will be calculated by th
 where $\nu(\text{order})$ is the volume declared in the volume-block.  
 Whereas, the order-output ($oo_i$) denominated in Token $\tau_i$ is simply the left over, if the trade could not be executed completely: 
 \begin{equation}
-  oo_i =  \text{OrderInputAmount} - \nu(\text{order})
+  oo_i =  \text{OrderInputAmount}\times (1 - \nu(\text{order}))\times (1-\text{fee}_{\text{ratio}})
 \end{equation}
 These order-outputs can then be spent again via a transaction, but cannot be used as an input for another order. 
 If any of these order-outputs is not correctly created by the plasma operator, people have to leave the plasma chain. 
 Then the last batch will be settled on the root-chain or be reverted, depending whether all trading volumes are available. 
+
+
 
 \subsubsection{Claiming Fees}
 After each batch auction, the plasma-contract on the root-chain will hold some tokens, which are not covered by transaction outputs in the plasma chain, due to fee mechanism specified in \ref{fee_equ}. 
