@@ -363,7 +363,9 @@ For loading either the bitmap, price vector, volume-hash or proofs in the root-c
 \item By default we publish the data only in the plasma chain
 \item If a user does not see any of the data, he can send a request to publish the data on the root-chain. This request requires some additional fee, which cover the gas costs to answer the request.
 \item Then anyone has the chance to answer the request together with a valid Merkle proof, which ensures that the answer is the same as given on Plasma chain. It is enough if the data is only published as payload, the data does not need to be stored completely on the root-chain. The answerer will be compensated with the fee from the requester.
-\item If any request are not answered within a predefined time $\text{time}_\text{data-request}$, then the auction referred in the data request will be reverted.
+\item If any request are not answered within a predefined \emph{data-request-time} with: \begin{equation}
+\text{data-request-time}< \frac{\text{exit-request-timeperiod}}{2}
+\end{equation}, then the auction referred in the data request will be reverted.
 This means that only utxos, which were submitted before the order-block of the reverted auction, will be accepted for any withdraw (cp. \ref{exitRules}). 
 \end{enumerate}
 
@@ -462,7 +464,7 @@ Only if the order-output is already spent and double signed, then the order exit
 It might happen that a trader does not know the trading volume of his order in the last batch auction because neither the auction-result-block nor the order-output block might be unavailable for him. 
 Then, he would not be able to provide the Merkle proof to attest his positive trading volume. 
 In this case, we would ask on anyone to complete his exit, by providing the Merkle proof with the trading volume. 
-If neither the plasma operator nor anyone else does answer this exit request within a predefined timeperiod $\text{time}_\text{data-request-time}$, then the auction will be stopped and all trades will be reverted, if the auction was conducted in the exit-request-timeperiod (cp. \ref{exit-time}). If the auction was not conducted in the exit-request-timeperiod, then the exit requester would have the data available.
+If neither the plasma operator nor anyone else does answer this exit request within a predefined timeperiod $\text{data-request-time}$, then the auction will be stopped and all trades will be reverted, if the auction was conducted in the exit-request-timeperiod (cp. \ref{exit-time}). If the auction was not conducted in the exit-request-timeperiod, then the exit requester would have the data available.
 
 Order withdrawals can be challenged by showing providing a double signed transfer of the order-output in the plasma chain. This is enough, since we do not allow orders to reference to other orders as a trade input.
 
@@ -482,21 +484,38 @@ Only if more DKG participants as specified by the algorithm do not reveal their 
 But in this case, we could also slash these DKG participants, which are misbehaving. 
 
 \subsection{Safety in case of a data-unavailability}
+In the following two section, we will show that 
+\begin{enumerate}
+\item Any funds holder within the plasma chain, who had no interaction with the plasma chain within the exit-request-time, needs to validate the chain with a time difference between two validations smaller than exit-request-time
+\item Anyone, who had an interaction with the plasma chain within exit-request-time, needs to validate the chain with a time difference between two validations smaller than data-request-time.
+\end{enumerate}
+\subsubsection{Token transfers}
 For token transfers, we have the same data-unavailability fallbacks, as the MVP product. 
-Hence a double sign mechanism protects people from losing funds. 
+A double sign mechanism and the priority queue mechanism protects people from losing funds. 
 It is only getting a little bit more complex, as users should not double sign a transaction, which happens right after the closing of a batch.
-Only after they validated the whole process of the batch closing, including the publishing of valid prices, snark proofs of correctness and a correct order-output block, they should . \newline
-Also for traders, the safety is guaranteed by a  double signing mechanism. 
+Only after they validated the whole process of the batch closing, including the publishing of valid prices, snark proofs of correctness and a correct order-output block, they should double sign their transfers.
+In order to ensure that the transfer is not reverted anymore, they need to be online and answer any data-request on the root-chain once in the $\text{data-request-time}< \frac{\text{exit-request-timeperiod}}{2}$ (cp. \ref{enforceAvailablity} and \ref{exitRules}) \newline
+If they are online regularly within exit-request-time intervals, they can also always get a better priority than any malicious utxo.
+
+\subsubsection{Matched and unmatched orders}
+Also for traders, the safety is guaranteed by a  double signing and priority exit mechanism. 
 If there is anything incorrect, before the double signing step, traders will just not double sign their batch. 
-If any network attack happens right after the order-block, the traders withdrawal priority of their order-output will be determined by the order-block. Hence, their priority will still be higher than any withdrawal request of this attack. This ensures that traders will always get their funds back or they can settle the last batch via the on chain exit. 
+Then they can still exit their utxo.
+If any network attack happens right after the order-block, the traders withdrawal priority of their order-output will be determined by the order-block.
+Hence, their priority will still be higher than any withdrawal request of this attack.
+This ensures that traders will always get their funds back or they can settle the last batch via the on chain exit. 
 If there is any data not available for settling the trade with an exit request after the double signing step, then this data can be requested to be uploaded to the root-chain. 
-The exchange is constructed in such a way with snarks and bitmaps, that it is easy and relatively cheap to publish this data on the root-chain. 
-If the data is published, any trader can get his trade settled on chain. If the data is not published, the batch is reverted. 
+If the data is published within $\text{data-request-time}< \frac{\text{exit-request-timeperiod}}{2}$, any trader that comes online within a time period  $\text{data-request-time}$ can first ask for the data and then make the exit request in time. Hence, he can get his trade settled on chain and exit the trade-output.
+If the data is not published, the batch is reverted and the plasma chain is halted and reset to shortly before the auction. 
 For a detailed description of the data, which needs to be made available, see here: \ref{enforceAvailablity}. 
-The proof that this data is enough to settle the trade either on the plasma chain or on the root-chain is left to the reader. 
+
 
 \subsection{Non-custody of funds}
-From the above analysis, we can conclude that the plasma plasma operator does never have the ability to steal tokens if all users come online regularly and behave correctly. 
+From the above analysis, we can conclude that the plasma plasma operator does never have the ability to steal tokens, if
+\begin{enumerate}
+\item all users come online regularly and behave correctly. 
+\item users transaction are not censors over a long time interval on the root-chain
+\end{enumerate}
 This is one of the key features of this construction. 
 
 \subsection{Grieving vectors and tragedy of the common}
