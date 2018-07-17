@@ -252,7 +252,7 @@ Order [ utxo,
     Signatures]
 \end{verbatim} 
 The encryption salt is an elliptic point used for encryption (cf. \ref{salt}). The signatures will include the double signature of the utxo and the actual signature of the order.
-All orders will be collected and boardcast in one block per auction, the \emph{order-block}. 
+All orders will be collected and broadcast in one block per auction, the \emph{order-block}. 
 All orders included in this order-block will be able to participate in the next auction. 
 Theoretically, the plasma operator could censor orders, but since they are encrypted, no meaningful information could be obtained.
 However, due to storage constraints (i.e. no more than $2^{16}$ orders per auction), the operator would be required to monitor the number of orders at any given time.
@@ -288,7 +288,7 @@ Once the threshold for the private key generation is reached and there are enoug
 \subsubsection{Auction Result Publication}
 \subsubsection*{Price Determination}
 Upon publication of the batch auction's private key, the operator will proceed in trying to find of the optimal price-matrix between all \erc tokens from the current batch of orders. 
-While trying to find the optimal solution, he will also iteratively calculate the lower and upper bounds for the solutions. Once the difference between the upper and lower bounds is smaller than a predefined threshold, the plasma operator will stop the calculation and publish the uniform cleaning prices.\newline
+While trying to find the optimal solution, he will also iteratively calculate the lower and upper bounds for the solutions. Once the difference between the upper and lower bounds is smaller than a predefined threshold, the plasma operator will stop the calculation and publish the uniform clearing prices.\newline
 As stated in before, the uniform clearing prices can be specified via a price vector \ref{pricevector}:
 \begin{equation}
 \vec{p}=\{ p_{ij}| \tau_j \in \Tau \} \quad \text{with} \quad \tau_i =\text{ETH}
@@ -320,7 +320,7 @@ Once the prices are calculated by the plasma operator, he needs to prove that th
 \begin{enumerate}
 
 \item the price set is arbitrage free (cf. equation \ref{arbitrage_free} )
-\item orders have only a non-negative volume, if the orders are valid. Submitted orders can be invalid, if the specified encrypted target token is no in the list of traded tokens.
+\item orders have only a non-negative volume, if the orders are valid. Submitted orders can be invalid, if the specified encrypted target token is not in the list of traded tokens.
 \item orders are only touched, if the limit price is below the calculated price:\newline
 \begin{equation} \forall \tau_i ,\tau_j \in \Tau \quad \forall \sigma \in \pO_{i\ra j}, \quad \nu_{p_{ij}}(\sigma)>0 \Rightarrow p_{ij}\geq \text{p}(\sigma)
 \label{limitprice_sat}
@@ -348,7 +348,7 @@ The details of these snark proofs are described in the appendix \ref{snarkElabor
 
 \subsubsection*{Auction-result-block}
 
-Once the operator has the price vector $\vec{p}$, the volume-list and the proof, all these information will be published in one \emph{auction-result-block}. The plasma operator will publish this block on the plasma chain. 
+Once the operator has the price vector $\vec{p}$, the volume-list and the proof, all this information will be published in one \emph{auction-result-block}. The plasma operator will publish this block on the plasma chain. 
 
 
 \subsubsection*{3rd Party Price Submission [Optional]}
@@ -375,13 +375,13 @@ with: \begin{equation}
 \text{data-request-time}=\text{maximum-time-of-absense}
 \end{equation}
 without any security restrictions.
-This means that only utxos, which were submitted before the order-block of the reverted auction, will be accepted for any withdraw (cf. \ref{exitRules}). 
+This means that only utxos which were submitted before the order-block of the reverted auction will be accepted for any withdraw (cf. \ref{exitRules}). 
 \end{enumerate}
 
 For the following data, we will use this procedure:
 \begin{enumerate}
 \item \emph{bitmap}:
-It is essential for everyone to know, what the bitmap of an auction is, in order to know which orders are in the batch. Since the order-block will contain $2^{16}$ orders, the bitmap size will be $2^{16}$ bits. 
+It is essential for everyone to know what the bitmap of an auction is in order to know which orders are in the batch. Since the order-block will contain $2^{16}$ orders, the bitmap size will be $2^{16}$ bits. 
 
 
 \item \emph{decryption keys}:
@@ -434,7 +434,7 @@ The operator can decide on his own when to close the batch and create the order-
 Once this block is posted, it will take some time until the orders are processed. 
 The operator will ensure a smooth flow by accepting new orders right away. 
 Hence, batch auctions can be scheduled one after the other without any waiting time. 
-However, these orders and all transfers could be reverted, if the chain halts. 
+However, these orders and all transfers could be reverted if the chain halts. 
 The finality of an auction is only guaranteed after the client sees the auction-result-block, since with the knowledge of this block, they can answer all data-requests on the root-chain and thereby ensuring the finalization of the batch.
 
 \subsection{Exit rules of the plasma chain}
@@ -521,7 +521,7 @@ For a detailed description of the data, which needs to be made available, see he
 From the above analysis, we can conclude that the plasma operator has never the ability to steal tokens, if
 \begin{enumerate}
 \item all users come online regularly and behave correctly. 
-\item users transaction are not censors over a long time interval on the root-chain
+\item users transaction are not censored over a long time interval on the root-chain
 \end{enumerate}
 This is one of the key features of our construction. 
 
@@ -538,7 +538,7 @@ But still, this action would be required from someone.
 Since we estimate the costs of this data-request on the root-chain to be definitively lower than 200k gas, the tragedy of the commons is very small. 
 There should always be a party, which request the data for everyone else. Hence, it is a reasonable trade-off. 
 
-Since the plasma operator would loose his reputation if the data is not available and participants need to request it, the operator will anyways try to provide the data at all times. Thus, these griefing situation should not occur anyways.
+Since the plasma operator would loose his reputation if the data is not available and participants need to request it, the operator will always try to provide the data at all times. Thus, these griefing situations should not occur anyways.
 
 \subsection{Performance}
 There are some bottlenecks, which are considered for evaluating the performance:
