@@ -176,7 +176,6 @@ additional_material/
 solutions/
 research/
 
-
 .DS_Store
-
+*.pdf
 
