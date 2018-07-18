@@ -141,7 +141,7 @@ It is recommended for the reader to familiarize themselves with Plasma\cite{plas
 
 This specification outlines a trading mechanism between several \erc tokens. Each batch accepts orders to buy any \erc token with any other \erc token for a maximum specified limit price. All orders are collected over some time interval and then a \emph{uniform clearing price} over all token pairs is calculated. 
 
-For a list of $n$ trading tokens denoted by $\Tau$ with clearing prices $\{p_{ij}\}$, we call the set of prices $\{p_{ij}| \tau_i, \tau_j \in \Tau\}$ an uniform clearing price, if
+For a list of $n$ trading tokens denoted by $\Tau$ with clearing prices $\{p_{ij}\}$, we call the set of prices $\{p_{ij}| \tau_i, \tau_j \in \Tau\}$ a uniform clearing price if, for all $1 \leq i, j, k \leq n$
 \begin{align} \label{arbitrage_free}
   p_{ij} \cdot p_{jk} &= p_{ik}\\
   p_{ij} &= p_{ji}^{-1}
@@ -188,7 +188,7 @@ In our batch auctions all trading will occur between a fixed set, $\Tau = \{\tau
 
 After an auction has been closed and uniform clearing prices have been determined, the price matrix can be represented as an $n\times n$ matrix 
 \[P = \{p_{ij}| \tau_i, \tau_j \in \Tau \}.\]
-Due to the equation \ref{arbitrage_free}, it is enough to define the uniform clearing price as an one dimensional vector with respect to a reference token $\tau_i$:
+Due to the equation \ref{arbitrage_free}, it is enough to define the uniform clearing price as a one-dimensional vector with respect to a reference token $\tau_i$:
 \[ \vec{p}_i = \{p_{ij}| \tau_j \in \Tau \}.\]
 The vector
 \begin{equation}
