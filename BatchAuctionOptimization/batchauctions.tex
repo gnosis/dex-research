@@ -58,12 +58,13 @@
 
 \newcommand*{\ie}{i.e., }
 \newcommand*{\eg}{e.g., }
-\newcommand*{\wrt}{w.r.t. }
+\newcommand*{\wrt}{with respect to }
 
 \newcommand*{\tokens}{\mathcal{T}}          % Set of tokens.
 \newcommand*{\orders}{\mathcal{O}}          % Set of orders.
 \newcommand*{\itokens}{\mathcal{I}^t}       % Set of token indices.
 \newcommand*{\itokenpairs}{\mathcal{I}^p}   % Set of token index pairs.
+\newcommand*{\iutokenpairs}{\tilde{\mathcal{I}}^p}   % Set of token index pairs.
 \newcommand*{\iorders}{\mathcal{I}^o}       % Set of order indices.
 \newcommand*{\ibuyorders}{\mathcal{I}^b}    % Set of buy order indices.
 \newcommand*{\isellorders}{\mathcal{I}^s}   % Set of sell order indices.
@@ -77,12 +78,11 @@
 \newcommand*{\crlref}[1]{\hyperref[{#1}]{Corollary~\ref*{#1}}}
 \newcommand*{\lemref}[1]{\hyperref[{#1}]{Lemma~\ref*{#1}}}
 
-% Macros for theorems|corollaries|lemmas.
+% Macros for theorems|corollaries|lemmas|observations.
 \newtheorem{theorem}{Theorem}[section]
 \newtheorem{corollary}{Corollary}[theorem]
 \newtheorem{lemma}[theorem]{Lemma}
-
-
+\newtheorem{observation}[theorem]{Observation}
 
 %%%%%%%%%%%%%%
 %% DOCUMENT %%
@@ -104,25 +104,20 @@
 
 
 \begin{abstract}
-... abstract ...
-\footnote{... footnote ...}.
+  This document describes the problem of multi-token batch auctions with uniform clearing prices as
+  a price-finding mechanism proposed for a decentralized token trading platform.
+  Moreover, it contains solution approaches based on combinatorial optimization formulations, as
+  well as some computational results.
+%\footnote{... footnote ...}.
 \end{abstract}
 
-\todo[inline,caption={}]{
-  \begin{itemize}
-    \item write abstract
-    \item change t for tokens to $ \tau $ everywhere
-    \item change o for orders to $ \omega $ everywhere
-    \item add additional inequalities for MIP1
-    \item write down MIP3
-    \item write something about min/max fluctuation
-    \item computational results for MIP\{2|3\}
-    \item choice of reference token example
-    \item pictures of order-token-graph
-  \end{itemize}
-}
+%\todo[inline,caption={}]{
+%  \begin{itemize}
+%    \item computational results for MIP\{2|3\}
+%  \end{itemize}
+%}
 
-\newpage
+
 \tableofcontents
 
 \newpage
@@ -148,14 +143,18 @@ cycles of tokens.
 In order to exclude arbitrage opportunities, we require prices to be consistent along such cycles,
 \ie we want the constraint
 \begin{align}
-  p_{A|B} \cdot p_{B|C} = p_{A|C}
+  p_{j|k} \cdot p_{k|l} = p_{j|l}
   \label{eq:arbitrage_freeness}
 \end{align}
-to be satisfied for the prices of all tokens A,B,C.
+to be satisfied for the prices of all tokens j,k,l.
 
+The concept of frequent batch auctions aiming at reducing arbitrage and improving liquidity has
+been investigated extensively in \cite{budish:HFT}.
+Moreover, the advantages of uniform-price clearing have been discussed in 
+\cite{engelbrecht:multi_unit_auctions}.
 In this document, we want to describe the problem of determining uniform clearing prices for all
-pairs of tokens involved in a multi-token batch auction process, as well as present a mixed-integer
-programming solution approach.
+pairs of tokens involved in a multi-token batch auction process, and present a mixed-integer
+programming (MIP) solution approach.
 
 
 \clearpage
@@ -165,17 +164,18 @@ programming solution approach.
 \subsection{Data}
 \label{subsec:data}
 
-Let $ \tokens := \{ \tau_0 \ldots \tau_{n-1} \} $ denote the set of the $ n $ tokens that we want
-to consider.
-The token~$ \tau_0 $ shall be referred to as \emph{reference token}, which will become important in
-our modelling approaches later on in \secref{sec:models}.
-For convenience of notation, we use $ \mathcal{I}^t := \{ 0 \ldots n-1 \} $ to denote the indices
+Let $ \tokens := \{ \tau_1 \ldots \tau_n \} $ denote the set of the $ n $ tokens that we want to
+consider.
+Additionally, we introduce an artificial token~$ \tau_0 $ that shall be referred to as 
+\emph{reference token}, which will become important in our modelling approaches later on in 
+\secref{sec:models}.
+For convenience of notation, we use $ \mathcal{I}^t := \{ 1 \ldots n \} $ to denote the indices
 of our token set.
 
-Pairwise exchange rates between two tokens $ \tau_i $ and $ \tau_j $ will be denoted by
-$ p_{i|j} $, meaning the price of one unit of $ \tau_i $ measured in units of $ \tau_j $.
-As an example, if $ p_{i|j} = 10 $, one would need to pay an amount of $ 10 $ units of $ \tau_j $
-in order to purchase one unit of $ \tau_i $.
+Pairwise exchange rates between two tokens $ \tau_j $ and $ \tau_k $ will be denoted by
+$ p_{j|k} $, meaning the price of one unit of $ \tau_j $ measured in units of $ \tau_k $.
+As an example, if $ p_{j|k} = 10 $, one would need to pay an amount of $ 10 $ units of $ \tau_k $
+in order to purchase one unit of $ \tau_j $.
 
 Let there be a set $ \orders = \{ \omega_1 \ldots \omega_N \} $ of $ N $ limit orders in the batch
 to be processed and let $ \ibuyorders, \isellorders \subseteq \{ 1 \ldots N \} =: \iorders $ denote
@@ -183,23 +183,21 @@ the sets of indices of buy and sell orders, respectively.
 Every order must be of exactly one of the two types, so $ \ibuyorders \cap \isellorders =
 \emptyset $ and $ \ibuyorders \cup \isellorders = \{ 1 \ldots N \} $.
 
-Moreover, every buy order consists of a tuple $ (\tau_{j_b},\tau_{j_s},\overline{x},\pi) $ that is
-to be read as
+Moreover, every buy order consists of a tuple $ (j,k,\overline{x},\pi) $ that is to be read as
 \vspace{-.6cm}
 \begin{center}
   \emph{
-    "Buy (at most) $ \overline{x} $ units of token $ \tau_{j_b} $ for token $ \tau_{j_s} $
-    if the rate $ p_{j_b|j_s} $ is at most $ \pi $".
+    "Buy (at most) $ \overline{x} $ units of token $ \tau_j $ for token $ \tau_k $
+    if the rate $ p_{j|k} $ is at most $ \pi $".
   }
 \end{center}
 \vspace{-.4cm}
-Analogously, every sell order is represented by a tuple
-$ (\tau_{j_s},\tau_{j_b},\overline{y},\pi) $ with the meaning
+Analogously, every sell order is represented by a tuple $ (j,k,\overline{y},\pi) $ with the meaning
 \vspace{-.6cm}
 \begin{center}
   \emph{
-    "Sell (at most) $ \overline{y} $ units of token $ \tau_{j_s} $ for token $ \tau_{j_b} $
-    if the rate $ p_{j_s|j_b} $ is at least $ \pi $".
+    "Sell (at most) $ \overline{y} $ units of token $ \tau_j $ for token $ \tau_k $
+    if the rate $ p_{j|k} $ is at least $ \pi $".
   }
 \end{center}
 \vspace{-.3cm}
@@ -210,28 +208,26 @@ Such orders are hence referred to as \emph{limit orders}.
 The difference between buy and sell orders is the following:
 \begin{itemize}
   \item In a buy order, a fixed (maximum) buy volume $ \overline{x} $ is set, so the buyer
-  indicates a preference to buy $ \overline{x} $ units of token $ \tau_{j_b} $.
-  The amount of units of token $ \tau_{j_s} $ to be sold is flexible, as long as the limit price is
+  indicates a preference to buy $ \overline{x} $ units of token $ \tau_j $.
+  The amount of units of token $ \tau_k $ to be sold is flexible, as long as the limit price is
   respected (the smaller, the better).
   \item In a sell order, a fixed (maximum) sell volume $ \overline{y} $ is set, so the seller
-  indicates a preference to sell $ \overline{y} $ units of token $ \tau_{j_s} $.
-  The amount of units of token $ \tau_{j_b} $ to be bought is flexible, as long as the limit price
+  indicates a preference to sell $ \overline{y} $ units of token $ \tau_j $.
+  The amount of units of token $ \tau_k $ to be bought is flexible, as long as the limit price
   is respected (the higher, the better).
 \end{itemize}
 \vspace{.3cm}
 
 Nevertheless, the question remains whether it makes sense to keep the distinction between buy and
 sell orders.
-Consider a buy order $ (\tau_{j_b},\tau_{j_s},\overline{x},\pi) $, which reveals that the buyer
-would be ready to sell at most $ \pi \cdot \overline{x} $ tokens $ \tau_{j_s} $ in exchange for
-tokens $ \tau_{j_b} $.
+Consider a buy order $ (j,k,\overline{x},\pi) $, which reveals that the buyer would be ready to
+sell at most $ \pi \cdot \overline{x} $ tokens $ \tau_k $ in exchange for tokens $ \tau_j $.
 Then, from an economically rational point of view, the buyer should not object to receiving more
-than $ \overline{x} $ tokens $ \tau_{j_b} $ for a maximum of $ \pi \cdot \overline{x} $ tokens
-$ \tau_{j_s} $, \ie if the exchange rate $ p_{j_b|j_s} $ is lower than $ \pi $.
+than $ \overline{x} $ tokens $ \tau_j $ for a maximum of $ \pi \cdot \overline{x} $ tokens
+$ \tau_k $, \ie if the exchange rate $ p_{j|k} $ is lower than $ \pi $.
 Hence, the buy order could be translated into an equivalent sell order
-$ (\tau_{j_s},\tau_{j_b},\pi \cdot \overline{x},\pi) $.
+$ (k,j,\pi \cdot \overline{x},\pi) $.
 In this paper, however, we will continue to treat the different order types separately.
-
 
 
 \subsection{Objectives}
@@ -253,13 +249,15 @@ The solution that we are aiming at needs to satisfy several requirements that ca
 high level as follows:
 \begin{itemize}
   \item \emph{(buy limit price)}:\\
-  for all buy orders $ \omega_i \in \orders, \> i \in \ibuyorders $:
+  for all buy orders
+  $ \omega_i = (j_i,k_i,\overline{x}_i,\pi_i)  \in \orders, \> i \in \ibuyorders $:
   the order can only be executed (fully or fractionally) if the exchange rate does not exceed the
-  stated limit price, \ie $ p_{b|s} \le \pi $.
+  limit price, \ie $ p_{j_i|k_i} \le \pi $.
   \item \emph{(sell limit price)}:\\
-  for all sell orders $ \omega_i \in \orders, \> i \in \isellorders $:
+  for all sell orders
+  $ \omega_i = (j_i,k_i,\overline{y}_i,\pi_i)  \in \orders, \> i \in \ibuyorders $:
   the order can only be executed (fully or fractionally) if the exchange rate is not lower than the
-  stated limit price, \ie $ p_{s|b} \ge \pi $.
+  limit price, \ie $ p_{j_i|k_i} \ge \pi $.
   \item \emph{(token balance)}:\\
   for every token $ \tau_j \in \tokens $: the amount of tokens $ \tau_j $ that were bought must
   equal the amount of tokens $ \tau_j $ that were sold.
@@ -281,7 +279,7 @@ high level as follows:
     \item[(i)] $ p_{j|k} \cdot p_{k|l} = p_{j|l} $
     \item[(ii)] $ p_{j|l} \cdot p_{l|k} = p_{j|k} $
   \end{itemize}
-  Inserting (i) into (ii) yields
+  Inserting (i) into (ii) and assuming prices to be strictly positive yields
   \begin{align*}
     p_{j|k} \cdot p_{k|l} \cdot p_{l|k} = p_{j|k}
     \qquad \Leftrightarrow \qquad
@@ -296,9 +294,6 @@ token~$ \tau_j \in \tokens $.
 \subsection{Properties}
 \label{subsec:properties}
 
-(Before presenting different modelling approaches and formulations for the batch auction problem,
-we first want to analyse/show some important properties.)
-
 Here is a list of research questions that we would like to answer.
 
 \begin{itemize}
@@ -307,30 +302,26 @@ Here is a list of research questions that we would like to answer.
   the respective token pair?
   If true, we would only need to resort to partially executing orders if the execution price is
   equal to the limit price.
-  \item Does the optimal solution depend on the choice of the reference token, or not?
   \item What is the impact of optimizing the trading volume vs. the traders' welfare?
 \end{itemize}
 
-\vspace{1cm}
-%\begin{lemma}
-%  (arbitrage freeness) $ \Rightarrow $ (price coherence).
-%\end{lemma}
-%\vspace{-.5cm}
-%\begin{proof}
-%  Consider three tokens $ \{\tau_j,\tau_k,\tau_l\} \subset \tokens $.
-%  We apply the arbitrage-freeness condition twice:
-%  \begin{itemize}
-%    \item[(i)] $ p_{j|k} \cdot p_{k|l} = p_{j|l} $
-%    \item[(ii)] $ p_{j|l} \cdot p_{l|k} = p_{j|k} $
-%  \end{itemize}
-%  Inserting (i) into (ii) yields
-%  \begin{align*}
-%    p_{j|k} \cdot p_{k|l} \cdot p_{l|k} = p_{j|k}
-%    \qquad \Leftrightarrow \qquad
-%    p_{k|l} \cdot p_{l|k} = 1
-%  \end{align*}
-%\end{proof}
 
+\subsection{Example}
+\label{subsec:example}
+
+A typical instance of our batch auction problem could look like shown in 
+\figref{fig:order-token-graph}.
+It is assumed that some token pairs will encounter high trading demand whereas other will only
+rarely be traded on.
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=.82\textwidth]{figures/token_order_graph.png}
+  \caption{Token-order-graph representing a multi-token batch auction instance. Nodes correspond
+  to tokens (with their size indicating the trading demand), the thickness of an edge represents 
+  the number of orders placed on the respective token pair.}
+  \label{fig:order-token-graph}
+\end{figure}
 
 \clearpage
 \section{Models and Formulations}
@@ -356,6 +347,38 @@ exchange rate between two tokens $ \tau_j $ and $ \tau_k $ as
   p_{j|k} = p_{j|0} \cdot p_{0|k} = \frac{p_{j|0}}{p_{k|0}} = \frac{p_j}{p_k}.
 \end{align}
 
+We now have some freedom to decide what exactly the artificial reference token should represent.
+For example, we could select one particular $ \tau_j \in \tokens $ to be the reference, \ie
+\begin{subequations}
+\begin{align}
+  p_0 &= p_j.
+  \label{eq:refToken_1}
+\end{align}
+Then, all trading volume would be computed \wrt $ \tau_j $ (which we will explain later in the
+model formulation sections), making this the principal token in the batch auction.
+Alternatively and more generally, we could also identify $ \tau_0 $ with a weighted sum of all
+participating tokens in $ \tokens $, \ie
+\begin{align}
+  p_0 &= \sum\limits_{j \in \itokens} \gamma_j \cdot p_j,
+  \label{eq:refToken_2}
+\end{align}
+with weights $ \gamma_j > 0 $.
+This way, it would be possible to give similar importance to all tokens.
+\end{subequations}
+
+\vspace{.2cm}
+\begin{observation}
+The choice of representation of the reference token has an influence on the solution.
+This can be seen by considering a single token pair $ (\tau_i,\tau_j) $ with only two buy orders
+$ \omega_1 = (j,k,1.0,2.0) $ and $ \omega_2 = (k,j,1.5,1.0) $.
+Both orders can be matched if $ p_{j|k} \in [1,2] $.
+However, if we choose token $ \tau_j $ to be the reference token, a maximum of $ 1.0 \> \tau_j $
+can be transacted for prices $ p_{j|k} \in [1,1.5] $, whereas the maximum trading volume of
+$ 1.5 \> \tau_k $ can be achieved when $ p_{j|k} \in [1.5,2] $.
+\end{observation}
+
+
+\newpage
 \subsubsection*{Data}
 
 In the following, we will express all information given in the orders in terms of data
@@ -405,20 +428,20 @@ amounts and prices, but does not require binary variables.
 
 We represent all token prices in a vector $ \mathbf{p} \in \mathbb{R}^n_{\ge 0} $, \ie $ p_j $
 denotes the price of token $ \tau_j $ \wrt the reference token $ \tau_0 $.
-It makes sense to incorporate some explicit lower and upper bound for the price of every token $
-\tau_j $ (for instance, in order to avoid excessive fluctuations), so let us require
-$ p_j \in [\underline{p}_j,\overline{p}_j] $.
+It is helpful to incorporate some explicit lower and upper bound for the price of every token~
+$ \tau_j $, so let us require $ p_j \in [\underline{p}_j,\overline{p}_j] $.
+For example, with $ p_0 = 1 $, one can derive an obvious upper bound from \eqref{eq:refToken_2} as
+$ p_j \le 1/\gamma_j $.
 In our case, we use a maximum fluctuation parameter $ \delta \ge 0 $ to bound the deviation of the
 computed exchange rates from the previous ones.
 In particular, let $ p^\mathrm{old}_j $ be the price of token $ \tau_j $ found in the previous
 batch auction iteration.
-We then require $ p_j \in [(\frac{1}{1+\delta}) p^\mathrm{old}_j, (1+\delta) \> p^\mathrm{old}_j] $
-for all tokens $ \tau_j \neq \tau_0 $.
-However, this only limits fluctuations on token pairs involving the reference token to the desired
-extent.
-In order to guarantee the same maximum fluctuation on all other token pairs $ (\tau_j,\tau_k) $,
-we further add the condition
-\begin{align*}
+We then use weights $ \gamma_j = 1 / (n \cdot p^\mathrm{old}_j) $ and require
+$ p_j \in [(\frac{1} {1+\delta}) \> p^\mathrm{old}_j, (1+\delta) \> p^\mathrm{old}_j] $
+for all tokens $ \tau_j \in \tokens $.
+In order to guarantee the same maximum fluctuation on all token pairs $ (\tau_j,\tau_k) $,
+we further add the conditions
+\begin{align}
   p_{j|k} \in
   \left[
     \left(\frac{1}{1+\delta}\right) p^\mathrm{old}_{j|k},
@@ -429,20 +452,19 @@ we further add the condition
   \left[
     \left(\frac{1}{1+\delta}\right) \frac{p^\mathrm{old}_j}{p^\mathrm{old}_k},
     (1+\delta) \, \frac{p^\mathrm{old}_j}{p^\mathrm{old}_k}
-  \right]\\[2mm]
+  \right]\notag\\[2mm]
   \quad &\Leftrightarrow \quad
   \begin{cases}
     p_j \ge \left(\frac{1}{1+\delta}\right) \frac{p^\mathrm{old}_j}{p^\mathrm{old}_k} \, p_k
     \\[2mm]
     p_j \le \left(1+\delta\right) \frac{p^\mathrm{old}_j}{p^\mathrm{old}_k} \, p_k
   \end{cases}.
-\end{align*}
+\end{align}
+
 As an example, $ \delta = 1 $ would set the bounds to half/double the previous exchange rates.
 If no previous price exists for some token $ \tau_j $, the price bounds $ \underline{p}_j $
 and $ \overline{p}_j $ could be determined on the basis of the limit prices given in the orders
-that involve $ \tau_j $.
-In any case, we set $ \underline{p}_0 = \overline{p}_0 = 1 $ in order to fix the price of
-$ \tau_0 $ to $ p_0 = 1 $.
+that involve $ \tau_j $, or simply be set to $ [0,\infty] $.
 All price bounds shall be stored in vectors $ \underline{\mathbf{p}} $ and $ \overline{\mathbf{p}}
 $, respectively.
 
@@ -494,8 +516,21 @@ per order.
   && \forall \> i \in \isellorders
   \label{eq:nlp_tokenamount_4}
   \\[4mm]
+  n
+  &= \sum\limits_{j \in \itokens} \frac{1}{p^\mathrm{old}_j} \cdot p_j,
+  \label{eq:nlp_reftoken}
+  \\[2mm]
+  p_j
+  &\le \left(1+\delta\right) \frac{p^\mathrm{old}_j}{p^\mathrm{old}_k} \, p_k
+  && \forall j,k \in \itokens \times \itokens
+  \label{eq:nlp_maxfluct}
+  \\[4mm]
   x_i, y_i, v_i &\in \mathbb{R}_{\ge 0}
   && \forall \> i \in \iorders
+  \\[2mm]
+  p_j
+  &\in \left[ \frac{1} {1+\delta} \> p^\mathrm{old}_j, (1+\delta) \> p^\mathrm{old}_j \right]
+  && \forall \> j \in \itokens
 \end{align}
 \label{eq:nlp}
 \end{subequations}
@@ -517,6 +552,10 @@ $ \omega_i $ is not executed at all, the corresponding trade volume $ v_i $ will
 However, this comes at the price of introducing nonlinearity (and even nonconvexity) into the
 model.
 
+As described earlier, the constraints \eqref{eq:nlp_reftoken} and \eqref{eq:nlp_maxfluct} specify
+the representation of the reference token and enforce a maximum fluctuation of exchange rates on
+all token pairs.
+
 Finally, the limits in terms of token amounts to be bought/sold in a limit order are incorporated
 into the model via the constraints \eqref{eq:nlp_tokenamount_1}--\eqref{eq:nlp_tokenamount_4}.
 
@@ -530,7 +569,7 @@ whether prices allow for an order to be executed, or not.
 \label{subsec:MIPmodel_1}
 
 As an alternative to the NLP model presented above, we are now going to propose a
-mixed-integer linear programming formulation.
+mixed-integer linear programming (MIP) formulation.
 
 \subsubsection*{Variables}
 
@@ -546,10 +585,9 @@ The feasible region for the execution volume $ v_i $ of an order $ \omega_i $ de
 of $ z_i $.
 In particular, $ v_i $ must be set to zero if $ z_i = 0 $ and can only be non-zero otherwise.
 In order to model this disjoint behaviour, we make use of a \emph{disjunctive programming}
-formulation that needs the following auxiliary non-negative price variable vectors:
-\begin{align*}
-  \mathbf{p}^{b,0}, \mathbf{p}^{b,1}, \mathbf{p}^{s,0}, \mathbf{p}^{s,1} \in \mathbb{R}^N_{\ge 0}.
-\end{align*}
+formulation that requires the auxiliary non-negative price variable vectors
+$ \mathbf{p}^{b,0}, \mathbf{p}^{b,1}, \mathbf{p}^{s,0}, \mathbf{p}^{s,1} \in \mathbb{R}^N_{\ge 0}
+$.
 
 \subsubsection*{Parameters}
 
@@ -557,90 +595,98 @@ The model allows for setting a minimum and maximum fraction of execution for eve
 For now, we will use global values $ 0 \le \underline{r} \le \overline{r} \le 1 $ and for all
 current purposes set $ \overline{r} = 1 $.
 
-
 \subsubsection*{Model}
-
+\begin{small}
 \begin{subequations}
 \begin{align}
   \text{maximize} \quad & \sum\limits_{i \in \iorders} v_i
-  \label{eq:mip_objective}
-  \\[4mm]
+  \label{eq:mip1_objective}
+  \\[2mm]
   \text{subject to} \quad
   \sum\limits_{i \in \iorders} t^b_{i,j} \, v_i
   &= \sum\limits_{i \in \iorders} t^s_{i,j} \, v_i
   && \forall \> j \in \itokens
-  \label{eq:mip_tokenbalance}
-  \\[4mm]
+  \label{eq:mip1_tokenbalance}
+  \\[2mm]
   \sum\limits_{j \in \itokens} t^b_{i,j} \, \underline{p}_j (1-z_i)
   &\le p_i^{b,0} \le  \sum\limits_{j \in \itokens} t^b_{i,j} \, \overline{p}_j (1-z_i)
   && \forall \> i \in \iorders
-  \label{eq:mip_bounds_buyprice_0}
+  \label{eq:mip1_bounds_buyprice_0}
   \\[1mm]
   \sum\limits_{j \in \itokens} t^s_{i,j} \, \underline{p}_j (1-z_i)
   &\le p_i^{s,0} \le  \sum\limits_{j \in \itokens} t^s_{i,j} \, \overline{p}_j (1-z_i)
   && \forall \> i \in \iorders
-  \label{eq:mip_bounds_sellprice_0}
+  \label{eq:mip1_bounds_sellprice_0}
   \\[1mm]
   \sum\limits_{j \in \itokens} t^b_{i,j} \, \underline{p}_j z_i
   &\le p_i^{b,1} \le  \sum\limits_{j \in \itokens} t^b_{i,j} \, \overline{p}_j z_i
   && \forall \> i \in \iorders
-  \label{eq:mip_bounds_buyprice_1}
+  \label{eq:mip1_bounds_buyprice_1}
   \\[1mm]
   \sum\limits_{j \in \itokens} t^s_{i,j} \, \underline{p}_j z_i
   &\le p_i^{s,1} \le  \sum\limits_{j \in \itokens} t^s_{i,j} \, \overline{p}_j z_i
   && \forall \> i \in \iorders
-  \label{eq:mip_bounds_sellprice_1}
-  \\[4mm]
+  \label{eq:mip1_bounds_sellprice_1}
+  \\[1mm]
   \sum\limits_{j \in \itokens} t^b_{i,j} \, p_j
   &= p_i^{b,0} + p_i^{b,1}
   && \forall \> i \in \iorders
-  \label{eq:mip_aggr_buyprice}
+  \label{eq:mip1_aggr_buyprice}
   \\[1mm]
   \sum\limits_{j \in \itokens} t^s_{i,j} \, p_j
   &= p_i^{s,0} + p_i^{s,1}
   && \forall \> i \in \iorders
-  \label{eq:mip_aggr_sellprice}
-  \\[4mm]
+  \label{eq:mip1_aggr_sellprice}
+  \\[1mm]
   p^{b,0}_i
   &\le \pi_i \, p^{s,0}_i (1-\varepsilon)
   && \forall \> i \in \ibuyorders
-  \label{eq:mip_buyorder_disj_0}
+  \label{eq:mip1_buyorder_disj_0}
   \\[1mm]
   p^{b,1}_i
   &\ge \pi_i \, p^{s,1}_i
   && \forall \> i \in \ibuyorders
-  \label{eq:mip_buyorder_disj_1}
+  \label{eq:mip1_buyorder_disj_1}
   \\[1mm]
   v_i
   &\ge \underline{r} \, \overline{x}_i \, p^{b,1}_i
   && \forall \> i \in \ibuyorders
-  \label{eq:mip_buyorder_volume_lb}
+  \label{eq:mip1_buyorder_volume_lb}
   \\[1mm]
   v_i
   &\le \overline{r} \, \overline{x}_i \, p^{b,1}_i
   && \forall \> i \in \ibuyorders
-  \label{eq:mip_buyorder_volume_ub}
-  \\[4mm]
+  \label{eq:mip1_buyorder_volume_ub}
+  \\[2mm]
   p^{s,0}_i
   &\le \pi_i \, p^{b,0}_i (1-\varepsilon)
   && \forall \> i \in \isellorders
-  \label{eq:mip_sellorder_disj_0}
+  \label{eq:mip1_sellorder_disj_0}
   \\[1mm]
   p^{s,1}_i
   &\ge \pi_i \, p^{b,1}_i
   && \forall \> i \in \isellorders
-  \label{eq:mip_sellorder_disj_1}
+  \label{eq:mip1_sellorder_disj_1}
   \\[1mm]
   v_i
   &\ge \underline{r} \, \overline{y}_i \, p^{s,1}_i
   && \forall \> i \in \isellorders
-  \label{eq:mip_sellorder_volume_lb}
+  \label{eq:mip1_sellorder_volume_lb}
   \\[1mm]
   v_i
   &\le \overline{r} \, \overline{y}_i \, p^{s,1}_i
   && \forall \> i \in \isellorders
-  \label{eq:mip_sellorder_volume_ub}
-  \\[4mm]
+  \label{eq:mip1_sellorder_volume_ub}
+  \\[2mm]
+  n
+  &= \sum\limits_{j \in \itokens} \frac{1}{p^\mathrm{old}_j} \cdot p_j,
+  \label{eq:mip1_reftoken}
+  \\[1mm]
+  p_j
+  &\le \left(1+\delta\right) \frac{p^\mathrm{old}_j}{p^\mathrm{old}_k} \, p_k
+  && \forall j,k \in \itokens \times \itokens
+  \label{eq:mip1_maxfluct}
+  \\[2mm]
   z_i
   &\in \{0,1\}
   && \forall \> i \in \iorders
@@ -650,127 +696,122 @@ current purposes set $ \overline{r} = 1 $.
   && \forall \> i \in \iorders
   \\[1mm]
   p_j
-  &\in \mathbb{R}_{\ge 0}
+  &\in \left[ \frac{1} {1+\delta} \> p^\mathrm{old}_j, (1+\delta) \> p^\mathrm{old}_j \right]
   && \forall \> j \in \itokens
 \end{align}
 \label{eq:mip1}
 \end{subequations}
+\end{small}
 
-The objective function \eqref{eq:mip_objective} maximizes the total volume in terms of units of
+The objective function \eqref{eq:mip1_objective} maximizes the total volume in terms of units of
 the reference token $ \tau_0 $ that is processed with all orders.
 
-Constraint \eqref{eq:mip_tokenbalance} secures that the total buy and sell volumes across all 
+Constraint \eqref{eq:mip1_tokenbalance} secures that the total buy and sell volumes across all 
 orders must be equal for every token.
 With uniform clearing prices, volume balance implies token balance.
 
 The auxiliary variables in $ \mathbf{p}^{b,0} $ and $ \mathbf{p}^{s,0} $ refer to the prices of the
 buy- and sell-token of every order $ \omega_i $ if that order is not executed ($ z_i = 0 $).
-In that case, their values must then lie within in the respective bounds provided by $ \underline{
-\mathbf{p}} $ and $ \overline{\mathbf{p}} $, and otherwise shall be set to zero.
-This requirement is ensured by the constraints \eqref{eq:mip_bounds_buyprice_0} and
-\eqref{eq:mip_bounds_sellprice_0}.
+In that case, their values must then lie within in the respective bounds provided by
+$ \underline{\mathbf{p}} $ and $ \overline{\mathbf{p}} $, and otherwise shall be set to zero.
+This requirement is ensured by the constraints \eqref{eq:mip1_bounds_buyprice_0} and
+\eqref{eq:mip1_bounds_sellprice_0}.
 Note that the summations in the constraints are only needed to ensure that the right variable is
 selected from the respective variable vector.
 
-Similarly as above, the constraints \eqref{eq:mip_bounds_buyprice_1} and
-\eqref{eq:mip_bounds_sellprice_1} control the auxiliary variables in $ \mathbf{p}^{b,1} $ and $ 
+Similarly as above, the constraints \eqref{eq:mip1_bounds_buyprice_1} and
+\eqref{eq:mip1_bounds_sellprice_1} control the auxiliary variables in $ \mathbf{p}^{b,1} $ and $ 
 \mathbf{p}^{s,1} $ for the case that an order $ \omega_i $ is executed ($ z_i = 1 $).
 
 The relation between the auxiliary price variables and the actual token prices is established by
-the constraints \eqref{eq:mip_aggr_buyprice} and \eqref{eq:mip_aggr_sellprice}.
+the constraints \eqref{eq:mip1_aggr_buyprice} and \eqref{eq:mip1_aggr_sellprice}.
 
 For buy orders, the disjunctive behaviour is modelled by the constraints
-\eqref{eq:mip_buyorder_disj_0}--\eqref{eq:mip_buyorder_volume_ub}.
+\eqref{eq:mip1_buyorder_disj_0}--\eqref{eq:mip1_buyorder_volume_ub}.
 The idea is as follows:
 If some order $ \omega_i $ is not to be executed ($ z_i = 0 $), then the prices
 $ p_i^{b,0} $ and $ p_i^{s,0} $ must both lie within the bounds given by
-\eqref{eq:mip_bounds_buyprice_0} and \eqref{eq:mip_bounds_sellprice_0} as well as fulfill
-\eqref{eq:mip_buyorder_disj_0} (\ie not satisfy the limit price).
+\eqref{eq:mip1_bounds_buyprice_0} and \eqref{eq:mip1_bounds_sellprice_0} as well as fulfill
+\eqref{eq:mip1_buyorder_disj_0} (\ie not satisfy the limit price).
 We want to ensure that the token prices are at least a little margin off the stated limit price in
 that case, hence the multiplication with $ (1-\varepsilon) $.
 At the same time, $ p_i^{b,1} $ and $ p_i^{s,1} $ are set to zero by
-\eqref{eq:mip_bounds_buyprice_1} and \eqref{eq:mip_bounds_sellprice_1}, thus trivially satisfying
-\eqref{eq:mip_buyorder_disj_1}.
-This then also implies the volume $ v_i $ to be set to zero by \eqref{eq:mip_buyorder_volume_lb}
-and \eqref{eq:mip_buyorder_volume_ub}.
+\eqref{eq:mip1_bounds_buyprice_1} and \eqref{eq:mip1_bounds_sellprice_1}, thus trivially satisfying
+\eqref{eq:mip1_buyorder_disj_1}.
+This then also implies the volume $ v_i $ to be set to zero by \eqref{eq:mip1_buyorder_volume_lb}
+and \eqref{eq:mip1_buyorder_volume_ub}.
 Conversely, if $ \omega_i $ is to be executed ($ z_i = 1 $), $ p_i^{b,0} $ and $ p_i^{s,0} $ are
-set to zero by \eqref{eq:mip_bounds_buyprice_0} and \eqref{eq:mip_bounds_sellprice_0}, while
-$ p_i^{b,1} $ and $ p_i^{s,1} $ lie within the bounds provided by \eqref{eq:mip_bounds_buyprice_1}
-and \eqref{eq:mip_bounds_sellprice_1} as well as fulfill \eqref{eq:mip_buyorder_disj_1} (\ie
-satisfy the limit price).
+set to zero by \eqref{eq:mip1_bounds_buyprice_0} and \eqref{eq:mip1_bounds_sellprice_0}, while
+$ p_i^{b,1} $ and $ p_i^{s,1} $ lie within the bounds provided by \eqref{eq:mip1_bounds_buyprice_1}
+and \eqref{eq:mip1_bounds_sellprice_1} as well as fulfill \eqref{eq:mip1_buyorder_disj_1}
+(\ie satisfy the limit price).
 This finally requires the execution volume $ v_i $ to be within the specified fractions via the
-constraints \eqref{eq:mip_buyorder_volume_ub} and \eqref{eq:mip_buyorder_volume_ub}.
+constraints \eqref{eq:mip1_buyorder_volume_ub} and \eqref{eq:mip1_buyorder_volume_ub}.
 
 The reasoning is analogous for sell orders and expressed by
-\eqref{eq:mip_sellorder_disj_0}--\eqref{eq:mip_sellorder_volume_ub}.
+\eqref{eq:mip1_sellorder_disj_0}--\eqref{eq:mip1_sellorder_volume_ub}.
+
+The constraints \eqref{eq:mip1_reftoken} and \eqref{eq:mip1_maxfluct} for the representation of the
+reference token and the maximum exchange rate fluctuation are the same as in the NLP model.
 
 
-\subsubsection*{Computational results}
-%\label{subsec:computational_results}
+\subsubsection*{Additional inequalities}
 
-The following \tabref{tab:mip_results} should give an indication of the solving times of the model
-\wrt different numbers of tokens and orders.
-Every entry in the table represents the mean solving time of a set of 10 instances.
-The buy/sell token quantities and limit prices of the orders have been randomly generated.
-In order to guarantee feasibility for all instances, we have selected a value of $ \underline{r} =
-0 $, so the solver may choose to execute 0\% of an order even if the token prices comply with the
-limit price.
-We have modelled the problem using \textsc{Python}/\textsc{Pyomo} and employed
-\textsc{Gurobi}~7.5.2 as a solver.
+The model does not take into account that there exist dependencies between orders on the same token
+pair, that can heuristically be described as follows:
+Whenever an order with a certain limit price $ \pi^* $ is executed (fully or partially) at some
+determined market price, all orders offering an even better limit price must also be executed.
+Conversely, if some order can not be executed, all orders with worse limit prices may not be
+executed as well.
+This idea induces a natural ordering of the orders that we are now going to formalize:
+let the set of token index pairs be denoted by $ \itokenpairs := \{(j,k) \in \itokens \times
+\itokens, j \neq k\} $, with $ (j,k) \in \itokenpairs $ representing the pair of tokens $ \tau_j $
+and $ \tau_k $.
+Notice that we consider the token pairs to be ordered tuples, so $ (j,k) \in \itokenpairs $ and
+$ (k,j) \in \itokenpairs $ are treated separately.
 
-\begin{table}
-  \centering
-  \begin{tabular}{ccrrrr}
-    \toprule
-    && \multicolumn{4}{c}{\# orders per token pair}\\
-    \cmidrule{3-6}
-    \# tokens & (\# pairs) &   4  &   8  &    20 &     40 \\
-    \midrule
-    2         &       (1)  & 0.05 & 0.06 &  0.08 &   0.10 \\
-    3         &       (3)  & 0.07 & 0.12 &  0.31 &   0.89 \\
-    4         &       (6)  & 0.13 & 0.24 &  0.74 &   3.09 \\
-    5         &       (10) & 0.25 & 0.69 &  4.22 &  84.36 \\
-    6         &       (15) & 0.40 & 2.04 & 77.32 & 684.40 \\
-    \bottomrule
-  \end{tabular}
-  \caption{Solving times in [s] of the MIP formulation to global optimality.}
-  \label{tab:mip_results}
-\end{table}
-
-It can be seen that the running times increase sharply for 5 or more tokens and the many-order
-cases.
-One influencing factor might be the equal number of orders for all token pairs in our testset,
-which leads all token prices being maximally interconnected and which might not occur as such in
-practice.
-On the other hand, the more orders there are on some token pair, the denser the stated limit prices
-become, which might make it possible to aggregate orders as a means of preprocessing.
+For every token pair $ (j,k) \in \itokenpairs $, we collect all orders for which $ \tau_j $ is the
+token to be bought and $ \tau_k $ is the token to be sold, \ie all
+$ \omega_i = (j, k,\, \cdot \,,\, \cdot \,) $ with $ i \in \ibuyorders $ and all
+$ \omega_i = (k, j,\, \cdot \,,\, \cdot \,) $ with $ i \in \isellorders $,
+and sort them in an increasing order by their limit prices.
+Assuming that there are $ m $ such orders for token pair $ (j,k) $, we get
+$ \pi^{(1)}_{j,k} < \pi^{(2)}_{j,k} < \ldots < \pi^{(m)}_{j,k} $.
+We then pick the binary variables $ z_i $ belonging to the orders under consideration, and permute
+them into the same order, \ie $ (z^{(0)}, z^{(1)}, \ldots, z^{(m)}) $.
+The idea described above consequently translates into equations of the form
+\begin{align}
+  z^{(l)} \le z^{(l+1)} \qquad \forall \, l = 1 \ldots m\!-\!1
+  \label{eq:mip1_order_precedence}
+\end{align}
+that can be added for all token pairs.
+In our computational experiments, they have proven to be very beneficial for the solving
+performance.
 
 
 \subsection{Mixed-integer linear programming model II}
 \label{subsec:MIPmodel_2}
 
-The previous MIP model \eqref{eq:mip1} considers all orders independent from each other, \ie the
-decision whether some order should be executed or not is not explicitely connected to the decision
-for other orders.
-The connection is only indirectly established through the propagation of feasible price ranges.
-In practice, however, there is more structure to the execution of orders, particularly within the
-same token pair.
-For instance, if some sell order with limit price $ \pi^* $ is enabled by the current choice of
-prices, all other sell orders with higher limit prices should be executed as well (and vice-versa
-for buy orders).
-This insight gives rise to an alternative MIP formulation that we will present in the following.
+In the previous MIP model \eqref{eq:mip1}, we have modelled the constraints of every order
+separately, \ie we have used one binary disjunctive formulation per order that controls its
+behavior in case it may or may not be executed.
+On top of that, we have used the equations \eqref{eq:mip1_order_precedence} to indicate the
+dependencies between orders on the same token pair.
+However, we can also encode these dependencies deeper into the model by considering order volumes
+within certain price ranges on a token pair in a somewhat aggregated fashion.
+This approach gives rise to an alternative MIP formulation that we will present in the following.
 
 
 \subsubsection*{Data}
 
 We want to aggregate orders on every pair of tokens that is traded, so let the set of token index
-pairs be denoted by $ \itokenpairs := \{(j,k) \in \itokens \times \itokens, j \neq k\} $, with
-$ (j,k) \in \itokenpairs $ representing the pair of tokens $ \tau_j $ and $ \tau_k $.
-Notice that we consider the token pairs to be ordered tuples, so $ (j,k) \in \itokenpairs $ and
-$ (k,j) \in \itokenpairs $ are treated separately.
+pairs again be denoted by $ \itokenpairs := \{(j,k) \in \itokens \times \itokens, j \neq k\} $,
+with $ (j,k) \in \itokenpairs $ representing the pair of tokens $ \tau_j $ and $ \tau_k $.
+Notice that we still consider the token pairs to be ordered tuples, so $ (j,k) \in \itokenpairs $
+and $ (k,j) \in \itokenpairs $ are treated separately.
 
 For every token pair $ (j,k) \in \itokenpairs $, we collect all buy and sell orders
-$ (\tau_j,\tau_k,\, \cdot \,,\, \cdot \,) $ that were submitted for $ (j,k) $, and sort them in an
+$ (j, k,\, \cdot \,,\, \cdot \,) $ that were submitted for $ (j,k) $, and sort them in an
 increasing order by their limit prices.
 Assuming that there are $ m $ orders for token pair $ (j,k) $, we get
 \begin{align}
@@ -778,21 +819,21 @@ Assuming that there are $ m $ orders for token pair $ (j,k) $, we get
     \pi^{(0)}_{j,k} < \pi^{(1)}_{j,k} < \pi^{(2)}_{j,k} <
     \ldots < \pi^{(m)}_{j,k} < \pi^{(m+1)}_{j,k}
   := \overline{p}_{j|k},
-  \label{eq:limit_price_ordering}
+  \label{eq:mip2_limit_price_ordering}
 \end{align}
 where $ \underline{p}_{j|k} $ and $ \overline{p}_{j|k} $ are explicit but somewhat arbitrary bounds
 on the exchange rate (\eg half and double the previous rate).
-Notice, moreover, that orders of the same type (buy/sell) with the same limit price are aggregated
-into one single order beforehand, such that the strict inequalities always hold.
-The above ordering \eqref{eq:limit_price_ordering} defines regions
+Notice, moreover, that orders of the same type (buy/sell) with the same limit price can be
+aggregated into one single order beforehand, such that the strict inequalities always hold.
+The above ordering \eqref{eq:mip2_limit_price_ordering} defines regions
 $ r_l := [\pi^{(l)},\pi^{(l+1)}] $, $ l \in \{0 \ldots m\} $, for the exchange rate $ p_{j|k} $.
 Let $ \mathcal{I}_{j,k}^r := \{0 \ldots m\} $ denote the set of such regions for every token pair
 $ (j,k) $, \ie $ l \in \mathcal{I}_{j,k}^r $ refers to the interval $ r_l $ of that token pair.
 
-Now, let $ \tilde{x}_{j,k,l}^b $ denote to the cumulated amount of tokens $ \tau_j $ that could be
+Now, let $ \tilde{x}_{j,k,l} $ denote to the cumulated amount of tokens $ \tau_j $ that could be
 bought across all buy orders of token pair $ (j,k) $, if the exchange rate $ p_{j|k} $ were in
 $ r_l $.
-Similarly, $ \tilde{y}_{j,k,l}^s $ shall refer to the amount of tokens $ \tau_j $ to be sold across
+Similarly, $ \tilde{y}_{j,k,l} $ shall refer to the amount of tokens $ \tau_j $ to be sold across
 all sell orders under the same condition.
 Let $ \tilde{\mathbf{x}} := (\tilde{x}_{j,k,l}) $ and
 $ \tilde{\mathbf{y}} := (\tilde{y}_{j,k,l}) $.
@@ -821,6 +862,7 @@ Moreover, $ \mathbf{p}^{(1)} := (p^{(1)}_{j,k,l}) $ and $ \mathbf{p}^{(2)} := (p
 shall denote the disaggregated price variables for the two respective tokens of every token pair
 and all price intervals.
 
+
 \subsubsection*{Parameters}
 
 This model allows for the same parameters $ \underline{r} $ and $ \overline{r} $ as the previous
@@ -829,6 +871,7 @@ MIP model \eqref{eq:mip1}.
 
 \subsubsection*{Model}
 
+\begin{small}
 \begin{subequations}
 \begin{align}
   \text{maximize} \quad & \sum\limits_{(j,k) \in \itokenpairs} v_{j,k}^\mathrm{abs}
@@ -839,11 +882,11 @@ MIP model \eqref{eq:mip1}.
   &= \sum_{\substack{k \in \itokens \\ k \neq j}} v_{j,k}^\mathrm{net}
   && \forall \> j \in \itokens
   \label{eq:mip2_tokenbalance}
-  \\[2mm]
+  \\[1mm]
   \sum\limits_{l \in \mathcal{I}_{j,k}^r} z_{j,k,l} &= 1
   && \forall \> (j,k) \in \itokenpairs
   \label{eq:mip2_price_range}
-  \\[2mm]
+  \\[1mm]
   v_{j,k}^\mathrm{abs}
   &= \sum\limits_{l {}\in \mathcal{I}_{j,k}^r} \left( v^b_{j,k,l} + v^s_{j,k,l} \right)
   && \forall \> (j,k) \in \itokenpairs
@@ -863,49 +906,58 @@ MIP model \eqref{eq:mip1}.
   &= \sum\limits_{l \in \mathcal{I}_{j,k}^r} p^{(2)}_{j,k,l}
   && \forall \> (j,k) \in \itokenpairs
   \label{eq:mip2_price2_aggr}
-  \\[4mm]
+  \\[1mm]
   p^{(1)}_{j,k,l}
   &\ge p^{(2)}_{j,k,l} \, \pi_{j,k}^{(l)}
   && \forall \> (j,k) \in \itokenpairs, l \in \mathcal{I}_{j,k}^r
   \label{eq:mip2_price1_lb}
-  \\[1mm]
+  \\[0mm]
   p^{(1)}_{j,k,l}
   &\le p^{(2)}_{j,k,l} \, \pi_{j,k}^{(l+1)}
   && \forall \> (j,k) \in \itokenpairs, l \in \mathcal{I}_{j,k}^r
   \label{eq:mip2_price1_ub}
-  \\[1mm]
+  \\[0mm]
   p^{(2)}_{j,k,l}
   &\ge \underline{p}_k \, z_{j,k,l}
   && \forall \> (j,k) \in \itokenpairs, l \in \mathcal{I}_{j,k}^r
   \label{eq:mip2_price2_lb}
-  \\[1mm]
+  \\[0mm]
   p^{(2)}_{j,k,l}
   &\le \overline{p}_k \, z_{j,k,l}
   && \forall \> (j,k) \in \itokenpairs, l \in \mathcal{I}_{j,k}^r
   \label{eq:mip2_price2_ub}
-  \\[2mm]
+  \\[1mm]
   v^b_{j,k,l}
-  &\ge \underline{r} \, \tilde{x}^b_{j,k,l} \, p^{(1)}_{j,k,l}
+  &\ge \underline{r} \, \tilde{x}_{j,k,l} \, p^{(1)}_{j,k,l}
   && \forall \> (j,k) \in \itokenpairs, l \in \mathcal{I}_{j,k}^r
   \label{eq:mip2_buyvolume_lb}
-  \\[1mm]
+  \\[0mm]
   v^b_{j,k,l}
-  &\le \overline{r} \, \tilde{x}^b_{j,k,l} \, p^{(1)}_{j,k,l}
+  &\le \overline{r} \, \tilde{x}_{j,k,l} \, p^{(1)}_{j,k,l}
   && \forall \> (j,k) \in \itokenpairs, l \in \mathcal{I}_{j,k}^r
   \label{eq:mip2_buyvolume_ub}
-  \\[1mm]
+  \\[0mm]
   v^s_{j,k,l}
-  &\ge \underline{r} \, \tilde{y}^s_{j,k,l} \, p^{(1)}_{j,k,l}
+  &\ge \underline{r} \, \tilde{y}_{j,k,l} \, p^{(1)}_{j,k,l}
   && \forall \> (j,k) \in \itokenpairs, l \in \mathcal{I}_{j,k}^r
   \label{eq:mip2_sellvolume_lb}
-  \\[1mm]
+  \\[0mm]
   v^s_{j,k,l}
-  &\le \overline{r} \, \tilde{y}^s_{j,k,l} \, p^{(1)}_{j,k,l}
+  &\le \overline{r} \, \tilde{y}_{j,k,l} \, p^{(1)}_{j,k,l}
   && \forall \> (j,k) \in \itokenpairs, l \in \mathcal{I}_{j,k}^r
   \label{eq:mip2_sellvolume_ub}
-  \\[2mm]
+  \\[1mm]
+  n
+  &= \sum\limits_{j \in \itokens} \frac{1}{p^\mathrm{old}_j} \> p_j,
+  \label{eq:mip2_reftoken}
+  \\[1mm]
   p_j
-  &\in \mathbb{R}_{\ge 0}
+  &\le \left(1+\delta\right) \frac{p^\mathrm{old}_j}{p^\mathrm{old}_k} \, p_k
+  && \forall j,k \in \itokens \times \itokens
+  \label{eq:mip2_maxfluct}
+  \\[1mm]
+  p_j
+  &\in \left[ \frac{1}{1+\delta} \> p^\mathrm{old}_j, (1+\delta) \> p^\mathrm{old}_j \right]
   && \forall \> j \in \itokens
   \\[1mm]
   v_{j,k}^\mathrm{abs}, v_{j,k}^\mathrm{net}
@@ -922,9 +974,10 @@ MIP model \eqref{eq:mip1}.
 \end{align}
 \label{eq:mip2}
 \end{subequations}
+\end{small}
 
 The objective function \eqref{eq:mip2_objective} maximizes the sum of the trading volumes over all
-trading pairs and is supposed to yield the same value as the objective \eqref{eq:mip_objective} of
+trading pairs and is supposed to yield the same value as the objective \eqref{eq:mip1_objective} of
 the previous MIP model.
 
 The first constraint \eqref{eq:mip2_tokenbalance} secures, again, the token balance for every token
@@ -952,24 +1005,164 @@ In the other case, the respective auxiliary variables are restricted to fulfill 
 the model, which are similar to the previous MIP model \eqref{eq:mip1}.
 
 
+
 \subsection{Mixed-integer linear programming model III}
 \label{subsec:MIPmodel_3}
 
 In \ref{subsec:MIPmodel_2}, we consider aggregated orders on directed token pairs, so the pair $ 
 (\tau_i,\tau_j) $ exists as well as $ (\tau_j,\tau_i) $.
-However, we can also aggregate further and only consider undirected token pairs
-$ \{\tau_i,\tau_j\} $.
+However, we can also aggregate further and build yet another MIP model by only considering
+undirected token pairs $ \{\tau_i,\tau_j\} $.
 
-TODO!
+\subsubsection*{Data}
+
+Let $ \iutokenpairs := \{\{j,k\} \in \itokens \times \itokens, j < k\} $, with $ (j,k) \in
+\iutokenpairs $ representing the (undirected) pair of tokens $ \tau_j $ and $ \tau_k $.
+Contrary as above, we do not want to distinguish between directions $ (j,k) $ and $ (k,j) $
+anymore, but treat all orders involving tokens $ \tau_j $ and $ \tau_k $ jointly.
+
+Then, again, the orders acting on the same token pair are collected and sorted according to their
+limit price as in \eqref{eq:mip2_limit_price_ordering}.
+As previously, we obtain price regions $ r_l := [\pi^{(l)},\pi^{(l+1)}] $ that shall be denoted by
+$ \tilde{\mathcal{I}}_{j,k}^r := \{0 \ldots m\} $ for all $ \{j,k\} \in \iutokenpairs $.
+
+Let $ \tilde{x}_{j,k,l}^{(1)} $ denote to the cumulated amount of tokens $ \tau_j $ that could be
+bought across all buy orders $ (j,k,\cdot,\cdot) $ if the exchange rate $ p_{j|k} $ were in
+$ r_l $.
+Conversely, let $ \tilde{x}_{j,k,l}^{(2)} $ denote the cumulated number of available tokens
+$ \tau_k $ in buy orders $ (k,j,\cdot,\cdot) $.
+Both shall be stored in vectors $ \tilde{\mathbf{x}}^{(1)} := (\tilde{x}_{j,k,l}^{(1)}) $ and
+$ \tilde{\mathbf{x}}^{(2)} := (\tilde{x}_{j,k,l})^{(2)} $.
+Analogously, we aggregate available sell tokens for sell orders $ (j,k,\cdot,\cdot) $ and
+$ (k,j,\cdot,\cdot) $ and store them in $ \tilde{\mathbf{y}}^{(1)} := (\tilde{y}_{j,k,l}^{(1)}) $
+and $ \tilde{\mathbf{y}}^{(2)} := (\tilde{y}_{j,k,l}^{(2)}) $.
 
 
-\subsection{Min-cost flow model}
-\label{subsec:MCFmodel}
+\subsubsection*{Variables}
 
-???
+The variables that are required for this model are basically the same as for the previous model
+\eqref{eq:mip2}, with the difference that many of them are now indexed the set $ \iutokenpairs $ of
+undirected instead of directed token pairs.
 
 
-\newpage
+\subsubsection*{Parameters}
+
+Again, $ \underline{r} $ and $ \overline{r} $ can be set to represent the minimum/maximum fraction
+of execution for all orders with limit prices complying to the computed exchange rates.
+
+
+\subsubsection*{Model}
+
+\begin{small}
+\begin{subequations}
+\begin{align}
+  \text{maximize} \quad & \sum\limits_{(j,k) \in \iutokenpairs} v_{j,k}^\mathrm{abs}
+  \label{eq:mip3_objective}
+  \\[1mm]
+  \text{subject to} \quad
+  \sum_{\substack{k \in \itokens \\ (j,k) \in \iutokenpairs}} v_{j,k}^\mathrm{net}
+  &= \sum_{\substack{k \in \itokens \\ (k,j) \in \iutokenpairs}} v_{k,j}^\mathrm{net}
+  && \forall \> j \in \itokens
+  \label{eq:mip3_tokenbalance}
+  \\[1mm]
+  \sum\limits_{l \in \tilde{\mathcal{I}}_{j,k}^r} z_{j,k,l} &= 1
+  && \forall \> (j,k) \in \iutokenpairs
+  \label{eq:mip3_price_range}
+  \\[0mm]
+  v_{j,k}^\mathrm{abs}
+  &= \sum\limits_{l \in \tilde{\mathcal{I}}_{j,k}^r} \left( v^b_{j,k,l} + v^s_{j,k,l} \right)
+  && \forall \> (j,k) \in \iutokenpairs
+  \label{eq:mip3_volume_aggr_abs}
+  \\[1mm]
+  v_{j,k}^\mathrm{net}
+  &= \sum\limits_{l \in \tilde{\mathcal{I}}_{j,k}^r} \left( v^b_{j,k,l} - v^s_{j,k,l} \right)
+  && \forall \> (j,k) \in \iutokenpairs
+  \label{eq:mip3_volume_aggr_net}
+  \\[1mm]
+  p_j
+  &= \sum\limits_{l \in \tilde{\mathcal{I}}_{j,k}^r} p^{(1)}_{j,k,l}
+  && \forall \> (j,k) \in \iutokenpairs
+  \label{eq:mip3_price1_aggr}
+  \\[1mm]
+  p_k
+  &= \sum\limits_{l \in \tilde{\mathcal{I}}_{j,k}^r} p^{(2)}_{j,k,l}
+  && \forall \> (j,k) \in \iutokenpairs
+  \label{eq:mip3_price2_aggr}
+  \\[1mm]
+  p^{(1)}_{j,k,l}
+  &\ge p^{(2)}_{j,k,l} \, \pi_{j,k}^{(l)}
+  && \forall \> (j,k) \in \iutokenpairs, l \in \tilde{\mathcal{I}}_{j,k}^r
+  \label{eq:mip3_price1_lb}
+  \\[0mm]
+  p^{(1)}_{j,k,l}
+  &\le p^{(2)}_{j,k,l} \, \pi_{j,k}^{(l+1)}
+  && \forall \> (j,k) \in \iutokenpairs, l \in \tilde{\mathcal{I}}_{j,k}^r
+  \label{eq:mip3_price1_ub}
+  \\[0mm]
+  p^{(2)}_{j,k,l}
+  &\ge \underline{p}_k \, z_{j,k,l}
+  && \forall \> (j,k) \in \iutokenpairs, l \in \tilde{\mathcal{I}}_{j,k}^r
+  \label{eq:mip3_price2_lb}
+  \\[0mm]
+  p^{(2)}_{j,k,l}
+  &\le \overline{p}_k \, z_{j,k,l}
+  && \forall \> (j,k) \in \iutokenpairs, l \in \tilde{\mathcal{I}}_{j,k}^r
+  \label{eq:mip3_price2_ub}
+  \\[1mm]
+  v^b_{j,k,l}
+  &\ge \underline{r} \left( \tilde{x}^{(1)}_{j,k,l} \, p^{(1)}_{j,k,l} + \tilde{y}^{(2)}_{j,k,l} \,
+  p^{(2)}_{j,k,l} \right)
+  && \forall \> (j,k) \in \iutokenpairs, l \in \tilde{\mathcal{I}}_{j,k}^r
+  \label{eq:mip3_buyvolume_lb}
+  \\[0mm]
+  v^b_{j,k,l}
+  &\le \overline{r} \left( \tilde{x}^{(1)}_{j,k,l} \, p^{(1)}_{j,k,l} + \tilde{y}^{(2)}_{j,k,l} \,
+  p^{(2)}_{j,k,l} \right)
+  && \forall \> (j,k) \in \iutokenpairs, l \in \tilde{\mathcal{I}}_{j,k}^r
+  \label{eq:mip3_buyvolume_ub}
+  \\[0mm]
+  v^s_{j,k,l}
+  &\ge \underline{r} \left( \tilde{y}^{(1)}_{j,k,l} \, p^{(1)}_{j,k,l} + \tilde{x}^{(2)}_{j,k,l} \,
+  p^{(2)}_{j,k,l} \right)
+  && \forall \> (j,k) \in \iutokenpairs, l \in \tilde{\mathcal{I}}_{j,k}^r
+  \label{eq:mip3_sellvolume_lb}
+  \\[0mm]
+  v^s_{j,k,l}
+  &\le \overline{r} \left( \tilde{y}^{(1)}_{j,k,l} \, p^{(1)}_{j,k,l} + \tilde{x}^{(2)}_{j,k,l} \,
+  p^{(2)}_{j,k,l} \right)
+  && \forall \> (j,k) \in \iutokenpairs, l \in \tilde{\mathcal{I}}_{j,k}^r
+  \label{eq:mip3_sellvolume_ub}
+  \\[0mm]
+  n
+  &= \sum\limits_{j \in \itokens} \frac{1}{p^\mathrm{old}_j} \> p_j,
+  \label{eq:mip3_reftoken}
+  \\[0mm]
+  p_j
+  &\le \left(1+\delta\right) \frac{p^\mathrm{old}_j}{p^\mathrm{old}_k} \, p_k
+  && \forall j,k \in \itokens \times \itokens
+  \label{eq:mip3_maxfluct}
+  \\[0mm]
+  p_j
+  &\in \left[ \frac{1}{1+\delta} \> p^\mathrm{old}_j, (1+\delta) \> p^\mathrm{old}_j \right]
+  && \forall \> j \in \itokens
+  \\[0mm]
+  v_{j,k}^\mathrm{abs}, v_{j,k}^\mathrm{net}
+  &\in \mathbb{R}_{\ge 0}
+  && \forall \> (j,k) \in \iutokenpairs
+  \\[0mm]
+  z_{j,k,l}
+  &\in \{0,1\}
+  && \forall \> (j,k) \in \iutokenpairs, l \in \tilde{\mathcal{I}}_{j,k}^r
+  \\[0mm]
+  p^{(1)}_{j,k,l}, p^{(2)}_{j,k,l}, v^b_{j,k,l}, v^s_{j,k,l}
+  &\in \mathbb{R}_{\ge 0}
+  && \forall \> (j,k) \in \iutokenpairs, l \in \tilde{\mathcal{I}}_{j,k}^r
+\end{align}
+\label{eq:mip3}
+\end{subequations}
+\end{small}
+
+
 \subsection{Computational comparison}
 \label{subsec:computational_comparison}
 
@@ -1097,7 +1290,35 @@ The problem can possibly be extended in various directions:
 
 
 
-\bibliographystyle{plain}
-\bibliography{literature}
+%\bibliographystyle{plain}
+%\bibliography{literature}
+
+
+%%%%%%%%%%%%%%%%%%%%
+%%  BIBLIOGRAPHY  %%
+%%%%%%%%%%%%%%%%%%%%
+\begin{thebibliography}{2}
+%
+
+\bibitem {balas:DP}
+Balas, E.:
+Disjunctive Programming.
+Annals of Discrete Mathematics 5, 3--51 (1979).
+\url{doi:10.1016/S0167-5060(08)70342-X}
+
+\bibitem {budish:HFT}
+Budish, E., Cramton, P., Shim, J.:
+The High-Frequency Trading Arms Race: Frequent Batch Auctions as a Market Design Response.
+The Quarterly Journal of Economics 130(4), 1547--1621 (2015)
+\url{doi:10.2139/ssrn.2388265}
+
+\bibitem {engelbrecht:multi_unit_auctions}
+Engelbrecht-Wiggans, R., Kahn, C.:
+Multi-unit auctions with uniform prices
+Economic Theory 12, 227--258 (1998), Springer-Verlag
+\url{doi:10.1007/s001990050220}
+
+\end{thebibliography}
+
 
 \end{document}
