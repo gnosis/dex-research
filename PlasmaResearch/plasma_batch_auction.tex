@@ -22,6 +22,7 @@
 \usepackage{listings}
 \usepackage{mathtools}
 \usepackage{listings} % http://ctan.org/pkg/listings
+\usepackage{amsmath}
 
 \lstset{
   basicstyle=\ttfamily,
@@ -252,7 +253,7 @@ Order [ utxo,
     Signatures]
 \end{verbatim} 
 The encryption salt is an elliptic point used for encryption (cf. \ref{salt}). The signatures will include the double signature of the utxo and the actual signature of the order.
-All orders will be collected and broadcast in one block per auction, the \emph{order-block}. 
+All orders will be collected and broadcast in one block per auction, the \emph{order-block}. Additionally, we will publish the sha256 of the string of series of orders. This is needed to generate later efficiently a snark proof.
 All orders included in this order-block will be able to participate in the next auction. 
 Theoretically, the plasma operator could censor orders, but since they are encrypted, no meaningful information could be obtained.
 However, due to storage constraints (i.e. no more than $2^{16}$ orders per auction), the operator would be required to monitor the number of orders at any given time.
@@ -304,10 +305,19 @@ Any price matrix $P = [p_{ij}]$ subject to the constraint \ref{arbitrage_freenes
 \end{itemize}
 \end{lemma}
 */
-Along with this price vector, the plasma operator would also generate for a batch a list of tuples representing order-volume pairs, 
-\[[(\sigma_1, \nu_1), (\sigma_2,  \nu_2), \dots, (\sigma_N, \nu_N)]\]
-where $(\sigma_i, \nu_i)$ denotes the $i^{th}$ order along with the volume $\nu_i$ of fulfilment and $N$ is the number of orders in the batch. 
-This list will be referred to as the \emph{volume-list}\label{volumeBlock} and the lists Merkle hash will be the \emph{volume-hash}.
+Along with this price vector, the plasma operator would also share the trading volumes in a compact manner. This will be done using a mapping $m$ from the order index to the trading volume\emph{volume-list}\label{volumeBlock}. But we would only store the trading volumes for fractional fulfilled orders.
+
+\[
+    m(\sigma)= 
+\begin{cases}
+    \text{trading volume},& \text{if } \sigma \text{ is partially filled}\\
+    1,        & \text{if } \sigma \text{ is fully filled and the has highest limit price for one pair}\\
+    0,              & \text{is not touched} \\
+    0,              & \text{is fully filled, but not highest limit price} \\
+\end{cases}
+\]
+This mapping $m$ will be stored on the root-chain, in case of a data unavailability. In the plasma chain, we will store only the \emph{volume-hash}, that is the Merkle root of the following array:
+\[[m(\sigma_1), m(\sigma_2), \dots, m(\sigma_n)]\].
 
 There is no guarantee that every order with a limit price below the uniform clearing price will be completely executed. Hence, the trading volume must be specified for each order.
 This may come across as non-intuitive but does occur in batch auction trading.
@@ -337,14 +347,7 @@ Once the prices are calculated by the plasma operator, he needs to prove that th
 \end{enumerate}
 
 
-In order to prove this, we will use snarks (succinct non-interactive arguments of knowledge) \cite{snarks}. 
-In brief, snarks are a powerful tool enabling us to encode the above mentioned check-logic as an algebraical formulation. 
-This allows us to generate some verification keys, which compactify this checking logic. 
-Then for each set of prices and any volume-block, one can quickly generate a proof that the above constraints are satisfied using verification keys. 
-The proof size is very small (8 variables of type bytes64) and can easily be provided to the root-chain. 
-It turns out that the execution of such a proof would cost approximately 1.6 million gas on the root-chain. 
-The library ZoKrates \cite{zokrates} demonstrates these methods very well within the ethereum eco-system. 
-The details of these snark proofs are described in the appendix \ref{snarkElaboration}.
+In order to prove this, we will use a true-bit calculation \cite{truebit}. All these statements can be checked either by providing a direct proof of by the a truebit game. The most advanced part is to verify the calculation of the sum \ref{volume_balance}. If any trader has any doubt that the equation is not fulfilled, he will make the operator commit all the prices and trading volumes via the mapping $m$ commit to the root-chain. Then he can start the true-bit game by putting up a bond. Together with the plasma-operator, he will calculate the sums in an interactive game. If the challenger loose, the operator will gain the bond. Otherwise the challenger will win a bond from the operator and the plasma chain gets halted.
 
 \subsubsection*{Auction-result-block}
 
@@ -394,9 +397,8 @@ If they are not public, again they can be made public with the same mechanism.
 We note that the gas costs for publishing the prices increase linearly with the number of tokens.
 
 \item \emph{price verification}:
-The proof of the correctness including the volumes-hash is initially only stored in the plasma chain. 
-But anyone can request to publish the proof and the volume-block hash also on the root-chain. 
-We use again the same mechanism as before. 
+Everyone needs to be able to verify the validity of the prices and trading volumes. Hence, everyone can request for exchange of a fee that the operator publishes the trading volume-list and volume-hash (cf. \ref{volumeBlock}). 
+The cost of publishing these volume-lists grows quadratic with the amount of of tokens traded in the batch. We are planning to have 10 tokens traded initially and hence in the worst case scenario would need to store 100 variables 
 \end{enumerate}
 
 \subsubsection{Order-output Transactions}
@@ -607,7 +609,7 @@ Let us denote the decrypted orders from the $\mathcal{B}_O$ as list $\text{[orde
 The public key used to encrypt all orders will be denoted by $\text{key}_p$.
 In order to run the proofs the most efficient, we need to calculate a special hash:
 \begin{equation}
-h = \text{sha256}(M_R(\mathcal{B}_O),\mathcal{H}_V, \text{sha256}(\beta), M_R(\vec{p}), \text{key}_p) 
+h = \text{sha256}(sha256(\mathcal{B}_O),\mathcal{H}_V, \text{sha256}(\beta), sha256(\vec{p}), \text{key}_p) 
 \end{equation}
 where $\vec{p}$ is the price vector \ref{pricevector}.
 
@@ -622,11 +624,11 @@ In details it will look like:
 And P would check that:
 \begin{enumerate}
 \item  \begin{enumerate}
-  \item Calculate $M_R(\mathcal{B}_O) := M_R(\text{Encrypted[orders]})$
+  \item Calculate $sha256(\mathcal{B}_O) := \text{sha256}(\text{Encrypted[orders]})$
     \item Calculate  $\mathcal{H}_V := M_R(\text{[orders]} \cup \text{[volumes]})$,\newline
 where $\text{[orders]} \cup \text{[volumes]} = \text{[order}_1, \text{volume}_1, ...] $
-  \item $M_R(\vec{p}) := M_R(\text{[prices]})$ and
-    \item check i equals $ \text{sha256}(M_R(\mathcal{B}_O),\mathcal{H}_V, \text{sha256}(\text{bitmap}), M_R(\vec{p}), \text{key}_p) $
+  \item $sha256(\vec{p}) := \text{sha256}(\text{[prices]})$ and
+    \item check i equals $ \text{sha256}(sha256(\mathcal{B}_O),\mathcal{H}_V, \text{sha256}(\text{bitmap}), \text{sha256}(\vec{p}), \text{key}_p) $
     \end{enumerate}
 \item P would check that only orders which were double signed have a positive trading volume:
 \begin{equation}
@@ -665,6 +667,10 @@ Vitalik Buterin
 Crypto aggregated signatures
 \\\texttt{}
  \href{https://ethresear.ch/t/cryptoeconomic-signature-aggregation/1659}{https://ethresear.ch/t/cryptoeconomic-signature-aggregation/1659}
+
+\bibitem{truebit}
+True-bit games
+ \href{https://truebit.io/}{https://truebit.io/}
 
 \bibitem{snarks} 
 Snarks using the library ZoKrates
