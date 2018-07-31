@@ -103,6 +103,9 @@
 \def\ra{\rightarrow}
 
 \newcommand*{\erc}{ERC20 }
+\DeclareMathOperator{\sha}{sha256}
+
+
 %%%%%%%%%%%%%%
 %% DOCUMENT %%
 %%%%%%%%%%%%%%
@@ -252,8 +255,10 @@ Order [ utxo,
     EncryptionSalt,
     Signatures]
 \end{verbatim} 
-The encryption salt is an elliptic point used for encryption (cf. \ref{salt}). The signatures will include the double signature of the utxo and the actual signature of the order.
-All orders will be collected and broadcast in one block per auction, the \emph{order-block}. Additionally, we will publish the sha256 of the string of series of orders. This is needed to generate later efficiently a snark proof.
+The encryption salt is an elliptic point used for encryption (cf. \ref{salt}). 
+The signatures will include the double signature of the utxo and the actual signature of the order.
+All orders will be collected and broadcast in one block per auction, the \emph{order-block}. 
+Additionally, we will publish the $\sha$ of the string of series of orders which will be required later to efficiently generate a snark proof.
 All orders included in this order-block will be able to participate in the next auction. 
 Theoretically, the plasma operator could censor orders, but since they are encrypted, no meaningful information could be obtained.
 However, due to storage constraints (i.e. no more than $2^{16}$ orders per auction), the operator would be required to monitor the number of orders at any given time.
@@ -305,7 +310,9 @@ Any price matrix $P = [p_{ij}]$ subject to the constraint \ref{arbitrage_freenes
 \end{itemize}
 \end{lemma}
 */
-Along with this price vector, the plasma operator would also share the trading volumes in a compact manner. This will be done using a mapping $m$ from the order index to the trading volume\emph{volume-list}\label{volumeBlock}. But we would only store the trading volumes for fractional fulfilled orders.
+Along with this price vector, the plasma operator would also share the trading volumes in a compact manner. 
+This will be done using a mapping $m$ from the order index to the trading volume\emph{volume-list}\label{volumeBlock}. 
+Note that only the trading volumes for fractionally fulfilled orders would be stored.
 
 \[
     m(\sigma)= 
@@ -316,16 +323,19 @@ Along with this price vector, the plasma operator would also share the trading v
     0,              & \text{is fully filled, but not highest limit price} \\
 \end{cases}
 \]
-This mapping $m$ will be stored on the root-chain, in case of a data unavailability. In the plasma chain, we will store only the \emph{volume-hash}, that is the Merkle root of the following array:
-\[[m(\sigma_1), m(\sigma_2), \dots, m(\sigma_n)]\].
+This mapping $m$ will be stored on the root-chain, in case of a data unavailability. 
+In the plasma chain, we will store only the \emph{volume-hash}, that is the Merkle root of the following array:
+\[[m(\sigma_1), m(\sigma_2), \dots, m(\sigma_n)].\]
 
-There is no guarantee that every order with a limit price below the uniform clearing price will be completely executed. Hence, the trading volume must be specified for each order.
+There is no guarantee that every order with a limit price below the uniform clearing price will be completely executed. 
+Hence, the trading volume must be specified for each order.
 This may come across as non-intuitive but does occur in batch auction trading.
 
 
 \subsubsection*{Proof of Correctness and Fairness}
 \label{proofprices}
-Once the prices are calculated by the plasma operator, he needs to prove that this set of prices is actually valid and fair. A price set and a volume-list \ref{volumeBlock} is valid and fair, if
+Once the prices are calculated by the plasma operator, he needs to prove that this set of prices is actually valid and fair. 
+A price set and a volume-list \ref{volumeBlock} is valid and fair, if
 
 \begin{enumerate}
 
@@ -347,11 +357,18 @@ Once the prices are calculated by the plasma operator, he needs to prove that th
 \end{enumerate}
 
 
-In order to prove this, we will use a true-bit calculation \cite{truebit}. All these statements can be checked either by providing a direct proof of by the a truebit game. The most advanced part is to verify the calculation of the sum \ref{volume_balance}. If any trader has any doubt that the equation is not fulfilled, he will make the operator commit all the prices and trading volumes via the mapping $m$ commit to the root-chain. Then he can start the true-bit game by putting up a bond. Together with the plasma-operator, he will calculate the sums in an interactive game. If the challenger loose, the operator will gain the bond. Otherwise the challenger will win a bond from the operator and the plasma chain gets halted.
+In order to prove this, we will use a true-bit calculation \cite{truebit}. 
+All these statements can be checked either by providing a direct proof of by the a true-bit game. 
+The most advanced part is to verify the calculation of the sum \ref{volume_balance}. 
+If any trader has any doubt that the equation is not fulfilled, they will request the operator to commit all the prices and trading volumes via the mapping $m$ to the root-chain. 
+They can then start the true-bit game by putting up a bond. 
+Together with the plasma-operator, they will calculate the sums in an interactive game. 
+If the challenger loses, the operator will gain the bond, otherwise the challenger will win a bond from the operator and the plasma chain will come to a halt.
 
 \subsubsection*{Auction-result-block}
 
-Once the operator has the price vector $\vec{p}$, the volume-list and the proof, all this information will be published in one \emph{auction-result-block}. The plasma operator will publish this block on the plasma chain. 
+Once the operator has the price vector $\vec{p}$, the volume-list and the proof, all this information will be published in one \emph{auction-result-block}. 
+The operator will publish this block on the plasma chain. 
 
 
 \subsubsection*{3rd Party Price Submission [Optional]}
@@ -389,7 +406,7 @@ It is essential for everyone to know what the bitmap of an auction is in order t
 
 \item \emph{decryption keys}:
 Also, the decryption key of an auction is essential to know, in order to see the limit prices of the encrypted orders. 
-The size of the private key for decrypting the orders would be 2x $32$ bytes.
+The size of the private key for decrypting the orders would be $2 \times 32$ bytes.
 
 \item \emph{prices}:
 The prices are also essential to know for each participant. 
@@ -397,8 +414,10 @@ If they are not public, again they can be made public with the same mechanism.
 We note that the gas costs for publishing the prices increase linearly with the number of tokens.
 
 \item \emph{price verification}:
-Everyone needs to be able to verify the validity of the prices and trading volumes. Hence, everyone can request for exchange of a fee that the operator publishes the trading volume-list and volume-hash (cf. \ref{volumeBlock}). 
-The cost of publishing these volume-lists grows quadratic with the amount of of tokens traded in the batch. We are planning to have 10 tokens traded initially and hence in the worst case scenario would need to store 100 variables 
+Everyone must be able to validated the prices and trading volumes. 
+Hence, everyone may request for exchange of a fee that the operator publishes the trading volume-list and volume-hash (cf. \ref{volumeBlock}). 
+The cost of publishing these volume-lists grows quadratically with the amount of tokens traded in the batch. 
+We plan to have 10 tokens traded initially and hence in the worst case scenario would need to store 100 variables 
 \end{enumerate}
 
 \subsubsection{Order-output Transactions}
@@ -605,38 +624,40 @@ Later, once $a$ is public, we can decrypt the orders by calculating the symmetri
 \section{An elaboration on the snark mechanism}
 \label{snarkElaboration}
 Let $\mathcal{B}_O$, $\mathcal{H}_V$ and $\beta$ denote the order-block \ref{orderblock}, volume-hash \ref{volumeBlock} and bitmap introduced above (respectively). 
-Let us denote the decrypted orders from the $\mathcal{B}_O$ as list $\text{[orders]= [}\sigma_1, \sigma_2\text{,...]}$ and the trading volume of each order by the list $\text{[volumes] = [}\nu_1, \nu_2\text{...]}$, where the volume $\nu_i$ corresponds to the order $\sigma_i$. 
+Let us denote the decrypted orders from the $\mathcal{B}_O$ as list $\text{[orders]}= [\sigma_1, \sigma_2, \dots, \sigma_n]$ and the trading volume of each order by the list $\text{[volumes]} = [\nu_1, \nu_2, \dots, \nu_n]$, where the volume $\nu_i$ corresponds to the order $\sigma_i$. 
 The public key used to encrypt all orders will be denoted by $\text{key}_p$.
 In order to run the proofs the most efficient, we need to calculate a special hash:
 \begin{equation}
-h = \text{sha256}(sha256(\mathcal{B}_O),\mathcal{H}_V, \text{sha256}(\beta), sha256(\vec{p}), \text{key}_p) 
+h = \sha(\sha(\mathcal{B}_O),\mathcal{H}_V, \sha(\beta), \sha(\vec{p}), \text{key}_p) 
 \end{equation}
 where $\vec{p}$ is the price vector \ref{pricevector}.
 
-Then the program P(i,w) should prove the above mentioned facts. 
-The public input into P is declared by the variable i and w will be the witness. 
+Then the program $P(i, w)$ should prove the above mentioned facts. 
+The public input into P is declared by the variable $i$ and $w$ will be the witness. 
 In details it will look like:
 
 \begin{equation}
-\text{P(i=h,}
-\text{w=([orders],[volumes],[prices],[bitmap]))} 
+P(i=h, w=(\text{[orders],[volumes],[prices],[bitmap]})) 
 \end{equation}
-And P would check that:
+And $P$ would check that:
 \begin{enumerate}
-\item  \begin{enumerate}
-  \item Calculate $sha256(\mathcal{B}_O) := \text{sha256}(\text{Encrypted[orders]})$
-    \item Calculate  $\mathcal{H}_V := M_R(\text{[orders]} \cup \text{[volumes]})$,\newline
-where $\text{[orders]} \cup \text{[volumes]} = \text{[order}_1, \text{volume}_1, ...] $
-  \item $sha256(\vec{p}) := \text{sha256}(\text{[prices]})$ and
-    \item check i equals $ \text{sha256}(sha256(\mathcal{B}_O),\mathcal{H}_V, \text{sha256}(\text{bitmap}), \text{sha256}(\vec{p}), \text{key}_p) $
-    \end{enumerate}
+\item  
+\begin{enumerate}
+\item Calculate $\sha(\mathcal{B}_O) := \sha(\text{Encrypted[orders]})$
+\item Calculate  $\mathcal{H}_V := M_R(\text{[orders]} \cup \text{[volumes]})$
+
+where $\text{[orders]} \cup \text{[volumes]} =[\sigma_1, \nu_1, \dots]$
+\item $\sha(\vec{p}) := \sha(\text{[prices]})$ and
+\item check i equals $ \sha(\sha(\mathcal{B}_O),\mathcal{H}_V, \sha(\text{bitmap}), \sha(\vec{p}), \text{key}_p)$
+\end{enumerate}
+
 \item P would check that only orders which were double signed have a positive trading volume:
 \begin{equation}
 \forall o \in \text{[orders], vol}(o)>0 \implies \text{bitmap}(o) = 1 
 \end{equation}
 \item The equations \ref{limitprice_sat} and \ref{volume_balance} hold
-\item For each trading pair, P loops through all orders and memorizes the highest limit price of an order of this pair, which still has a positive trading volume. 
-Then it loops through them again and checks that no other order with a lower limit price has not been filled. 
+\item For each trading pair, $P$ iterates through all orders and takes note of the highest limit price of an order having positive trading volume. 
+It then loops through them again and checks that every other order with a lower limit price has been filled.
 \end{enumerate}
 
 
