@@ -56,27 +56,27 @@ Snark - TransitionHashes&Validation ( public input: orderHashSha,
 					Output: orderHashPederson
 ```
 The transitionHashes&Validation snark will do the following checks:
-Verify the private input by sha-hashing the orders together into calculatedHash and check that calculatedHash = = orderHashSha 
-Iterate over all order and sort out the orders, where the signature does not match address specified in the accountLeafIndex
-Iterate over all remaining orders and hash them together via a merkle tree into the public output using the pederson hash.
+- Verify the private input by sha-hashing the orders together into calculatedHash and check that `calculatedHash = = orderHashSha` 
+- Iterate over all order and sort out the orders, where the signature does not match address specified in the accountLeafIndex
+- Iterate over all remaining orders and hash them together via a merkle tree into the public output using the pederson hash.
 
-
+Notice that we allow orders, which might not be covered by any balance of the order sender.
 
 In the anchor contract, we have the following functionality for this process:
 
 Anyone can propose a transition to the anchor contract by providing the required information and by providing a very high bond. It is not required to provide the snark in the first place:
-
+```
 Function submitTransitionInformation( bytes32 oldstate, bytes32 newstate)
-
+```
 In case the send transition information are incorrect, anyone can challenge it by also providing a huge bond and calling the following function.
-
+```
 Function challengeTransitionInformation( bytes32 oldstate, bytes32 newstate)
-
+```
 If the first transition submitter can provide a snark within a predefined time frame (some hours) proving that his transition was correct, the challenge will not be successful. Otherwise it will be successful. The snark would be evaluated by the anchor contract after calling the following function.
 Function submitSnarkToResolveChallenge(bytes32 oldstate, bytes32 newstate, --snark--)
 
 
-###Finding batch price: optimization of batch trading volume
+### Finding batch price: optimization of batch trading volume
 
 After the previous step, the orders participating in a batch have finalized. Now, the uniform clearing price maximizing the trading volume between all trading pairs can be calculated. Calculating the uniform clearing prices is an np hard optimization problem and most likely the global optimum will not be found in the pre-defined short time frame: 3 minutes. While it is a pity that the global optimum can not be found, the procedure is still fair, as everyone can submit their best solution. The anchor contract will store all submissions and maximal trading volumes and will select the solution with the maximal trading volume.
 This means the uniform clearing price of the auction is calculated in a permission-less decentralized way.	
@@ -96,9 +96,9 @@ After the price submission period, the best solution with the highest trading vo
 
 1) posting the full solution into the ethereum chain as payload. The solution is a price vector P, a new balanceRootHash with the updated account balances and a trading volume matrix S:
 
-| P | Token_1:Token_1 | .. | Token_N:Token_1|
+| P | Token_1:Token_1 | ... | Token_N:Token_1|
 | --- | --- | --- | --- | 
-| price | p_1 | .. | p_N |
+| price | p_1 | ... | p_N |
 
 
 P is only the price vector of all prices relative to a reference token Token_1. As prices are arbitrage-free, we can calculate the price Token_i: Token_k =  (Token_i:Token_1):(Token_1:Token_k)
@@ -107,41 +107,13 @@ P is only the price vector of all prices relative to a reference token Token_1. 
 
 
 
+| S | Token_1 | Token_2 | ... | Token_N|
+| --- | --- | --- | --- | --- | 
+| Token_1 | x | (p_12, f_12) | ... | (p_1N, f_1N) |
+| Token_2 | (p_21, f_21) | x | ... | (p_2N, f_2N) |
+| ... | ... | ... | ... | ... |
+| Token_2 | (p_N1, f_N1) | (p_N2, f_N2) | .. | x |
 
-
-S
-Token_1
-Token_2
-
-
-Token_N
-Token_1
-x
-(fraction, price)_12
-
-
-(fraction, price)_1N
-Token_2
-(fraction, price)_21
-x
-
-
-(fraction, price)_2N
-
-
-
-
-
-
-x
-
-
-Token_N
-(fraction, price)_N1
-(fraction, price)_N2
-
-
-x
 
 In this matrx S, the price is the price of the fractionally fulfilled orders and the fraction is, of course, the fraction of its partial fulfillment. The information of the matrix S are needed in order to determine exactly  the unique solution. We will not explain it here in detail, we refer to the paper cited above.
 
@@ -151,17 +123,17 @@ These two parts of the solution S and P must be provided as data payload to the 
 Now, everyone can check whether the provided solution is actually a valid one. If it is not a valid, then anyone can challenge the solution submitter. If this happens, the solution submitter needs to prove that his solution is correct by providing the following snark:
 ```
 Snark - applyAuction(
-Public: balanceRootHash,
-Public: trading volume,
+	Public: balanceRootHash,
+	Public: trading volume,
 	Public: hashBatchInfo,
 	Public: orderHashPederson,
-Private: priceMatrix PxP
+	Private: priceMatrix PxP
 	Private: tradingInfoMatrix S
-Private: [ balanceTreeRootHash_I    for 0<I<=N]
+	Private: [ balanceTreeRootHash_I    for 0<I<=N]
 	Private: orders
-Private: touched balances + leaf number + balance merkle proofs per order,
+	Private: touched balances + leaf number + balance merkle proofs per order,
 	Private: FollowUpOrderOfAccount [index of later order touching balance])
-Output: newBalanceRootHash
+	Output: newBalanceRootHash
 ```
 The snark would check the following things:
 
@@ -192,10 +164,10 @@ The snark would check the following things:
 
 	- Update the balanceRootHash
 	- Keep track of total trading volume
--End
--For all token, check that sell volume equals buy volume
--Check that the calculated total trading volume equals the public input.
--Check the order fairness criteria
+- End
+- For all token, check that sell volume equals buy volume
+- Check that the calculated total trading volume equals the public input.
+- Check the order fairness criteria
 
 
 
@@ -221,9 +193,9 @@ Function deposit ( address token, uint amount){
 That means that all the depositing information are stored in a bytes32 depositHash. Each 20 ethereum blocks, we store all the occuring depositsHash in a unique hash.
 
 The deposits can be incorporated by any highly bonded party by calling the following function:
-
+```
 Function incorporateDeposits(uint startingBlockNr, unit endingBlockNr, oldBalanceHash, newBalanceHash)
-
+```
 This function would update the the balanceHash by incorporating the deposits from startingBlockNr to endingBlockNr.
 
 Everyone can check whether the balanceHash has been updated correctly. If it has not been updated correctly, then the person submitting this solution can be challenge by providing a bond.
@@ -235,8 +207,12 @@ snark-deposits( Public oldBalanceHash
 		Public newBalanceHash
 		Public depositHash
 		Private: [deposit informations]
-Priavte: [current balances, merkleProof] )
+		Priavte: [current balances, merkleProof] )
+```	
+
 This snark would check that:
+
+```	
 		By hashing the [deposit information], we are getting the depositHash
 		for( deposits in [deposit information]){
 			Opening the Leaf of with the current balance,
