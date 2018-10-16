@@ -139,20 +139,19 @@ The snark would check the following things:
 	- open balance leaf of the receiving account 
 	- check that the leaf is owned by sender by opening the accountIndexLeaf
 	- check whether order is touched
-		-case1: fully filled order:
+		- case1: fully filled order:
 			- update the balance by substracting sell volume
 			- if `FollowUpOrderOfAccount` == 0
 				- check that balance is positive
 			- else 
-				Check that the other order referenced in `FollowUpOrderOfAccount `has the same sender or receiver and it touches the balance
+				Check that the other order referenced in `FollowUpOrderOfAccount` has the same sender or receiver and it touches the balance
 			- update the balance by adding buy volume
-		
 			- close balance leaves and update Merkle tree hashes
 			- Keep track of the total `sell volume` per token
 			- Keep track of the total `buy volume` per token
-		-case2:partially filled order:
+		- case2:partially filled order:
 			same thing, however with fractional amounts..
-		-case3:not touched
+		- case3:not touched
 			- nothing
 
 - End
