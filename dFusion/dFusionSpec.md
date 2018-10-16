@@ -5,22 +5,23 @@
 Specification develop by Gnosis.
 
 
-The following specification uses the scaling approach from Vitaliks post: [Onchain scaling](https://ethresear.ch/t/on-chain-scaling-to-potentially-500-tx-sec-through-mass-tx-validation/3477) in order to build a scalable fully decentralized exchange with decentralized order matching. The scalability is enabled by the heavy use of zk-snarks. In order to allow bigger circuit amounts, we are planning to use the ideas descibed in [DIZK](https://www.usenix.org/system/files/conference/usenixsecurity18/sec18-wu.pdf). Orders are matched in a batch auction with a arbitratrage-free price clearing technique developed by Gnosis: [uniform clearning prices]( https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf)
+The following specification uses the scaling approach from Vitaliks post: [Onchain scaling](https://ethresear.ch/t/on-chain-scaling-to-potentially-500-tx-sec-through-mass-tx-validation/3477) in order to build a scalable fully decentralized exchange with decentralized order matching. The scalability is enabled by the heavy use of zk-snarks. In order to allow bigger circuit amounts, we are planning to use the ideas descibed in [DIZK](https://www.usenix.org/system/files/conference/usenixsecurity18/sec18-wu.pdf). Orders are matched in a batch auction with a arbitratrage-free price clearing technique developed by Gnosis: [Uniform Clearning Prices]( https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf).
 
 
 ## Specification
-The specification will allow to trade via limit orders between N ERC20 tokens.
+The envisioned exchange will enable users to trade via limit orders between N predefined ERC20 tokens.
 For each ERC20 token we store the balance of traders in a Merkle tree root hash:
-	 `balanceTreeRootHash_I    for 0<I<=N`
+	 `balanceTreeRootHash_I    for 0<I<=N`. In this tree, each leaf contains only the amount of tokens held by a user.
 
-Each leaf contains only the amount of tokens held by a user.
 The addresses of the accounts in the exchange are stored in another Merkle tree
-Root hash:
+root hash:
 	`accountsRootHash`
 
-The balance of the i-th leaf from the `balanceTreeRootHashToken` will belong to the account of the i-th leaf in `accountsRootHash`.
+The balance of the i-th leaf from the `balanceTreeRootHash_Token` will belong to the account of the i-th leaf in `accountsRootHash`.
 
 All orders are encoded as limit sell orders: `(accountLeafIndex, fromTokenIndex, toTokenIndex, limitprice, amount, signature)`. The order should be read in the folllowing way: the user from the specified leaf index would like to sell the token fromTokenIndex for toTokenIndex for at most the limit price and the amount specified.
+
+
 All these roothashes `[ accountsRootHash, balanceTreeRootHash_1, …, balanceTreeRootHash_1]` are getting hashed together and will be stored in a `balancesRootHash` in the a “anchor” smart contract on-chain.
 
 The trading workflow consists of the following sequential processes:
@@ -29,21 +30,22 @@ The trading workflow consists of the following sequential processes:
 3. Finding batch price: optimization of batch trading volume
 4. Balance updates after trade execution via 
 5. Processing of pending exit, depositssnark
+6. Restart with step 1
 
-### Order collection(with Sha hashes)
+### Order collection (with sha hashes)
 
 The anchor smart contract on ethereum will offer the following function:
 ```
 function appendOrders( bytes32 [] orders){ 
-// some preliminary checks, which will limit the total amount of orders..
+	// some preliminary checks, which will limit the total amount of orders..
 
-// update of orderHashSha
+	// update of orderHashSha
 	for(i=0;i<orders.length;i++){
-	orderHashSha = Kecca256( orderHashSha, order[i])
-}
+		orderHashSha = Kecca256( orderHashSha, order[i])
+	}
 }
 ```
-, which simply updates an orderHashSha variable, which is encoding all orders. This function is callable by any party. But it is expected that “decentralized operators” accept orders of users, bundle them and then include them all together into the function. Notice that the orders are only send over as transaction payload, but will not “stored” in the EVM.
+This funciton will simply update an orderHashSha variable, which is encoding all orders. This function is callable by any party. However, it is expected that “decentralized operators” accept orders from users, bundles them and then include them all together into the function. Notice that the orders are only send over as transaction payload, but will not be “stored” in the EVM.
 
 ### Transition function from Sha to Pederson & order validation
 
@@ -56,9 +58,9 @@ Snark - TransitionHashes&Validation ( public input: orderHashSha,
 					Output: orderHashPederson
 ```
 The transitionHashes&Validation snark will do the following checks:
-- Verify the private input by sha-hashing the orders together into calculatedHash and check that `calculatedHash = = orderHashSha` 
+- Verify the private input by recalculating the sha of all orders and comparing it to the public input `orderHAshSha`.
 - Iterate over all order and sort out the orders, where the signature does not match address specified in the accountLeafIndex
-- Iterate over all remaining orders and hash them together via a merkle tree into the public output using the pederson hash.
+- Iterate over all remaining orders and hash them together via a merkle tree into the public output using the pederson hash. Use this hash as output.
 
 Notice that we allow orders, which might not be covered by any balance of the order sender.
 
@@ -72,21 +74,18 @@ In case the send transition information are incorrect, anyone can challenge it b
 ```
 Function challengeTransitionInformation( bytes32 oldstate, bytes32 newstate)
 ```
-If the first transition submitter can provide a snark within a predefined time frame (some hours) proving that his transition was correct, the challenge will not be successful. Otherwise it will be successful. The snark would be evaluated by the anchor contract after calling the following function.
-Function submitSnarkToResolveChallenge(bytes32 oldstate, bytes32 newstate, --snark--)
+If the first transition submitter can provide a snark within a predefined time frame (some hours) proving that his transition was correct, the challenge will not be successful. Otherwise it will be successful.
 
+The snark would be evaluated by the anchor contract after calling the following function.
+ ```
+Function submitSnarkToResolveChallenge(bytes32 oldstate, bytes32 newstate, --snark--)
+```
 
 ### Finding batch price: optimization of batch trading volume
 
-After the previous step, the orders participating in a batch have finalized. Now, the uniform clearing price maximizing the trading volume between all trading pairs can be calculated. Calculating the uniform clearing prices is an np hard optimization problem and most likely the global optimum will not be found in the pre-defined short time frame: 3 minutes. While it is a pity that the global optimum can not be found, the procedure is still fair, as everyone can submit their best solution. The anchor contract will store all submissions and maximal trading volumes and will select the solution with the maximal trading volume.
+After the previous step, the orders participating in a batch have finalized. Now, the uniform clearing price maximizing the trading volume between all trading pairs can be calculated. The exact procedure is described [here]( https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf). Calculating the uniform clearing prices is an np hard optimization problem and most likely the global optimum will not be found in the pre-defined short time frame: 3 minutes. While it is a pity that the global optimum can not be found, the procedure is still fair, as everyone can submit their best solution. The anchor contract will store all submissions and will select the solution with the maximal trading volume as the final solution.
 This means the uniform clearing price of the auction is calculated in a permission-less decentralized way.	
-Each time a solution is submitted to the anchor contract, of course, the submitter also needs to bond himself. If he provides the solution, he also has to provide in the next process step the balance update information and answer any challenge request.
-
-
-
-
-The details of the price finding mechanism can be found in the following paper:
-https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf
+Each time a solution is submitted to the anchor contract, of course, the submitter also needs to bond himself. If he provides the solution, he also has to provide in the next process step the balance update information and has to answer any challenge request.
 
 
 ### Balance updates after trade execution via snark
@@ -101,10 +100,7 @@ After the price submission period, the best solution with the highest trading vo
 | price | p_1 | ... | p_N |
 
 
-P is only the price vector of all prices relative to a reference token Token_1. As prices are arbitrage-free, we can calculate the price Token_i: Token_k =  (Token_i:Token_1):(Token_1:Token_k)
-
-
-
+`P` is only the price vector of all prices relative to a reference token `Token_1`. As prices are arbitrage-free, we can calculate the `price Token_i: Token_k` =  `(Token_i:Token_1):(Token_1:Token_k)`
 
 
 | S | Token_1 | Token_2 | ... | Token_N|
@@ -115,9 +111,9 @@ P is only the price vector of all prices relative to a reference token Token_1. 
 | Token_2 | (p_N1, f_N1) | (p_N2, f_N2) | .. | x |
 
 
-In this matrx S, the price is the price of the fractionally fulfilled orders and the fraction is, of course, the fraction of its partial fulfillment. The information of the matrix S are needed in order to determine exactly  the unique solution. We will not explain it here in detail, we refer to the paper cited above.
+In this matrx S, the `p_ij` is the price of the fractionally fulfilled orders in the traiding pair between `Token_i` and `Token_j` and the fraction is, of course, the fraction of its partial fulfillment. The information of the matrix S are needed in order to determine exactly the unique solution. We will not explain it here in detail, we refer to the paper cited above.
 
-These two parts of the solution S and P must be provided as data payload to the anchor contract and then the anchor contract will hash them together into hashBatchInfo.
+These two parts of the solution S and P must be provided as data payload to the anchor contract and then the anchor contract will hash them together into `hashBatchInfo`.
 
 
 Now, everyone can check whether the provided solution is actually a valid one. If it is not a valid, then anyone can challenge the solution submitter. If this happens, the solution submitter needs to prove that his solution is correct by providing the following snark:
@@ -137,28 +133,28 @@ Snark - applyAuction(
 ```
 The snark would check the following things:
 
-- priceMatrix has actually the values as induced by the hashBatchInfo
-- tradingInfoMatrix S has actually the values induced by the hashBatchInfo
-- verify  [ balanceTreeRootHash_I    for 0<I<=N] with balanceRootHash
+- `priceMatrix` has actually the values as induced by the `hashBatchInfo`
+- `tradingInfoMatrix` S has actually the values induced by the `hashBatchInfo`
+- verify  `[ balanceTreeRootHash_I    for 0<I<=N]` hashes to `balanceRootHash`
 
 - for order in [orders]
 	- open balance leaf of the receiving account 
 	- check that the leaf is owned by sender by opening the accountIndexLeaf
 	- add trading volume to balance, if order is executed
-	- if FollowUpOrderOfAccount == 0
+	- if `FollowUpOrderOfAccount` == 0
 		- check that balance is positive
 	- else 
-		Check that the other order referenced in FollowUpOrderOfAccount has the same sender or receiver and it touches the balance
+		Check that the other order referenced in `FollowUpOrderOfAccount `has the same sender or receiver and it touches the balance
 
 	- close balance leaf
 		
 	- open balance leaf of the sending account 
 	-check that the leaf is owned by sender
 	- subtract trading volume to balance, if order is executed
-	- if FollowUpOrderOfAccount
+	- if `FollowUpOrderOfAccount`
 		- check that balance is positive
 	- else 
-		Check that the other order referenced in FollowUpOrderOfAccount has the same sender or receiver and it touches the balance
+		Check that the other order referenced in `FollowUpOrderOfAccount` has the same sender or receiver and it touches the balance
 
 	- recalculate the balanceRoothash with new balance leaf
 
@@ -179,26 +175,25 @@ If someone want to deposit to anchor contract, we would have to send funds into 
 
 ```
 Function deposit ( address token, uint amount){
-// verify that not too much deposits have already been done,
-
+	// verify that not too much deposits have already been done,
 
 	// sending of funds
-	require( Token(token).transferFrom())
+	require( Token(token).transferFrom(...))
 
-	// 
+	// Storing deposit information
 	depositHash[blocknr/20] = sha256(depositHash[blocknr/20], msg.sender, amount, token) 
 }
 ```
 
-That means that all the depositing information are stored in a bytes32 depositHash. Each 20 ethereum blocks, we store all the occuring depositsHash in a unique hash.
+That means that all the depositing information are stored in a bytes32 `depositHash`. Each 20 ethereum blocks, we store all the occuring `depositsHash` in a unique hash.
 
 The deposits can be incorporated by any highly bonded party by calling the following function:
 ```
-Function incorporateDeposits(uint startingBlockNr, unit endingBlockNr, oldBalanceHash, newBalanceHash)
+Function incorporateDeposits(uint blockNr, oldBalanceHash, newBalanceHash)
 ```
-This function would update the the balanceHash by incorporating the deposits from startingBlockNr to endingBlockNr.
+This function would update the the `balanceHash` by incorporating the deposits received from `blockNr` to `blockNr+19`.
 
-Everyone can check whether the balanceHash has been updated correctly. If it has not been updated correctly, then the person submitting this solution can be challenge by providing a bond.
+Everyone can check whether the `balanceHash` has been updated correctly. If it has not been updated correctly, then the person submitting this solution can be challenge by providing a bond.
 
 If the submitter is challenged, he would have to provide the following snark:
 
@@ -212,22 +207,81 @@ snark-deposits( Public oldBalanceHash
 
 This snark would check that:
 
-```	
-		By hashing the [deposit information], we are getting the depositHash
-		for( deposits in [deposit information]){
-			Opening the Leaf of with the current balance,
-			Opening the Leaf of the AccountHash and 
-			check that deposit.sender == accountLeaf.address
-			Update the leaf with the current balance,
-			Recalculate the balanceHash
-		}
-```		
+- By hashing the `[deposit information]`, we are getting the `depositHash`
+- for( deposits in `[deposit information]`)
+	- Opening the Leaf of with the current balance,
+	- Opening the Leaf of the AccountHash and 
+	- check that `deposit.sender == accountLeaf.address`
+	- Update the leaf with the current balance,
+	- Recalculate the balanceHash
+		
 
 Something quite similar will be done with exit request. There is only one think we have to take care of: 
-	Exits should only occur after some time delay, as otherwise an illegal state transition might not yet have been challenged.
+Exits should only occur after some time delay, as otherwise an illegal state transition might not yet have been challenged.
+
+If a users want to exit, he frist needs to do an exit request by calling the following function in the anchor contrat:
+```
+Function exitRequest ( address token, uint amount){
+	// verify that not too much exists request have already been done,
+
+	// sending of funds
+	require( Token(token).transferFrom(...))
+
+	// Storing deposit information
+	exitRequestHash[blocknr/20] = sha256(exitRequestHash[blocknr/20], msg.sender, amount, token) 
+}
+```
+
+Then any highly bonded party can incorporate these bundled exit requests into the current balanceHash by calling the following function:
+
+```
+Function incorporateWithdrawals(uint blockNr, bytes32 oldBalanceHash, bytes32 newBalanceHash,bytes32 withdrawalAmounts)
+``` 
+Here, all withdrawal request were processed, which were registered between the blocks blockNr and blockNr+19. A solution submitter would have to hand over the previous oldBalanceHash, which describes the balances before the withdrawals. It would have to send over the newBalanceHash describing the new balances of the users and withdrawalAmounts, which is also the balancesHashed together from all legit withdrawals from all users.
+
+Again, if the incorporatedWithdrawals results was incorrectly provided, this can be challenge. In case it is challenged, the solution submitter needs to provide the snark proof:
+
+```
+snark-withdrawals( Public oldBalanceHash
+		Public newBalanceHash
+		Public exitRequestHash
+		Private: [exitRequest informaiton]
+		Priavte: [current balances, merkleProofs] )
+		Output: withdrawalAmounts
+```	
+
+This snark would check that:
+
+- By hashing the `[exitRequest informaiton]`, we are getting the `exitRequestHash`
+- for( withdrawals in `[exitRequest information]`)
+	- Opening the Leaf of with the current balance,
+	- Opening the Leaf of the AccountHash and 
+	- if `withdrawal.sender == accountLeaf.address` && `withdrawal.amount <= balanceHashToken.amount`
+		- Update the leaf with the current balance,
+		- Recalculate the balanceHash
+		- incorporate the `withdrawal.amount` into `withdrawalAmounts`
+
+
+If an provided solution is not challenged, any users can trigger his withdrawal 1 day after the submission, by providing Merkle proof of his balance stored in withdrawalAmounts[blockNr]
+
+```
+Function processWithdrawal(uint blockNrOfReg, uint amount, address token, bytes MerkleProof){
+	// check that some time passed
+	require(blockNrOfReg + TimeDelta < now)
+
+	// Verify that withdrawal is legit
+	require(withdrawalAmounts[blockNrOfReg].CheckInclusionProof(amount, MerkleProof))
+
+	//Update withdrawalAmounts[blockNrOfReg]
+
+	//Transfer tokens
+	require(Token(token).transfer(..))
+}
+``` 
 	
-Feasibility-study
+## Feasibility-study
 
 
 Biggest forseen challenge: Generating a trusted setup with 2^28 constraints.
 
+## Summary
