@@ -301,7 +301,13 @@ The Dzik paper showed that it is possible to calculate snarks for up to several 
 
 For sure the biggest constraint system comes with the snark checking the actual trade and updating all balances. In the following, we estimate the number of circuits by estimation how often we have to hash something. This should be sufficient, as the amount of total constraints is heavily dominated by the circuits of the hash function.
 
-..
+In the snark-applyAuction the snark circuits are dominated by the following operations:
+
+- iteration over all orders -> constraints mulitlpy #orders
+- for each order we open 3 leaves: accountleave balanceLeaf_SendingToken, balanceLeaf_ReceivingToken -> log_2(#balances)*2*#pedersonHashConstraints
+- for each order we recalculate the merkle root: accountleave balanceLeaf_SendingToken, balanceLeaf_ReceivingToken -> log_2(#balances)*2*#pedersonHashConstraints
+
+That means that the nr of constraints for #orders will be about #orders*log_2(#balances)*4*#pedersonHashConstraints
 
 
 
