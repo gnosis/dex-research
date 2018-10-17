@@ -82,7 +82,8 @@ Function submitSnarkToResolveChallenge(bytes32 oldstate, bytes32 newstate, --sna
 
 ### Finding batch price: optimization of batch trading volume
 
-After the previous step, the orders participating in a batch have finalized. Now, the uniform clearing price maximizing the trading volume between all trading pairs can be calculated. The exact procedure is described [here]( https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf). Calculating the uniform clearing prices is an np hard optimization problem and most likely the global optimum will not be found in the pre-defined short time frame: 3 minutes. While it is a pity that the global optimum cannot be found, the procedure is still fair, as everyone can submit their best solution. The anchor contract will store all submissions and will select the solution with the maximal trading volume as the final solution.
+After the previous step, the orders participating in a batch have finalized. Now, the uniform clearing price maximizing the trading volume between all trading pairs can be calculated. The exact procedure is described [here]( https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf). Calculating the uniform clearing prices is an np hard optimization problem and most likely the global optimum will not be found in the pre-defined short time frame: 3 minutes. While it is a pity that the global optimum cannot be found, the procedure is still fair, as everyone can submit their best solution. The anchor contract will store all submissions and will select the solution with the maximal 'traders welfare' as the final solution. We define the traders welfare as the sum of all differences between the uniform clearning prices and the limit price of an touched order multiplied by the volume of the order.
+
 This means the uniform clearing price of the auction is calculated in a permission-less decentralized way.	
 Each time a solution is submitted to the anchor contract, of course, the submitter also needs to bond himself. If he provides the solution, he also has to provide in the next process step the balance update information and has to answer any challenge request.
 
@@ -92,7 +93,7 @@ Each time a solution is submitted to the anchor contract, of course, the submitt
 
 After the price submission period, the best solution with the highest trading volume will be chosen by the anchor contract. The submitter of this solution needs to do 2 steps:
 
-1) posting the full solution into the ethereum chain as payload. The solution is a price vector P, a new balanceRootHash with the updated account balances and a trading volume matrix S:
+1) posting the full solution into the ethereum chain as payload. The solution is a price vector P, a new balanceRootHash with the updated account balances, an bitmap of ignored orders and a trading volume matrix S:
 
 | P | Token_1:Token_1 | ... | Token_N:Token_1|
 | --- | --- | --- | --- | 
@@ -112,7 +113,15 @@ After the price submission period, the best solution with the highest trading vo
 
 In this matrix S, the `p_ij` is the price of the fractionally fulfilled orders in the trading pair between `Token_i` and `Token_j` and the fraction is, of course, the fraction of its partial fulfillment. The information of the matrix S is needed in order to determine exactly the unique solution. We will not explain it here in detail, we refer to the paper cited above.
 
-These two parts of the solution S and P must be provided as data payload to the anchor contract and then the anchor contract will hash them together into `hashBatchInfo`.
+Usually, all orders from `Token_i` to `Token_j` with a limit price lower than `p_ij` should be fully filled. But, the account sending the order might not have the balance required to settle the sell order. These orders we are calling uncovered orders and they need to be excluded. For this we define a bitmap, which has a 0 for normal orders and a 1 for uncovered orders. Uncovered orders will always result in a trading volume == 0
+
+
+| bitmap | order_1 | ... | order_K|
+| order type {0,1} | o_1 | --- | o_K |
+
+
+
+These three parts of the solution S, bitmap and P must be provided as data payload to the anchor contract and then the anchor contract will hash them together into `hashBatchInfo`.
 
 Now, everyone can check whether the provided solution is actually a valid one. If it is not valid, then anyone can challenge the solution submitter. If this happens, the solution submitter needs to prove that his solution is correct by providing the following snark:
 ```
@@ -121,6 +130,7 @@ Snark - applyAuction(
 	Public: tradingVolume,
 	Public: hashBatchInfo,
 	Public: orderHashPederson,
+	Private: bitmap,
 	Private: priceMatrix PxP
 	Private: tradingInfoMatrix S
 	Private: [ balanceTreeRootHash_I    for 0<I<=N]
@@ -134,11 +144,12 @@ The snark would check the following things:
 - `priceMatrix` has actually the values as induced by the `hashBatchInfo`
 - `tradingInfoMatrix` S has actually the values induced by the `hashBatchInfo`
 - verify  `[ balanceTreeRootHash_I    for 0<I<=N]` hashes to `balanceRootHash`
+- verify  `[bitmap]` has the values induced by `hashBatchInfo`
 
 - for order in [orders]
 	- open balance leaf of the receiving account 
 	- check that the leaf is owned by sender by opening the accountIndexLeaf
-	- check whether order is touched
+	- check whether order is touched 
 		- case1: fully filled order:
 			- update the balance by substracting sell volume
 			- if `FollowUpOrderOfAccount` == 0
@@ -151,7 +162,7 @@ The snark would check the following things:
 			- Keep track of the total `buy volume` per token
 		- case2:partially filled order:
 			same thing, however with fractional amounts..
-		- case3:not touched
+		- case3: not touched or uncovered order
 			- nothing
 
 - End
