@@ -5,7 +5,7 @@
 A specification developed by Gnosis.
 
 
-The following specification uses the scaling approach from Vitaliks post: [Onchain scaling](https://ethresear.ch/t/on-chain-scaling-to-potentially-500-tx-sec-through-mass-tx-validation/3477) in order to build a scalable fully decentralized exchange with decentralized order matching. The scalability is enabled by the heavy use of zk-snarks. In order to allow bigger circuit amounts, we are planning to use the ideas described in [DIZK](https://www.usenix.org/system/files/conference/usenixsecurity18/sec18-wu.pdf). Orders are matched in a batch auction with an arbitrage-free price clearing technique developed by Gnosis: [Uniform Clearing Prices]( https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf).
+The following specification uses the scaling approach from Vitaliks post: [Onchain scaling](https://ethresear.ch/t/on-chain-scaling-to-potentially-500-tx-sec-through-mass-tx-validation/3477), in order to build a scalable fully decentralized exchange with decentralized order matching. The scalability is enabled by the heavy use of zk-snarks. In order to allow bigger circuit amounts, we are planning to use the ideas described in [DIZK](https://www.usenix.org/system/files/conference/usenixsecurity18/sec18-wu.pdf). Orders are matched in a batch auction with an arbitrage-free price clearing technique developed by Gnosis: [Uniform Clearing Prices]( https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf).
 
 ## Specification
 The envisioned exchange will enable users to trade via limit orders between N predefined ERC20 tokens.
@@ -24,8 +24,8 @@ All orders are encoded as limit sell orders: `(accountLeafIndex, fromTokenIndex,
 All these root hashes `[ accountsRootHash, balanceTreeRootHash_1, …, balanceTreeRootHash_1]` are getting hashed together and will be stored in a `balancesRootHash` in the “anchor” smart contract on-chain.
 
 The trading workflow consists of the following sequential processes:
-1. Order collection (with Sha hashes)
-2. Transition function from Sha to Pederson & order validation
+1. Order collection (with sha hashes)
+2. Transition function from sha to Pederson hashes & order validation
 3. Finding batch price: optimization of batch trading volume
 4. Balance updates after trade execution via 
 5. Processing of pending exist and deposits
@@ -46,7 +46,7 @@ function appendOrders( bytes32 [] orders){
 ```
 This function will simply update an orderHashSha variable, which is encoding all orders. This function is callable by any party. However, it is expected that “decentralized operators” accept orders from users, bundles them and then include them all together into the function. Notice that the orders are only sent over as transaction payload, but will not be “stored” in the EVM.
 
-### Transition function from Sha to Pederson & order validation
+### Transition function from sha to Pederson hashes & order validation
 
 In the first step, the orders are hashed together using sha. This makes sense as sha is very cheap on the evm. However, sha is very “expensive” in snarks and hence we are forced to recalculate the hashes in Pederson hashes. 
 
@@ -113,10 +113,12 @@ After the price submission period, the best solution with the highest trading vo
 
 In this matrix S, the `p_ij` is the price of the fractionally fulfilled orders in the trading pair between `Token_i` and `Token_j` and the fraction is, of course, the fraction of its partial fulfillment. The information of the matrix S is needed in order to determine exactly the unique solution. We will not explain it here in detail, we refer to the paper cited above.
 
-Usually, all orders from `Token_i` to `Token_j` with a limit price lower than `p_ij` should be fully filled. But, the account sending the order might not have the balance required to settle the sell order. These orders we are calling uncovered orders and they need to be excluded. For this we define a bitmap, which has a 0 for normal orders and a 1 for uncovered orders. Uncovered orders will always result in a trading volume == 0
+Usually, all orders from `Token_i` to `Token_j` with a limit price lower than `p_ij` should be fully filled. But, the account sending the order might not have the balance required to settle the sell order. These orders we are calling uncovered orders and they need to be excluded. For this we define a bitmap, which has a `0` for normal orders and a `1` for uncovered orders. Uncovered orders will always result in a trading volume == 0
 
 
 | bitmap | order_1 | ... | order_K|
+| --- | --- | --- | --- |
+
 | order type {0,1} | o_1 | --- | o_K |
 
 
