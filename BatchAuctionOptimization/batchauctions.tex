@@ -13,11 +13,12 @@
 \usepackage{bm}              % Provides bold \pi
 \usepackage{booktabs}
 \usepackage{hyperref}
-\usepackage{gensymb}         % Enables \degree command for °C.
 \usepackage{todonotes}
-\usepackage{subfig}
 \usepackage{enumitem}
 \usepackage{mathtools}
+\usepackage{caption}         % For subtables.
+\usepackage{subcaption}      % For subtables.
+%\usepackage{subfig}
 
 
 %%%%%%%%%%%%%%%%%
@@ -155,9 +156,9 @@ In order to exclude arbitrage opportunities, we require prices to be consistent 
 to be satisfied for the prices of all tokens j,k,l.
 
 The concept of frequent batch auctions aiming at reducing arbitrage and improving liquidity has
-been investigated extensively in \cite{budish:HFT}.
+been investigated extensively in \cite{BUDISH-ET-AL_2015:HFT}.
 Moreover, the advantages of uniform-price clearing have been discussed in 
-\cite{engelbrecht:multi_unit_auctions}.
+\cite{ENGELBRECHT-KAHN_1998:multi-unit-auctions}.
 In this document, we want to describe the problem of determining uniform clearing prices for all
 pairs of tokens involved in a multi-token batch auction process, and present a mixed-integer
 programming (MIP) solution approach.
@@ -341,7 +342,7 @@ rarely be traded on.
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=.57\textwidth]{figures/token_order_graph.png}
+  \includegraphics[width=.75\textwidth]{figures/token_order_graph.png}
   \caption{Token-order-graph representing a multi-token batch auction instance. Nodes correspond
   to tokens (with their size indicating the trading demand), the thickness of an edge represents 
   the number of orders placed on the respective token pair.}
@@ -719,8 +720,9 @@ we first introduce a binary variable $ z \in \{0,1\} $ for every order and assoc
 the constraint sets as $ \{z = 1\} \Leftrightarrow \tilde{\mathfrak{C}}^1 $ and
 $ \{z = 0\} \Leftrightarrow \tilde{\mathfrak{C}}^0 $.
 For modelling these dependencies, there exist two major strategies that we will apply in the
-following: the \emph{big-M} approach as, \eg mentioned in \cite{??}, as well as \emph{disjunctive
-programming}, introduced by \textsc{Balas} \cite{balas:DP}.
+following:
+the \emph{big-M} approach as, \eg mentioned in \cite{BONAMI-ET-AL_2015:indicator-constraints},
+as well as \emph{disjunctive programming}, introduced by \textsc{Balas} \cite{BALAS_1979:DP}.
 
 \paragraph{Big-M reformulation}
 
@@ -747,6 +749,7 @@ As for our constraint systems, this translates into:
   v &\ge r^\Min \, \overline{y} \, (p_k - (1-z) \, \overline{p}_k)
     && \text{if} \enskip \omega \in \sellorders
 \end{align}
+\label{eq:order_model_mip1_bigM}
 \end{subequations}
 
 It can easily be verified that substituting $ z=1 $ and $ z=0 $ yields the desired constraints
@@ -795,6 +798,7 @@ Then, a disjunctive programming formulation can be given as follows:
   v &\ge r^\Min \, \overline{y} \, p^{s,1} &\text{if} \enskip \omega \in \sellorders
     \label{eq:mip1_dp_volume_sell_lb}
 \end{align}
+\label{eq:order_model_mip1_DP}
 \end{subequations}
 
 The general idea is that both $ p^{b,1} $ and $ p^{s,1} $ shall take the true value of $ p_j $ and
@@ -878,6 +882,46 @@ $ \omega = (k, j,\, \cdot \,,\, \cdot \,,\, \cdot) \in \orders $,
 \ie for opposite roles of the tokens involved.
 In our computational experiments, these constraints proven to be very beneficial for the solving
 performance.
+
+Moreover, we can also find inequalities for subsets of orders that are mutually exclusive, \ie not
+all orders in such a subset can be executed at the same time.
+In particular, on a token pair $ (j,k) \in \itokenpairs $, if there are two orders
+$ \omega^{(1)} = (j,k,\cdot,\cdot,\pi^{(1)}) $ and $ \omega^{(2)} = (k,j,\cdot,\cdot,\pi^{(2)}) $,
+where $ \pi^{(1)} \cdot \pi^{(2)} < 1 $, we can conclude that at most one of them may be active in
+order to maintain arbitrage-freeness \eqref{eq:arbitrage_freeness}.
+This can be written as inequality 
+\begin{subequations}
+\begin{align}
+  z^{(1)} + z^{(2)} \le 1.
+  \label{eq:mip1_order_exclusion}
+\end{align}
+This type of inequality can of course also be generalized to chains of orders along cycles of
+tokens.
+Let $ (\tau_{j_1}, \tau_{j_2}, \ldots, \tau_{j_m}, \tau_{j_1}) $ be such a token cycle of length
+$ m $.
+Then, for a set of orders
+$ \{
+\omega^{(1)} = (j_1,j_2,\cdot,\cdot,\pi^{(1)}), \>
+\omega^{(2)} = (j_2,j_3,\cdot,\cdot,\pi^{(2)}), \>
+\ldots, \>
+\omega^{(m)} = (j_m,j_1,\cdot,\cdot,\pi^{(m)})
+\} $
+with $ \prod_{i=1}^m \pi^{(i)} < 1 $, the following needs to hold:
+\begin{align}
+  \sum\limits_{i=1}^m z^{(i)} \le m-1.
+  \label{eq:mip1_order_exclusion_general}
+\end{align}
+\end{subequations}
+
+In both cases, there are many possible choices of subsets of orders that are mutually exclusive.
+This holds true in particular for the generalized constraint variant
+\eqref{eq:mip1_order_exclusion_general} the longer the token cycles become.
+Hence, for instances with a large number of orders, it will be impractical to include all possible
+inequalities, so some care should be taken on selecting the most impactful ones.
+So far, we have done experiments with cycle lengths $ m \in \{2,3\} $, in which the mutual
+exclusion constraints have shown to have a significant positive impact on the solving process.
+
+\todo[inline]{Which inequalities to select!?}
 
 
 \newpage
@@ -1040,8 +1084,6 @@ token is involved.
 \subsection{Computational comparison}
 \label{subsec:computational_comparison}
 
-\todo[inline]{TODO!}
-
 In order to investigate the performance of our MIP models, we have conducted computational
 experiments for different numbers of tokens ($ n \in \{5,10,20,50\} $) and orders ($ N \in 
 \{100,200,500\} $).
@@ -1052,15 +1094,23 @@ hence, to have varying numbers of orders on different token pairs.
 We used Gurobi 8.0.0 as MIP solver on an Intel(R) Core(TM) i7-8550U CPU @ 1.80GHz machine with 16Gb
 RAM and using 4 threads, and a timelimit set to 1800 seconds for every instance.
 
+The value of the maximum fluctuation parameter has been set to $ \delta = 0.1 $, meaning that
+prices are allowed to change by at most 10\% from the (randomly set) previous prices.
+Moreover, we used $ r^\Min = 0 $, hence orders can be left untouched even if their limit price
+complies with the computed exchange rate.
+This guarantees that all our test instances are feasible.
+
 The (geometric) means of the runtimes have been computed only \wrt the instances that could be
 solved to optimality before the timelimit. Conversely, the average optimality gap does not take
 solved instances into account.
 
-$ \Rightarrow \underline{p}=0.5, \overline{p}=2.0, \underline{r}=0.2 $
+The results of our computational experiments as in \tabref{tab:results_mip1_bigm} and 
+\tabref{tab:results_mip2_dp}
+show that runtimes of the MIP formulation sharply increase both with the number of assets and the
+number of orders that are being considered.
 
-The results of our computational experiments as in \tabref{tab:mip1_results},
-\tabref{tab:mip2_results} and \tabref{tab:mip3_results} show that runtimes of the MIP formulation
-sharply increase both with the number of assets and the number of orders that are being considered.
+\todo[inline]{More verbal explanation on results!}
+
 Several instances with more than 20 assets and more than 200 orders could not even be solved to
 optimality within the timelimit.
 If larger problems are to be considered, we can think of the following heuristics/approximations:
@@ -1069,58 +1119,142 @@ If larger problems are to be considered, we can think of the following heuristic
     \item Optimize over subsets of assets separately and fix prices in overall problem
 \end{itemize}
 
-\vspace{.6cm}
-\begin{table}[ht!]
-  \centering
-  \begin{tabular}{C{16mm}R{20mm}R{15mm}R{15mm}R{15mm}R{15mm}}
-    \toprule
-    && \multicolumn{4}{c}{\# assets}\\
-    \cmidrule{3-6}
-    \# orders &                         &    5  &   10  &     20  &     50  \\
-    \midrule
-    100       & $ \varnothing $ runtime &  0.32 &  0.32 &    0.90 &    5.54 \\
-              & \# timeouts             &     0 &     0 &       0 &       0 \\
-              & -- $ \varnothing $ gap  &     - &     - &       - &       - \\
-    \midrule
-    200       & $ \varnothing $ runtime &  1.31 &  2.49 &   26.25 &  571.10 \\
-              & \# timeouts             &     0 &     0 &       0 &      12 \\
-              & -- $ \varnothing $ gap  &     - &     - &       - & 23.46\% \\
-    \midrule
-    500       & $ \varnothing $ runtime & 15.67 & 82.47 &  522.72 &       . \\
-              & \# timeouts             &     0 &     0 &      11 &       - \\
-              & -- $ \varnothing $ gap  &     - &     - & 21.59\% &       - \\
-    \bottomrule
-  \end{tabular}
-  \caption{Computational results for MIP model I \eqref{eq:mip1}.}
-  \label{tab:mip1_results}
-\end{table}
-\vspace{.5cm}
 
-\begin{table}[ht!]
-  \centering
-  \begin{tabular}{C{16mm}R{20mm}R{15mm}R{15mm}R{15mm}R{15mm}}
-    \toprule
-    && \multicolumn{4}{c}{\# assets}\\
-    \cmidrule{3-6}
-    \# orders &                         &    5  &   10  &     20  &     50  \\
-    \midrule
-    100       & $ \varnothing $ runtime &     . &     . &        . &      . \\
-              & \# timeouts             &     . &     . &        . &      . \\
-              & -- $ \varnothing $ gap  &     . &     . &        . &      . \\
-    \midrule
-    200       & $ \varnothing $ runtime &     . &     . &        . &      . \\
-              & \# timeouts             &     . &     . &        . &      . \\
-              & -- $ \varnothing $ gap  &     . &     . &        . &      . \\
-    \midrule
-    500       & $ \varnothing $ runtime &     . &     . &        . &      . \\
-              & \# timeouts             &     . &     . &        . &      . \\
-              & -- $ \varnothing $ gap  &     . &     . &        . &      . \\
-    \bottomrule
-  \end{tabular}
-  \caption{Computational results for MIP model II \eqref{eq:mip2}.}
-  \label{tab:mip2_results}
+\newpage
+\begin{table}
+  \begin{subtable}[h]{\textwidth}
+    \centering
+    %\begin{tabular}{C{16mm}R{20mm}R{15mm}R{15mm}R{15mm}R{15mm}}
+    %  \toprule
+    %  && \multicolumn{4}{c}{\# assets}\\
+    %  \cmidrule{3-6}
+    %  \# orders &                         &    5  &   10  &     20  &     50  \\
+    %  \midrule
+    %  100       & $ \varnothing $ runtime &  0.32 &  0.32 &    0.90 &    5.54 \\
+    %            & \# timeouts             &     0 &     0 &       0 &       0 \\
+    %            & -- $ \varnothing $ gap  &     - &     - &       - &       - \\
+    %  \midrule
+    %  200       & $ \varnothing $ runtime &  1.31 &  2.49 &   26.25 &  571.10 \\
+    %            & \# timeouts             &     0 &     0 &       0 &      12 \\
+    %            & -- $ \varnothing $ gap  &     - &     - &       - & 23.46\% \\
+    %  \midrule
+    %  500       & $ \varnothing $ runtime & 15.67 & 82.47 &  522.72 &       . \\
+    %            & \# timeouts             &     0 &     0 &      11 &       - \\
+    %            & -- $ \varnothing $ gap  &     - &     - & 21.59\% &       - \\
+    %  \bottomrule
+    %\end{tabular}
+    \begin{tabular}{C{16mm}R{20mm}R{15mm}R{15mm}R{15mm}R{15mm}}
+      \toprule
+      && \multicolumn{4}{c}{\# assets}\\
+      \cmidrule{3-6}
+      \# orders &                         &    5  &    10  &     20  &     50  \\
+      \midrule
+      100       & $ \varnothing $ runtime &  0.15 &   0.20 &     0.24 &   0.50 \\
+                & \# timeouts             &     0 &      0 &        0 &      0 \\
+                & -- $ \varnothing $ gap  &     - &      - &        - &      - \\
+      \midrule
+      200       & $ \varnothing $ runtime &  0.42 &   1.78 &     2.26 &   6.67 \\
+                & \# timeouts             &     0 &      0 &        0 &      0 \\
+                & -- $ \varnothing $ gap  &     - &      - &        - &      - \\
+      \midrule
+      500       & $ \varnothing $ runtime &  3.46 & 158.66 &        . &      . \\
+                & \# timeouts             &     0 &      0 &        . &      . \\
+                & -- $ \varnothing $ gap  &     - &      - &        . &      . \\
+      \bottomrule
+    \end{tabular}
+    \vspace{1mm}
+    \caption{Big-M reformulation \eqref{eq:order_model_mip1_bigM}.}
+    \label{tab:results_mip1_bigm}
+  \end{subtable}
+  \par\vspace{2cm}
+  \begin{subtable}[h]{\textwidth}
+    \centering
+    \begin{tabular}{C{16mm}R{20mm}R{15mm}R{15mm}R{15mm}R{15mm}}
+      \toprule
+      && \multicolumn{4}{c}{\# assets}\\
+      \cmidrule{3-6}
+      \# orders &                         &    5  &    10  &     20  &     50  \\
+      \midrule
+      100       & $ \varnothing $ runtime &  0.25 &   0.38 &     0.48 &   1.09 \\
+                & \# timeouts             &     0 &      0 &        0 &      0 \\
+                & -- $ \varnothing $ gap  &     - &      - &        - &      - \\
+      \midrule
+      200       & $ \varnothing $ runtime &  0.92 &   3.34 &     4.08 &  12.28 \\
+                & \# timeouts             &     0 &      0 &        0 &      0 \\
+                & -- $ \varnothing $ gap  &     - &      - &        - &      - \\
+      \midrule
+      500       & $ \varnothing $ runtime &  6.96 & 184.60 &        . &      . \\
+                & \# timeouts             &     0 &      1 &        . &      . \\
+                & -- $ \varnothing $ gap  &     - & 3.25\% &        . &      . \\
+      \bottomrule
+    \end{tabular}
+    \vspace{1mm}
+    \caption{Disjunctive programming reformulation \eqref{eq:order_model_mip1_DP}.}
+    \label{tab:results_mip1_dp}
+  \end{subtable}
+  \vspace{2mm}
+  \caption{Computational results for MIP model I \eqref{eq:mip1}.}
+  \label{tab:results_mip1}
 \end{table}
-\vspace{.5cm}
+
+
+\newpage
+\begin{table}
+  \begin{subtable}[h]{\textwidth}
+    \centering
+    \begin{tabular}{C{16mm}R{20mm}R{15mm}R{15mm}R{15mm}R{15mm}}
+      \toprule
+      && \multicolumn{4}{c}{\# assets}\\
+      \cmidrule{3-6}
+      \# orders &                         &     5  &    10  &     20  &    50  \\
+      \midrule
+      100       & $ \varnothing $ runtime &   0.44 &   0.65 &    0.54 &   0.57 \\
+                & \# timeouts             &      0 &      0 &       0 &      0 \\
+                & -- $ \varnothing $ gap  &      - &      - &       - &      - \\
+      \midrule
+      200       & $ \varnothing $ runtime &   4.14 &  18.40 &   14.27 &  20.18 \\
+                & \# timeouts             &      0 &      0 &       0 &      0 \\
+                & -- $ \varnothing $ gap  &      - &      - &       - &      - \\
+      \midrule
+      500       & $ \varnothing $ runtime & 647.98 & 646.57 &       . &      . \\
+                & \# timeouts             &      0 &     19 &       . &      . \\
+                & -- $ \varnothing $ gap  &      - & 8.19\% &       . &      . \\
+      \bottomrule
+    \end{tabular}
+    \vspace{1mm}
+    \caption{Big-M reformulation.}
+    \label{tab:results_mip2_bigm}
+  \end{subtable}
+  \par\vspace{2cm}
+  \begin{subtable}[h]{\textwidth}
+    \centering
+    \begin{tabular}{C{16mm}R{20mm}R{15mm}R{15mm}R{15mm}R{15mm}}
+      \toprule
+      && \multicolumn{4}{c}{\# assets}\\
+      \cmidrule{3-6}
+      \# orders &                         &    5  &    10  &     20  &     50  \\
+      \midrule
+      100       & $ \varnothing $ runtime &  0.34 &   0.85 &    1.12 &   1.14 \\
+                & \# timeouts             &     0 &      0 &       0 &      0 \\
+                & -- $ \varnothing $ gap  &     - &      - &       - &      - \\
+      \midrule
+      200       & $ \varnothing $ runtime &  1.18 &   8.81 &   10.64 &  25.50 \\
+                & \# timeouts             &     0 &      0 &       0 &      0 \\
+                & -- $ \varnothing $ gap  &     - &      - &       - &      - \\
+      \midrule
+      500       & $ \varnothing $ runtime & 24.70 & 288.50 &       . &      . \\
+                & \# timeouts             &     0 &      3 &       . &      . \\
+                & -- $ \varnothing $ gap  &     - & 2.31\% &       . &      . \\
+      \bottomrule
+    \end{tabular}
+    \vspace{1mm}
+    \caption{Disjunctive programming reformulation.}
+    \label{tab:results_mip2_dp}
+  \end{subtable}
+  \vspace{2mm}
+  \caption{Computational results for MIP model II \eqref{eq:mip2}.}
+  \label{tab:results_mip2}
+\end{table}
 
 
 \clearpage
@@ -1140,35 +1274,33 @@ The problem can possibly be extended in various directions:
 
 
 
-%\bibliographystyle{plain}
-%\bibliography{literature}
-
-
 %%%%%%%%%%%%%%%%%%%%
 %%  BIBLIOGRAPHY  %%
 %%%%%%%%%%%%%%%%%%%%
-\begin{thebibliography}{2}
+
+\bibliographystyle{plain}
+\bibliography{literature}
+
+%\begin{thebibliography}{2}
+%%
+%\bibitem {balas:DP}
+%Balas, E.:
+%Disjunctive Programming.
+%Annals of Discrete Mathematics 5, 3--51 (1979).
+%\url{doi:10.1016/S0167-5060(08)70342-X}
 %
-
-\bibitem {balas:DP}
-Balas, E.:
-Disjunctive Programming.
-Annals of Discrete Mathematics 5, 3--51 (1979).
-\url{doi:10.1016/S0167-5060(08)70342-X}
-
-\bibitem {budish:HFT}
-Budish, E., Cramton, P., Shim, J.:
-The High-Frequency Trading Arms Race: Frequent Batch Auctions as a Market Design Response.
-The Quarterly Journal of Economics 130(4), 1547--1621 (2015)
-\url{doi:10.2139/ssrn.2388265}
-
-\bibitem {engelbrecht:multi_unit_auctions}
-Engelbrecht-Wiggans, R., Kahn, C.:
-Multi-unit auctions with uniform prices
-Economic Theory 12, 227--258 (1998), Springer-Verlag
-\url{doi:10.1007/s001990050220}
-
-\end{thebibliography}
-
+%\bibitem {budish:HFT}
+%Budish, E., Cramton, P., Shim, J.:
+%The High-Frequency Trading Arms Race: Frequent Batch Auctions as a Market Design Response.
+%The Quarterly Journal of Economics 130(4), 1547--1621 (2015)
+%\url{doi:10.2139/ssrn.2388265}
+%
+%\bibitem {engelbrecht:multi_unit_auctions}
+%Engelbrecht-Wiggans, R., Kahn, C.:
+%Multi-unit auctions with uniform prices
+%Economic Theory 12, 227--258 (1998), Springer-Verlag
+%\url{doi:10.1007/s001990050220}
+%%
+%\end{thebibliography}
 
 \end{document}
