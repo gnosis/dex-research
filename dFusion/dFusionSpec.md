@@ -118,7 +118,6 @@ Usually, all orders from `Token_i` to `Token_j` with a limit price lower than `p
 
 | bitmap | order_1 | ... | order_K|
 | --- | --- | --- | --- |
-
 | order type {0,1} | o_1 | --- | o_K |
 
 
