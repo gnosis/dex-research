@@ -166,7 +166,6 @@ The snark would check the following things:
 		- case3: not touched or uncovered order
 			- nothing
 
-- End
 - For all token, check that `sell volume` equals `buy volume`
 - Check that the calculated total trading volume equals the public input `tradingVolume`.
 - Check the order fairness criteria
