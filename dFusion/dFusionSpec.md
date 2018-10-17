@@ -62,7 +62,7 @@ Snark - TransitionHashes&Validation ( public input: orderHashSha,
 The transitionHashes&Validation snark will do the following checks:
 - Verify the private input by recalculating the sha of all orders and comparing it to the public input `orderHashSha`.
 - Iterate over all order and sort out the orders, where the signature does not match address specified in the accountLeafIndex
-- Iterate over all remaining orders and hash them together via a Merkle tree into the public output using the Pederson hash. Use this hash as output.
+- Iterate over all remaining orders and hash them - besides the no longer needed signatures - sequencially using the Pederson hash. Use this hash as output.
 
 Notice that we allow orders, which might not be covered by any balance of the order sender.
 
