@@ -5,12 +5,12 @@
 A specification developed by Gnosis.
 
 
-The following specification uses the scaling approach from Vitaliks post: [Onchain scaling](https://ethresear.ch/t/on-chain-scaling-to-potentially-500-tx-sec-through-mass-tx-validation/3477), in order to build a scalable fully decentralized exchange with decentralized order matching. The scalability is enabled by the heavy use of zk-snarks. In order to allow bigger circuit amounts, we are planning to use the ideas described in [DIZK](https://www.usenix.org/system/files/conference/usenixsecurity18/sec18-wu.pdf). Orders are matched in a batch auction with an arbitrage-free price clearing technique developed by Gnosis: [Uniform Clearing Prices]( https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf).
+The following specification uses an onchain scaling approach enabled by snarks, in order to build a scalable fully decentralized exchange with decentralized order matching. The scalability is enabled storing information in merkle root hashes and allow snarks the manipulation of these root hashes in predefined processes [cp](https://ethresear.ch/t/on-chain-scaling-to-potentially-500-tx-sec-through-mass-tx-validation/3477). In order to allow bigger number of constraints for the snarks, we are planning to use the ideas described in [DIZK](https://www.usenix.org/system/files/conference/usenixsecurity18/sec18-wu.pdf). Orders are matched in a batch auction with an arbitrage-free price clearing technique developed by Gnosis: [Uniform Clearing Prices]( https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf).
 
 ## Specification
 The envisioned exchange will enable users to trade via limit orders between N predefined ERC20 tokens.
 For each ERC20 token we store the balance of traders in a Merkle tree root hash:
-	 `balanceTreeRootHash_I    for 0<I<=N`. In this tree, each leaf contains only the amount of tokens held by a user.
+`balanceTreeRootHash_I    for 0<I<=N`. In this tree, each leaf contains only the amount of tokens held by a user.
 
 The addresses of the accounts in the exchange are stored in another Merkle tree
 root hash:
@@ -26,8 +26,8 @@ All these root hashes `[ accountsRootHash, balanceTreeRootHash_1, …, balanceTr
 The trading workflow consists of the following sequential processes:
 1. Order collection (with sha hashes)
 2. Transition function from sha to Pederson hashes & order validation
-3. Finding batch price: optimization of batch trading volume
-4. Balance updates after trade execution via 
+3. Finding batch price: optimization of batch trading welfare
+4. Balance updates after trade execution 
 5. Processing of pending exist and deposits
 6. Restart with step 1
 
@@ -65,11 +65,11 @@ Notice that we allow orders, which might not be covered by any balance of the or
 
 In the anchor contract, we have the following functionality for this process:
 
-Anyone can propose a transition to the anchor contract by providing the required information and by providing a very high bond. It is not required to provide the snark in the first place:
+Anyone can propose a transition to the anchor contract by providing the required information and by providing a very significant bond. It is not required to provide the snark in the first place:
 ```
 Function submitTransitionInformation( bytes32 oldstate, bytes32 newstate)
 ```
-In case the send-transition information is incorrect, anyone can challenge it by also providing a huge bond and calling the following function.
+In case the send-transition information is incorrect, anyone can challenge it by also providing a significant bond and calling the following function.
 ```
 Function challengeTransitionInformation( bytes32 oldstate, bytes32 newstate)
 ```
@@ -80,20 +80,20 @@ The snark would be evaluated by the anchor contract after calling the following 
 Function submitSnarkToResolveChallenge(bytes32 oldstate, bytes32 newstate, --snark--)
 ```
 
-### Finding batch price: optimization of batch trading volume
+### Finding batch price: optimization of batch trading welfare
 
-After the previous step, the orders participating in a batch have finalized. Now, the uniform clearing price maximizing the trading volume between all trading pairs can be calculated. The exact procedure is described [here]( https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf). Calculating the uniform clearing prices is an np hard optimization problem and most likely the global optimum will not be found in the pre-defined short time frame: 3 minutes. While it is a pity that the global optimum cannot be found, the procedure is still fair, as everyone can submit their best solution. The anchor contract will store all submissions and will select the solution with the maximal 'traders welfare' as the final solution. We define the traders welfare as the sum of all differences between the uniform clearning prices and the limit price of an touched order multiplied by the volume of the order.
+After the previous step, the orders participating in a batch have finalized. Now, the uniform clearing price maximizing the trading welfare between all trading pairs can be calculated. The traders welfare of one order is the difference between the uniform clearning price and the limit price, multipied by the volume of the order with respect to some reference token. The exact procedure is described [here]( https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf). Calculating the uniform clearing prices is an np hard optimization problem and most likely the global optimum will not be found in the pre-defined short time frame: `SolvingTime` - we think that 3-10 minutes are reasonable. While it is a pity that the global optimum cannot be found, the procedure is still fair, as everyone can submit their best solution. The anchor contract will store all submissions and will select the solution with the maximal 'traders welfare' as the final solution. We define the traders welfare as the sum of all differences between the uniform clearning prices and the limit price of an touched order multiplied by the welfare of the order.
 
 This means the uniform clearing price of the auction is calculated in a permission-less decentralized way.	
 Each time a solution is submitted to the anchor contract, of course, the submitter also needs to bond himself. If he provides the solution, he also has to provide in the next process step the balance update information and has to answer any challenge request.
 
 
-### Balance updates after trade execution via snark
+### Balance updates after trade execution
 
 
-After the price submission period, the best solution with the highest trading volume will be chosen by the anchor contract. The submitter of this solution needs to do 2 steps:
+After the price submission period, the best solution with the highest trading welfare will be chosen by the anchor contract. The submitter of this solution needs to do 2 steps:
 
-1) posting the full solution into the ethereum chain as payload. The solution is a price vector P, a new balanceRootHash with the updated account balances, an bitmap of ignored orders and a trading volume matrix S:
+1) posting the full solution into the ethereum chain as payload. The solution is a price vector P, a new balanceRootHash with the updated account balances, a vector of trading welfares (VV) for each order.
 
 | P | Token_1:Token_1 | ... | Token_N:Token_1|
 | --- | --- | --- | --- | 
@@ -102,38 +102,25 @@ After the price submission period, the best solution with the highest trading vo
 
 `P` is only the price vector of all prices relative to a reference token `Token_1`. As prices are arbitrage-free, we can calculate the `price Token_i: Token_k` =  `(Token_i:Token_1):(Token_1:Token_k)`
 
+Unfortunately, not all orders below the limit price will be filled completely. It might happen that the account sending the order might not have the balance required to settle the sell order. These orders we are calling uncovered orders and they need to be excluded or only partly be filled. Because of this, the solution submitter needs to provide for each order the fraction of the traded welfare:
 
-| S | Token_1 | Token_2 | ... | Token_N|
-| --- | --- | --- | --- | --- | 
-| Token_1 | x | (p_12, f_12) | ... | (p_1N, f_1N) |
-| Token_2 | (p_21, f_21) | x | ... | (p_2N, f_2N) |
-| ... | ... | ... | ... | ... |
-| Token_2 | (p_N1, f_N1) | (p_N2, f_N2) | .. | x |
-
-
-In this matrix S, the `p_ij` is the price of the fractionally fulfilled orders in the trading pair between `Token_i` and `Token_j` and the fraction is, of course, the fraction of its partial fulfillment. The information of the matrix S is needed in order to determine exactly the unique solution. We will not explain it here in detail, we refer to the paper cited above.
-
-Usually, all orders from `Token_i` to `Token_j` with a limit price lower than `p_ij` should be fully filled. But, the account sending the order might not have the balance required to settle the sell order. These orders we are calling uncovered orders and they need to be excluded. For this we define a bitmap, which has a `0` for normal orders and a `1` for uncovered orders. Uncovered orders will always result in a trading volume == 0
-
-
-| bitmap | order_1 | ... | order_K|
+| VV | order_1 | ... | order_K|
 | --- | --- | --- | --- |
-| order type {0,1} | o_1 | --- | o_K |
+| fraction | o_1 | --- | o_K |
 
 
 
-These three parts of the solution S, bitmap and P must be provided as data payload to the anchor contract and then the anchor contract will hash them together into `hashBatchInfo`.
+These two parts of the solution: VV and P must be provided as data payload to the anchor contract and then the anchor contract will sha-hash them together into `hashBatchInfo`.
 
 Now, everyone can check whether the provided solution is actually a valid one. If it is not valid, then anyone can challenge the solution submitter. If this happens, the solution submitter needs to prove that his solution is correct by providing the following snark:
 ```
 Snark - applyAuction(
 	Public: balanceRootHash,
-	Public: tradingVolume,
+	Public: tradingWelfare,
 	Public: hashBatchInfo,
 	Public: orderHashPederson,
-	Private: bitmap,
-	Private: priceMatrix PxP
-	Private: tradingInfoMatrix S
+	Private: priceMatrix PxP,
+	Private: orderVolume
 	Private: [ balanceTreeRootHash_I    for 0<I<=N]
 	Private: orders
 	Private: touched balances + leaf number + balance merkle proofs per order,
@@ -142,32 +129,27 @@ Snark - applyAuction(
 ```
 The snark would check the following things:
 
-- `priceMatrix` has actually the values as induced by the `hashBatchInfo`
-- `tradingInfoMatrix` S has actually the values induced by the `hashBatchInfo`
+- `priceMatrix` has actually the values as induced by the `hashBatchInfo` (with sha)
+- `orderVolume` VV has actually the values induced by the `hashBatchInfo` (with sha)
 - verify  `[ balanceTreeRootHash_I    for 0<I<=N]` hashes to `balanceRootHash`
 - verify  `[bitmap]` has the values induced by `hashBatchInfo`
 
 - for order in [orders]
 	- open balance leaf of the receiving account 
 	- check that the leaf is owned by sender by opening the accountIndexLeaf
-	- check whether order is touched 
-		- case1: fully filled order:
-			- update the balance by substracting sell volume
-			- if `FollowUpOrderOfAccount` == 0
-				- check that balance is positive
-			- else 
-				Check that the other order referenced in `FollowUpOrderOfAccount` has the same sender or receiver and it touches the balance
-			- update the balance by adding buy volume
-			- close balance leaves and update Merkle tree hashes
-			- Keep track of the total `sell volume` per token
-			- Keep track of the total `buy volume` per token
-		- case2:partially filled order:
-			same thing, however with fractional amounts..
-		- case3: not touched or uncovered order
-			- nothing
-
-- For all token, check that `sell volume` equals `buy volume`
-- Check that the calculated total trading volume equals the public input `tradingVolume`.
+	- read the potentially fractional welfare of the order
+	- update the balance by substracting sell welfare
+	- if `FollowUpOrderOfAccount` == 0
+		- check that balance is positive
+	- else 
+			Check that the other order referenced in `FollowUpOrderOfAccount` has the same sender or receiver and it touches the balance
+	- update the balance by adding buy welfare
+	- close balance leaves and update Merkle tree hashes
+	- Keep track of the total `selling welfare` per token
+	- Keep track of the total `buying welfare ` per token
+	
+- For all token, check that `sell welfare` equals `buy welfare`
+- Check that the calculated total trading welfare equals the public input `tradingWelfare`.
 - Check the order fairness criteria
 
 
@@ -191,7 +173,7 @@ Function deposit ( address token, uint amount){
 
 That means that all the depositing information are stored in a bytes32 `depositHash`. Each 20 ethereum blocks, we store all the occurring `depositsHash` in a unique hash.
 
-The deposits can be incorporated by any highly bonded party by calling the following function:
+The deposits can be incorporated by any significantly bonded party by calling the following function:
 ```
 Function incorporateDeposits(uint blockNr, oldBalanceHash, newBalanceHash)
 ```
@@ -236,7 +218,7 @@ Function exitRequest ( address token, uint amount){
 }
 ```
 
-Then any highly bonded party can incorporate these bundled exit requests into the current balanceHash by calling the following function:
+Then any significantly bonded party can incorporate these bundled exit requests into the current balanceHash by calling the following function:
 
 ```
 Function incorporateWithdrawals(uint blockNr, bytes32 oldBalanceHash, bytes32 newBalanceHash,bytes32 withdrawalAmounts)
@@ -302,7 +284,7 @@ Then we can store any order in 3 bytes32 and the total gas costs to k order woul
 transaction initiation costs + k* order as payload costs + k* hashing costs + updating the orderHashSha 
 21000+k*32*68*3+k*60+5000 
 ```
-This means that with 4.5 gas one can easily store 100 orders.
+This means that with 4.5 million gas one can easily store 100 orders.
 
 ### Constraints from snarks
 
