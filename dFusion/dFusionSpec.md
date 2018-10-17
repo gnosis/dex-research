@@ -10,18 +10,21 @@ The following specification uses an onchain scaling approach enabled by snarks, 
 ## Specification
 The envisioned exchange will enable users to trade via limit orders between N predefined ERC20 tokens.
 For each ERC20 token we store the balance of traders in a Merkle tree root hash:
-`balanceTreeRootHash_I    for 0<I<=N`. In this tree, each leaf contains only the amount of tokens held by a user.
+`balanceTRH_I    for 0<I<=N`. In this tree, each leaf contains only the amount of tokens held by a user.
 
 The addresses of the accounts in the exchange are stored in another Merkle tree
 root hash:
-	`accountsRootHash`
+	`accountsRH`
 
-The balance of the i-th leaf from the `balanceTreeRootHash_Token` will belong to the account of the i-th leaf in `accountsRootHash`.
+The balance of the i-th leaf from the `balanceTRH_Token` will belong to the account of the i-th leaf in `accountsRH`.
 
 All orders are encoded as limit sell orders: `(accountLeafIndex, fromTokenIndex, toTokenIndex, limitprice, amount, signature)`. The order should be read in the following way: the user from the specified leaf index would like to sell the token fromTokenIndex for toTokenIndex for at most the limit price and the amount specified.
 
 
-All these root hashes `[ accountsRootHash, balanceTreeRootHash_1, …, balanceTreeRootHash_1]` are getting hashed together and will be stored in a `balancesRootHash` in the “anchor” smart contract on-chain.
+All these root hashes `[ accountsRH, balanceRH_1, …, balanceRH_N]` are getting hashed together and will be stored in a `stateTRH` in the “anchor” smart contract on-chain.
+
+![Variable Build up](./variables.png?raw=true "Variables")
+
 
 The trading workflow consists of the following sequential processes:
 1. Order collection (with sha hashes)
@@ -115,27 +118,27 @@ These two parts of the solution: VV and P must be provided as data payload to th
 Now, everyone can check whether the provided solution is actually a valid one. If it is not valid, then anyone can challenge the solution submitter. If this happens, the solution submitter needs to prove that his solution is correct by providing the following snark:
 ```
 Snark - applyAuction(
-	Public: balanceRootHash,
+	Public: stateRH,
 	Public: tradingWelfare,
 	Public: hashBatchInfo,
 	Public: orderHashPederson,
 	Private: priceMatrix PxP,
 	Private: orderVolume
-	Private: [ balanceTreeRootHash_I    for 0<I<=N]
+	Private: [ balanceTRH_I    for 0<I<=N]
 	Private: orders
 	Private: touched balances + leaf number + balance merkle proofs per order,
 	Private: FollowUpOrderOfAccount [index of later order touching balance])
-	Output: newBalanceRootHash
+	Output: newstaetRH
 ```
 The snark would check the following things:
 
 - `priceMatrix` has actually the values as induced by the `hashBatchInfo` (with sha)
 - `orderVolume` VV has actually the values induced by the `hashBatchInfo` (with sha)
-- verify  `[ balanceTreeRootHash_I    for 0<I<=N]` hashes to `balanceRootHash`
+- verify  `[ balanceTRH_I    for 0<I<=N]` hashes to `balanceRH`
 - verify  `[bitmap]` has the values induced by `hashBatchInfo`
 
 - for order in [orders]
-	- open balance leaf of the receiving account 
+	- open balance leaf of the receiving account by check balance + proof in `stateRH`
 	- check that the leaf is owned by sender by opening the accountIndexLeaf
 	- read the potentially fractional welfare of the order
 	- update the balance by substracting sell welfare
@@ -177,9 +180,9 @@ The deposits can be incorporated by any significantly bonded party by calling th
 ```
 Function incorporateDeposits(uint blockNr, oldBalanceHash, newBalanceHash)
 ```
-This function would update the `balanceHash` by incorporating the deposits received from `blockNr` to `blockNr+19`.
+This function would update the `stateRH` by incorporating the deposits received from `blockNr` to `blockNr+19`.
 
-Everyone can check whether the `balanceHash` has been updated correctly. If it has not been updated correctly, then the person submitting this solution can be challenge by providing a bond.
+Everyone can check whether the `stateRH` has been updated correctly. If it has not been updated correctly, then the person submitting this solution can be challenge by providing a bond.
 
 If the submitter is challenged, he would have to provide the following snark:
 
@@ -199,7 +202,7 @@ This snark would check that:
 	- Opening the Leaf of the AccountHash and 
 	- check that `deposit.sender == accountLeaf.address`
 	- Update the leaf with the current balance,
-	- Recalculate the balanceHash
+	- Recalculate the stateRH
 		
 
 Something quite similar will be done with exit request. There is only one thing we have to take care of: 
@@ -218,7 +221,7 @@ Function exitRequest ( address token, uint amount){
 }
 ```
 
-Then any significantly bonded party can incorporate these bundled exit requests into the current balanceHash by calling the following function:
+Then any significantly bonded party can incorporate these bundled exit requests into the current stateRH by calling the following function:
 
 ```
 Function incorporateWithdrawals(uint blockNr, bytes32 oldBalanceHash, bytes32 newBalanceHash,bytes32 withdrawalAmounts)
@@ -242,9 +245,9 @@ This snark would check that:
 - for( withdrawals in `[exitRequest information]`)
 	- Opening the Leaf of with the current balance,
 	- Opening the Leaf of the AccountHash and 
-	- if `withdrawal.sender == accountLeaf.address` && `withdrawal.amount <= balanceHashToken.amount`
+	- if `withdrawal.sender == accountLeaf.address` && `withdrawal.amount <= stateRHToken.amount`
 		- Update the leaf with the current balance,
-		- Recalculate the balanceHash
+		- Recalculate the stateRH
 		- incorporate the `withdrawal.amount` into `withdrawalAmounts`
 
 
