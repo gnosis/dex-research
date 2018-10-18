@@ -43,13 +43,16 @@ function appendOrders( bytes32 [] orders){
 
 	// update of orderHashSha
 	for(i=0;i<orders.length;i++){
-		orderHashSha = Kecca256( orderHashSha, order[i])
+		if( "check signature of order"){
+			// hash order without signature
+			orderHashSha = Kecca256( orderHashSha, order[i]) 
+		}
 	}
 }
 ```
-This function will simply update an orderHashSha variable, which is encoding all orders. This function is callable by any party. However, it is expected that “decentralized operators” accept orders from users, bundles them and then include them all together into the function. Notice that the orders are only sent over as transaction payload, but will not be “stored” in the EVM.
+This function will simply update an orderHashSha variable, which is encoding all orders with a valid signature. This function is callable by any party. However, it is expected that “decentralized operators” accept orders from users, bundles them and then include them all together into the function. Notice that the orders are only sent over as transaction payload, but will not be “stored” in the EVM.
 
-### Transition function from sha to Pederson hashes & order validation
+### Transition function from sha to Pederson hashes 
 
 In the first step, the orders are hashed together using sha. This makes sense as sha is very cheap on the evm. However, sha is very “expensive” in snarks and hence we are forced to recalculate the hashes in Pederson hashes. 
 
@@ -61,8 +64,7 @@ Snark - TransitionHashes&Validation ( public input: orderHashSha,
 ```
 The transitionHashes&Validation snark will do the following checks:
 - Verify the private input by recalculating the sha of all orders and comparing it to the public input `orderHashSha`.
-- Iterate over all order and sort out the orders, where the signature does not match address specified in the accountLeafIndex
-- Iterate over all remaining orders and hash them - besides the no longer needed signatures - sequencially using the Pederson hash. Use this hash as output.
+- Iterate over all orders again and hash them  sequencially using the Pederson hash. Use this hash as output.
 
 Notice that we allow orders, which might not be covered by any balance of the order sender.
 
@@ -284,10 +286,10 @@ An order is constructed in the following manner: `(accountLeafIndex, fromTokenIn
 
 Then we can store any order in 3 bytes32 and the total gas costs to k order would be:
 ```
-transaction initiation costs + k* order as payload costs + k* hashing costs + updating the orderHashSha 
-21000+k*32*68*3+k*60+5000 
+transaction initiation costs + k* order as payload costs + k* signature verification cost + k* hashing costs + updating the orderHashSha 
+21000+k*32*68*3+k*3000+k*60+5000 
 ```
-This means that with 4.5 million gas one can easily store 100 orders.
+This means that with 7.4 million gas one can easily store 1000 orders.
 
 ### Constraints from snarks
 
@@ -300,10 +302,10 @@ For sure the biggest constraint system comes with the snark checking the actual 
 In the snark-applyAuction the snark circuits are dominated by the following operations:
 
 - iteration over all orders -> constraints mulitlpy #orders
-- for each order we open 3 leaves: accountleave balanceLeaf_SendingToken, balanceLeaf_ReceivingToken -> log_2(#balances) * 2 * #pedersonHashConstraints
+- for each order we open 3 leaves: accountleave balanceLeaf_SendingToken, balanceLeaf_ReceivingToken -> 3 * log_2(#balances) * 2 * #pedersonHashConstraints
 - for each order we recalculate the merkle root: accountleave balanceLeaf_SendingToken, balanceLeaf_ReceivingToken -> log_2(#balances) * 2 * #pedersonHashConstraints
 
-That means that the nr of constraints for #orders will be about #orders * log_2(#balances) * 4 * #pedersonHashConstraints
+That means that the nr of constraints for #orders will be about #orders * log_2(#balances) * 8 * #pedersonHashConstraints
 
 
 
