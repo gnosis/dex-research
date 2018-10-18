@@ -12,13 +12,13 @@ The envisioned exchange will enable users to trade via limit orders between N pr
 For each ERC20 token we store the balance of traders in a Merkle tree root hash:
 `balanceTRH_I    for 0<I<=N`. In this tree, each leaf contains only the amount of tokens held by a user.
 
-The addresses of the accounts in the exchange are stored in another Merkle tree
+The addresses and nounces of the accounts in the exchange are stored in another Merkle tree
 root hash:
 	`accountsRH`
 
 The balance of the i-th leaf from the `balanceTRH_Token` will belong to the account of the i-th leaf in `accountsRH`.
 
-All orders are encoded as limit sell orders: `(accountLeafIndex, fromTokenIndex, toTokenIndex, limitprice, amount, signature)`. The order should be read in the following way: the user from the specified leaf index would like to sell the token fromTokenIndex for toTokenIndex for at most the limit price and the amount specified.
+All orders are encoded as limit sell orders: `(accountLeafIndex, fromTokenIndex, toTokenIndex, limitprice, amount, nounce, signature)`. The order should be read in the following way: the user from the specified leaf index would like to sell the token fromTokenIndex for toTokenIndex for at most the limit price and the amount specified.
 
 
 All these root hashes `[ accountsRH, balanceRH_1, …, balanceRH_N]` are getting hashed together and will be stored in a `stateTRH` in the “anchor” smart contract on-chain.
@@ -142,6 +142,7 @@ The snark would check the following things:
 - for order in [orders]
 	- open balance leaf of the receiving account by check balance + proof in `stateRH`
 	- check that the leaf is owned by sender by opening the accountIndexLeaf
+	- check that the nounce is valid and update it
 	- read the potentially fractional welfare of the order
 	- update the balance by substracting sell welfare
 	- if `FollowUpOrderOfAccount` == 0
@@ -278,16 +279,15 @@ There are two main limiting factors for the scalability of this system. The cost
 ### Order costs as payload
 
 An order is constructed in the following manner: `(accountLeafIndex, fromTokenIndex, toTokenIndex, limitprice, amount, signature)`. If we put on the following constraints: 
-- We do have only 2^3 different tokens in our exchange
-- We do have only 2^14 different leafIndexes
-- price is encoded with an accuracy of 100 bits
-- amounts are encoded with an accuracy of 100 bits
-- signature is a pair (s,r), where s and r are numbers potentially as big as the elliptic curve prime number. That means (r,s)->512 bits
-
+- We do have only 2^6 different tokens in our exchange
+- We do have only 2^16 different leafIndexes
+- price is encoded with an accuracy of 64 bits using floating points( 61 bits are exponent, bottom 3 are mantissa) 
+- amounts are encoded with an accuracy of 64 bits using floating points( 61 bits are exponent, bottom 3 are mantissa)
+- signature is a pair (s,r,v), where s and r are numbers potentially as big as the elliptic curve prime number. That means (r,s)->512 bits
 Then we can store any order in 3 bytes32 and the total gas costs to k order would be:
 ```
 transaction initiation costs + k* order as payload costs + k* signature verification cost + k* hashing costs + updating the orderHashSha 
-21000+k*32*68*3+k*3000+k*60+5000 
+21000+k*(6+16+16+64+64+512)*68/8+k*3000+k*60+5000 
 ```
 This means that with 7.4 million gas one can easily store 1000 orders.
 
