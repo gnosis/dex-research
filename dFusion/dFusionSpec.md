@@ -5,7 +5,7 @@
 A specification developed by Gnosis.
 
 
-The following specification uses an onchain scaling approach enabled by snarks, in order to build a scalable fully decentralized exchange with decentralized order matching. The scalability is enabled storing information in merkle root hashes and allow snarks the manipulation of these root hashes in predefined processes [cp](https://ethresear.ch/t/on-chain-scaling-to-potentially-500-tx-sec-through-mass-tx-validation/3477). In order to allow bigger number of constraints for the snarks, we are planning to use the ideas described in [DIZK](https://www.usenix.org/system/files/conference/usenixsecurity18/sec18-wu.pdf). Orders are matched in a batch auction with an arbitrage-free price clearing technique developed by Gnosis: [Uniform Clearing Prices]( https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf).
+The following specification uses the snark application (snapp) onchain scaling approach, in order to build a scalable fully decentralized exchange with decentralized order matching. The scalability is enabled storing information only in merkle root hashes and allow snarks the manipulation of these root hashes in predefined logic gates [cp](https://ethresear.ch/t/on-chain-scaling-to-potentially-500-tx-sec-through-mass-tx-validation/3477). In order to allow bigger number of constraints for the snarks, we are planning to use the ideas described in [DIZK](https://www.usenix.org/system/files/conference/usenixsecurity18/sec18-wu.pdf). Orders are matched in a batch auction with an arbitrage-free price clearing technique developed by Gnosis: [Uniform Clearing Prices]( https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf).
 
 ## Specification
 The envisioned exchange will enable users to trade via limit orders between N predefined ERC20 tokens.
@@ -21,15 +21,15 @@ The balance of the i-th leaf from the `balanceTRH_Token` will belong to the acco
 All orders are encoded as limit sell orders: `(accountLeafIndex, fromTokenIndex, toTokenIndex, limitprice, amount, nounce, signature)`. The order should be read in the following way: the user from the specified leaf index would like to sell the token fromTokenIndex for toTokenIndex for at most the limit price and the amount specified.
 
 
-All these root hashes `[ accountsRH, balanceRH_1, …, balanceRH_N]` are getting hashed together and will be stored in a `stateTRH` in the “anchor” smart contract on-chain.
+All these root hashes `[ accountsRH, balanceRH_1, …, balanceRH_N]` are getting hashed together and will be stored in a `stateTRH` in the “anchor” smart contract on-chain. The anchor contract will be the contract storing all relevant information for this snapp exchange.
 
 ![Variable Build up](./variables.png?raw=true "Variables")
 
 
 The trading workflow consists of the following sequential processes:
 1. Order collection (with sha hashes)
-2. Transition function from sha to Pederson hashes & order validation
-3. Finding batch price: optimization of batch trading welfare
+2. Transition function from sha to Pederson hashes 
+3. Finding the batch price: optimization of batch trading surplus
 4. Balance updates after trade execution 
 5. Processing of pending exist and deposits
 6. Restart with step 1
@@ -50,7 +50,7 @@ function appendOrders( bytes32 [] orders){
 	}
 }
 ```
-This function will simply update an orderHashSha variable, which is encoding all orders with a valid signature. This function is callable by any party. However, it is expected that “decentralized operators” accept orders from users, bundles them and then include them all together into the function. Notice that the orders are only sent over as transaction payload, but will not be “stored” in the EVM.
+This function will simply update an orderHashSha variable, which is encoding all orders with a valid signature. This function is callable by any party. However, it is expected that “decentralized operators” accept orders from users, bundle them and then include them all together into the function. Notice that the orders are only sent over as transaction payload, but will not be “stored” in the EVM.
 
 ### Transition function from sha to Pederson hashes 
 
@@ -64,7 +64,7 @@ Snark - TransitionHashes&Validation ( public input: orderHashSha,
 ```
 The transitionHashes&Validation snark will do the following checks:
 - Verify the private input by recalculating the sha of all orders and comparing it to the public input `orderHashSha`.
-- Iterate over all orders again and hash them  sequencially using the Pederson hash. Use this hash as output.
+- Iterate over all orders again and hash them sequencially using the Pederson hash. Use this hash as output.
 
 Notice that we allow orders, which might not be covered by any balance of the order sender.
 
@@ -85,9 +85,9 @@ The snark would be evaluated by the anchor contract after calling the following 
 Function submitSnarkToResolveChallenge(bytes32 oldstate, bytes32 newstate, --snark--)
 ```
 
-### Finding batch price: optimization of batch trading welfare
+### Finding batch price: optimization of batch trading surplus
 
-After the previous step, the orders participating in a batch have finalized. Now, the uniform clearing price maximizing the trading welfare between all trading pairs can be calculated. The traders welfare of one order is the difference between the uniform clearning price and the limit price, multipied by the volume of the order with respect to some reference token. The exact procedure is described [here]( https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf). Calculating the uniform clearing prices is an np hard optimization problem and most likely the global optimum will not be found in the pre-defined short time frame: `SolvingTime` - we think that 3-10 minutes are reasonable. While it is a pity that the global optimum cannot be found, the procedure is still fair, as everyone can submit their best solution. The anchor contract will store all submissions and will select the solution with the maximal 'traders welfare' as the final solution. We define the traders welfare as the sum of all differences between the uniform clearning prices and the limit price of an touched order multiplied by the welfare of the order.
+After the previous step, the orders participating in a batch have finalized. Now, the uniform clearing price maximizing the trading surplus between all trading pairs can be calculated. The traders surplus of one order is the difference between the uniform clearning price and the limit price, multipied by the volume of the order with respect to some reference token. The exact procedure is described [here]( https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf). Calculating the uniform clearing prices is an np hard optimization problem and most likely the global optimum will not be found in the pre-defined short time frame: `SolvingTime` - we think that 3-10 minutes are reasonable. While it is a pity that the global optimum cannot be found, the procedure is still fair, as everyone can submit their best solution. The anchor contract will store all submissions and will select the solution with the maximal 'traders surplus' as the final solution. We define the traders surplus as the sum of all differences between the uniform clearning prices and the limit price of an touched order multiplied by the surplus of the order.
 
 This means the uniform clearing price of the auction is calculated in a permission-less decentralized way.	
 Each time a solution is submitted to the anchor contract, of course, the submitter also needs to bond himself. If he provides the solution, he also has to provide in the next process step the balance update information and has to answer any challenge request.
@@ -96,9 +96,9 @@ Each time a solution is submitted to the anchor contract, of course, the submitt
 ### Balance updates after trade execution
 
 
-After the price submission period, the best solution with the highest trading welfare will be chosen by the anchor contract. The submitter of this solution needs to do 2 steps:
+After the price submission period, the best solution with the highest trading surplus will be chosen by the anchor contract. The submitter of this solution needs to do 2 steps:
 
-1) posting the full solution into the ethereum chain as payload. The solution is a price vector P, a new balanceRootHash with the updated account balances, a vector of trading welfares (VV) for each order.
+1) posting the full solution into the ethereum chain as payload. The solution is a price vector P, a new balanceRootHash with the updated account balances, a vector of trading surpluss (VV) for each order.
 
 | P | Token_1:Token_1 | ... | Token_N:Token_1|
 | --- | --- | --- | --- | 
@@ -107,7 +107,7 @@ After the price submission period, the best solution with the highest trading we
 
 `P` is only the price vector of all prices relative to a reference token `Token_1`. As prices are arbitrage-free, we can calculate the `price Token_i: Token_k` =  `(Token_i:Token_1):(Token_1:Token_k)`
 
-Unfortunately, not all orders below the limit price will be filled completely. It might happen that the account sending the order might not have the balance required to settle the sell order. These orders we are calling uncovered orders and they need to be excluded or only partly be filled. Because of this, the solution submitter needs to provide for each order the fraction of the traded welfare:
+Unfortunately, not all orders below the limit price will be filled completely. It might happen that the account sending the order might not have the balance required to settle the sell order. These orders we are calling uncovered orders and they need to be excluded or only partly be filled. Because of this, the solution submitter needs to provide for each order the fraction of the traded surplus:
 
 | VV | order_1 | ... | order_K|
 | --- | --- | --- | --- |
@@ -137,31 +137,32 @@ The snark would check the following things:
 - `priceMatrix` has actually the values as induced by the `hashBatchInfo` (with sha)
 - `orderVolume` VV has actually the values induced by the `hashBatchInfo` (with sha)
 - verify  `[ balanceTRH_I    for 0<I<=N]` hashes to `balanceRH`
-- verify  `[bitmap]` has the values induced by `hashBatchInfo`
+- verify  `[VV]` has the values induced by `hashBatchInfo`
 
 - for order in [orders]
 	- open balance leaf of the receiving account by check balance + proof in `stateRH`
 	- check that the leaf is owned by sender by opening the accountIndexLeaf
 	- check that the nounce is valid and update it
-	- read the potentially fractional welfare of the order
-	- update the balance by substracting sell welfare
+	- read the potentially fractional surplus of the order
+	- update the balance by substracting sell volume
 	- if `FollowUpOrderOfAccount` == 0
 		- check that balance is positive
 	- else 
-			Check that the other order referenced in `FollowUpOrderOfAccount` has the same sender or receiver and it touches the balance
-	- update the balance by adding buy welfare
+			Check that the other order referenced in `FollowUpOrderOfAccount` has the same receiver and it touches the balance
+	- update the balance by adding buy volume
 	- close balance leaves and update Merkle tree hashes
-	- Keep track of the total `selling welfare` per token
-	- Keep track of the total `buying welfare ` per token
+	- Keep track of the total `selling surplus` per token
+	- Keep track of the total `buying surplus ` per token
+	- Keep track of the total `selling volume` per token
+	- Keep track of the total `buying volume ` per token
 	
-- For all token, check that `sell welfare` equals `buy welfare`
-- Check that the calculated total trading welfare equals the public input `tradingWelfare`.
-- Check the order fairness criteria
+- For all token, check that `selling volume` equals `buying volume`
+- Check that the calculated total trading surplus equals the public input `tradingWelfare`.
 
 
 ### Processing of pending exit, deposits
 
-Deposits and withdraws need to be processed and incorporated into the balance hashes as well. For this, we make again use of snarks and specific challenging periods.
+Deposits and withdraws need to be processed and incorporated into the 'balanceRH' as well. For this, we make again use of snarks and specific challenging periods.
 
 If someone wants to deposit to anchor contract, we would have to send funds into the following function of the anchor contract:
 
@@ -208,7 +209,7 @@ This snark would check that:
 	- Recalculate the stateRH
 		
 
-Something quite similar will be done with exit request. There is only one thing we have to take care of: 
+Something quite similar will be done with exit requests. There is only one thing we have to take care of: 
 Exits should only occur after some time delay, as otherwise an illegal state transition might not yet have been challenged.
 
 If a users want to exit, he first needs to do an exit request by calling the following function in the anchor contract:
@@ -246,8 +247,8 @@ This snark would check that:
 
 - By hashing the `[exitRequest informaiton]`, we are getting the `exitRequestHash`
 - for( withdrawals in `[exitRequest information]`)
-	- Opening the Leaf of with the current balance,
-	- Opening the Leaf of the AccountHash and 
+	- Opening the leaf of with the current balance,
+	- Opening the leaf of the accountHash and 
 	- if `withdrawal.sender == accountLeaf.address` && `withdrawal.amount <= stateRHToken.amount`
 		- Update the leaf with the current balance,
 		- Recalculate the stateRH
@@ -306,6 +307,7 @@ In the snark-applyAuction the snark circuits are dominated by the following oper
 - for each order we recalculate the merkle root: accountleave balanceLeaf_SendingToken, balanceLeaf_ReceivingToken -> log_2(#balances) * 2 * #pedersonHashConstraints
 
 That means that the nr of constraints for #orders will be about #orders * log_2(#balances) * 8 * #pedersonHashConstraints
+This means that we could process roughly 5000 orders with 1 mio accounts, if we have 2000 constraints per pedersonHash.
 
 
 
