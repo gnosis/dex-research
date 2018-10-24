@@ -18,10 +18,10 @@ root hash:
 
 The balance of the i-th leaf from the `balanceTRH_Token` will belong to the account of the i-th leaf in `accountsRH`.
 
-All orders are encoded as limit sell orders: `(accountLeafIndex, fromTokenIndex, toTokenIndex, limitprice, amount, nounce, signature)`. The order should be read in the following way: the user from the specified leaf index would like to sell the token fromTokenIndex for toTokenIndex for at most the limit price and the amount specified.
+All orders are encoded as limit sell orders: `(accountLeafIndex, fromTokenIndex, toTokenIndex, limitPrice, amount, nounce, signature)`. The order should be read in the following way: the user from the specified leaf index would like to sell the token fromTokenIndex for toTokenIndex for at most the limit price and the amount specified.
 
 
-All these root hashes `[ accountsRH, balanceRH_1, …, balanceRH_N]` are getting hashed together and will be stored in a `stateTRH` in the “anchor” smart contract on-chain. The anchor contract will be the contract storing all relevant information for this snapp exchange.
+All these root hashes `[accountsRH, balanceRH_1, ..., balanceRH_N]` are getting hashed together and will be stored in a `stateTRH` in the “anchor” smart contract on-chain. The anchor contract will store all relevant information for this snapp exchange.
 
 ![Variable Build up](./variables.png?raw=true "Variables")
 
@@ -31,7 +31,7 @@ The trading workflow consists of the following sequential processes:
 2. Transition function from sha to Pederson hashes 
 3. Finding the batch price: optimization of batch trading surplus
 4. Balance updates after trade execution 
-5. Processing of pending exist and deposits
+5. Processing of pending exits and deposits
 6. Restart with step 1
 
 ### Order collection (with sha hashes)
@@ -281,11 +281,11 @@ There are two main limiting factors for the scalability of this system. The cost
 
 An order is constructed in the following manner: `(accountLeafIndex, fromTokenIndex, toTokenIndex, limitprice, amount, signature)`. If we put on the following constraints: 
 - We do have only 2^6 different tokens in our exchange
-- We do have only 2^16 different leafIndexes
-- price is encoded with an accuracy of 64 bits using floating points( 61 bits are exponent, bottom 3 are mantissa) 
-- amounts are encoded with an accuracy of 64 bits using floating points( 61 bits are exponent, bottom 3 are mantissa)
-- signature is a pair (s,r,v), where s and r are numbers potentially as big as the elliptic curve prime number. That means (r,s)->512 bits
-Then we can store any order in 3 bytes32 and the total gas costs to k order would be:
+- We do have only 2^16 different leafIndices
+- price is encoded with an accuracy of 64 bits using floating points (61 bits are exponent, last 3 are mantissa) 
+- amounts are encoded with an accuracy of 64 bits using floating points (61 bits are exponent, last 3 are mantissa)
+- signature is a pair (s, r, v), where s and r are numbers potentially as big as the elliptic curve prime number. That means (r, s) -> 512 bits
+Then we can store any order in 3 bytes32 and the total gas costs to k orders would be:
 ```
 transaction initiation costs + k* order as payload costs + k* signature verification cost + k* hashing costs + updating the orderHashSha 
 21000+k*(6+16+16+64+64+512)*68/8+k*3000+k*60+5000 
@@ -295,22 +295,19 @@ This means that with 7.4 million gas one can easily store 1000 orders.
 ### Constraints from snarks
 
 
-The Dzik paper showed that it is possible to calculate snarks for up to several billion constraints. However, the parallelization described in this methods only works if the prime-1 of the underlying elliptic curve is sufficiently often divisible by 2. The prime-1 of the alt-bn128 curve from ethereum is divisible by 2^28 and hence, we can compute snarks for the constraints system with up to 2^28=2.6 billion constraints.
+The DZIK paper showed that it is possible to calculate snarks for up to several billion constraints. However, the parallelization described in this methods only works if the prime-1 of the underlying elliptic curve is sufficiently often divisible by 2. The prime-1 of the alt-bn128 curve from ethereum is divisible by 2^28 and hence, we can compute snarks for the constraints system with up to 2^28 ~ 2.6B constraints.
 
 
-For sure the biggest constraint system comes with the snark checking the actual trade and updating all balances. In the following, we estimate the number of circuits by estimation how often we have to hash something. This should be sufficient, as the amount of total constraints is heavily dominated by the circuits of the hash function.
+Certainly, our biggest constraint system comes with the snark checking the actual trade and updating all balances. In the following, we estimate the number of circuits by estimating how often we have to hash something. Such and estimation should suffice, as the total number of constraints is heavily dominated by the circuits of the hash function.
 
 In the snark-applyAuction the snark circuits are dominated by the following operations:
 
-- iteration over all orders -> constraints mulitlpy #orders
-- for each order we open 3 leaves: accountleave balanceLeaf_SendingToken, balanceLeaf_ReceivingToken -> 3 * log_2(#balances) * 2 * #pedersonHashConstraints
-- for each order we recalculate the merkle root: accountleave balanceLeaf_SendingToken, balanceLeaf_ReceivingToken -> log_2(#balances) * 2 * #pedersonHashConstraints
+- iteration over all orders -> constraints multiply #orders
+- for each order we open 3 leaves: accountLeaf, balanceLeaf_SendingToken, balanceLeaf_ReceivingToken -> 3 * log_2(#balances) * 2 * #pedersonHashConstraints
+- for each order we recalculate the merkle root: accountLeaf, balanceLeaf_SendingToken, balanceLeaf_ReceivingToken -> log_2(#balances) * 2 * #pedersonHashConstraints
 
-That means that the nr of constraints for #orders will be about #orders * log_2(#balances) * 8 * #pedersonHashConstraints
-This means that we could process roughly 5000 orders with 1 mio accounts, if we have 2000 constraints per pedersonHash.
+That means that the number of constraints for #orders will be about #orders * log_2(#balances) * 8 * #pedersonHashConstraints implying that we could process roughly 5K orders with 1M accounts, if there are  2K constraints per pedersonHash.
 
 
 
 Biggest foreseen challenge: Generating a trusted setup with 2^28 constraints.
-
-## Summary
