@@ -39,13 +39,13 @@ The trading workflow consists of the following sequential processes:
 The anchor smart contract on ethereum will offer the following function:
 ```js
 function appendOrders( bytes32 [] orders){ 
-	// some preliminary checks, which will limit the total amount of orders..
+	// some preliminary checks limiting the number of orders..
 
 	// update of orderHashSha
-	for(i=0;i<orders.length;i++){
-		if( "check signature of order"){
+	for(i=0; i<orders.length; i++){
+		if("check signature of order") {
 			// hash order without signature
-			orderHashSha = Kecca256( orderHashSha, order[i]) 
+			orderHashSha = Kecca256(orderHashSha, order[i]) 
 		}
 	}
 }
@@ -107,7 +107,7 @@ After the price submission period, the best solution with the highest trading su
 
 `P` is only the price vector of all prices relative to a reference token `Token_1`. As prices are arbitrage-free, we can calculate the `price Token_i: Token_k` =  `(Token_i:Token_1):(Token_1:Token_k)`
 
-Unfortunately, not all orders below the limit price will be filled completely. It might happen that the account sending the order might not have the balance required to settle the sell order. These orders we are calling uncovered orders and they need to be excluded or only partly be filled. Because of this, the solution submitter needs to provide for each order the fraction of the traded surplus:
+Unfortunately, not all orders below the limit price will be filled completely. It might happen that the account sending the order might not have the balance required to settle the sell order. These orders we are calling uncovered orders and they need to be excluded or only partly be filled. Because of this, the solution submitter must provide the fraction of the traded surplus for each order:
 
 | VV | order_1 | ... | order_K|
 | --- | --- | --- | --- |
@@ -115,7 +115,7 @@ Unfortunately, not all orders below the limit price will be filled completely. I
 
 
 
-These two parts of the solution: VV and P must be provided as data payload to the anchor contract and then the anchor contract will sha-hash them together into `hashBatchInfo`.
+These two parts of the solution: VV and P are provided as data payload to the anchor contract which will sha-hash them together into `hashBatchInfo`.
 
 Now, everyone can check whether the provided solution is actually a valid one. If it is not valid, then anyone can challenge the solution submitter. If this happens, the solution submitter needs to prove that his solution is correct by providing the following snark:
 ```
@@ -126,7 +126,7 @@ Snark - applyAuction(
 	Public: orderHashPederson,
 	Private: priceMatrix PxP,
 	Private: orderVolume
-	Private: [ balanceTRH_I    for 0<I<=N]
+	Private: [balanceTRH_i    for 0<i<=N]
 	Private: orders
 	Private: touched balances + leaf number + balance merkle proofs per order,
 	Private: FollowUpOrderOfAccount [index of later order touching balance])
@@ -136,7 +136,7 @@ The snark would check the following things:
 
 - `priceMatrix` has actually the values as induced by the `hashBatchInfo` (with sha)
 - `orderVolume` VV has actually the values induced by the `hashBatchInfo` (with sha)
-- verify  `[ balanceTRH_I    for 0<I<=N]` hashes to `balanceRH`
+- verify  `[balanceTRH_i    for 0<i<=N]` hashes to `balanceRH`
 - verify  `[VV]` has the values induced by `hashBatchInfo`
 
 - for order in [orders]
@@ -144,11 +144,11 @@ The snark would check the following things:
 	- check that the leaf is owned by sender by opening the accountIndexLeaf
 	- check that the nounce is valid and update it
 	- read the potentially fractional surplus of the order
-	- update the balance by substracting sell volume
+	- update the balance by subtracting sell volume
 	- if `FollowUpOrderOfAccount` == 0
 		- check that balance is positive
 	- else 
-			Check that the other order referenced in `FollowUpOrderOfAccount` has the same receiver and it touches the balance
+		- Check that the other order referenced in `FollowUpOrderOfAccount` has the same receiver and it touches the balance
 	- update the balance by adding buy volume
 	- close balance leaves and update Merkle tree hashes
 	- Keep track of the total `selling surplus` per token
