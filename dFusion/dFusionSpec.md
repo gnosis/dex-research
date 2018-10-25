@@ -191,11 +191,13 @@ Everyone can check whether the `stateRH` has been updated correctly. If it has n
 If the submitter is challenged, he would have to provide the following snark:
 
 ```
-snark-deposits( Public oldBalanceHash
-		Public newBalanceHash
-		Public depositHash
+snark-deposits( 
+		Public: oldBalanceHash
+		Public: newBalanceHash
+		Public: depositHash
 		Private: [deposit informations]
-		Priavte: [current balances, merkleProof] )
+		Private: [current balances, merkleProof] 
+	)
 ```	
 
 This snark would check that:
@@ -228,29 +230,31 @@ Function exitRequest ( address token, uint amount){
 Then any significantly bonded party can incorporate these bundled exit requests into the current stateRH by calling the following function:
 
 ```js
-Function incorporateWithdrawals(uint blockNr, bytes32 oldBalanceHash, bytes32 newBalanceHash,bytes32 withdrawalAmounts)
+Function incorporateWithdrawals(uint blockNr, bytes32 oldBalanceHash, bytes32 newBalanceHash, bytes32 withdrawalAmounts)
 ``` 
-Here, all withdrawal request was processed, which were registered between the blocks blockNr and blockNr+19. A solution submitter would have to hand over the previous oldBalanceHash, which describes the balances before the withdrawals. It would have to send over the newBalanceHash describing the new balances of the users and withdrawalAmounts, which is also the balancesHashed together from all legit withdrawals from all users.
+Here, all withdrawal request was processed, which were registered between the blocks blockNr and blockNr+19. A solution submitter would have to hand over the previous oldBalanceHash, which describes the balances before the withdrawals. It would have to send over the newBalanceHash describing the new balances of the users and withdrawalAmounts, which is also the balancesHashed together from all legitimate withdrawals from all users.
 
 Again, if the incorporatedWithdrawals results were incorrectly provided, this can be challenged. In case it is challenged, the solution submitter needs to provide the snark proof:
 
 ```
-snark-withdrawals( Public oldBalanceHash
-		Public newBalanceHash
-		Public exitRequestHash
+snark-withdrawals( 
+		Public oldBalanceHash
+		Public: newBalanceHash
+		Public: exitRequestHash
 		Private: [exitRequest informaiton]
-		Priavte: [current balances, merkleProofs] )
+		Private: [current balances, merkleProofs] 
+	)
 		Output: withdrawalAmounts
 ```	
 
 This snark would check that:
 
 - By hashing the `[exitRequest informaiton]`, we are getting the `exitRequestHash`
-- for( withdrawals in `[exitRequest information]`)
+- for( withdrawal in `[exitRequest information]`)
 	- Opening the leaf of with the current balance,
 	- Opening the leaf of the accountHash and 
 	- if `withdrawal.sender == accountLeaf.address` && `withdrawal.amount <= stateRHToken.amount`
-		- Update the leaf with the current balance,
+		- Update the leaf with the current balance
 		- Recalculate the stateRH
 		- incorporate the `withdrawal.amount` into `withdrawalAmounts`
 
@@ -259,15 +263,15 @@ If a provided solution is not challenged, any users can trigger his withdrawal 1
 
 ```js
 Function processWithdrawal(uint blockNrOfReg, uint amount, address token, bytes MerkleProof){
-	// check that some time passed
+	// Ensure sufficient time has passed
 	require(blockNrOfReg + TimeDelta < now)
 
 	// Verify that withdrawal is legit
 	require(withdrawalAmounts[blockNrOfReg].CheckInclusionProof(amount, MerkleProof))
 
-	//Update withdrawalAmounts[blockNrOfReg]
+	// Update withdrawalAmounts[blockNrOfReg]
 
-	//Transfer tokens
+	// Transfer tokens
 	require(Token(token).transfer(..))
 }
 ``` 
@@ -279,12 +283,12 @@ There are two main limiting factors for the scalability of this system. The cost
 
 ### Order costs as payload
 
-An order is constructed in the following manner: `(accountLeafIndex, fromTokenIndex, toTokenIndex, limitprice, amount, signature)`. If we put on the following constraints: 
-- We do have only 2^6 different tokens in our exchange
-- We do have only 2^16 different leafIndices
-- price is encoded with an accuracy of 64 bits using floating points (61 bits are exponent, last 3 are mantissa) 
-- amounts are encoded with an accuracy of 64 bits using floating points (61 bits are exponent, last 3 are mantissa)
-- signature is a pair (s, r, v), where s and r are numbers potentially as big as the elliptic curve prime number. That means (r, s) -> 512 bits
+An order is constructed in the following manner: `(accountLeafIndex, fromTokenIndex, toTokenIndex, limitPrice, amount, signature)`. If impose the following constraints: 
+- There are at most 2^6 different tokens in our exchange
+- There are at most 2^16 different leafIndices
+- Price is encoded with an accuracy of 64 bits using floating points (61 bits are exponent, last 3 are mantissa) 
+- Amounts are encoded with an accuracy of 64 bits using floating points (61 bits are exponent, last 3 are mantissa)
+- Signature is a pair (s, r, v), where s and r are numbers potentially as big as the elliptic curve prime number. That means (r, s) -> 512 bits
 Then we can store any order in 3 bytes32 and the total gas costs to k orders would be:
 ```
 transaction initiation costs + k* order as payload costs + k* signature verification cost + k* hashing costs + updating the orderHashSha 
@@ -302,12 +306,13 @@ Certainly, our biggest constraint system comes with the snark checking the actua
 
 In the snark-applyAuction the snark circuits are dominated by the following operations:
 
-- iteration over all orders -> constraints multiply #orders
-- for each order we open 3 leaves: accountLeaf, balanceLeaf_SendingToken, balanceLeaf_ReceivingToken -> 3 * log_2(#balances) * 2 * #pedersonHashConstraints
-- for each order we recalculate the merkle root: accountLeaf, balanceLeaf_SendingToken, balanceLeaf_ReceivingToken -> log_2(#balances) * 2 * #pedersonHashConstraints
+- Iteration over all orders -> constraints multiply #orders
+- For each order we open 3 leaves: 
+	accountLeaf, balanceLeaf_SendingToken, balanceLeaf_ReceivingToken -> 3 * log_2(#balances) * 2 * #pedersonHashConstraints
+- for each order we recalculate the merkle root: 
+	accountLeaf, balanceLeaf_SendingToken, balanceLeaf_ReceivingToken -> log_2(#balances) * 2 * #pedersonHashConstraints
 
 That means that the number of constraints for #orders will be about #orders * log_2(#balances) * 8 * #pedersonHashConstraints implying that we could process roughly 5K orders with 1M accounts, if there are  2K constraints per pedersonHash.
-
 
 
 Biggest foreseen challenge: Generating a trusted setup with 2^28 constraints.
