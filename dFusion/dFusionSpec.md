@@ -308,11 +308,11 @@ In the snark-applyAuction the snark circuits are dominated by the following oper
 
 - Iteration over all orders -> constraints multiply #orders
 - For each order we open 3 leaves: 
-	accountLeaf, balanceLeaf_SendingToken, balanceLeaf_ReceivingToken -> 3 * log_2(#balances) * 2 * #pedersonHashConstraints
+	- accountLeaf, balanceLeaf\_SendingToken, balanceLeaf\_ReceivingToken -> 3 * log_2(#balances) * 2 * #pedersonHashConstraints
 - for each order we recalculate the merkle root: 
-	accountLeaf, balanceLeaf_SendingToken, balanceLeaf_ReceivingToken -> log_2(#balances) * 2 * #pedersonHashConstraints
+	- accountLeaf, balanceLeaf\_SendingToken, balanceLeaf\_ReceivingToken -> 2* log_2(#balances) * 2 * #pedersonHashConstraints
 
-That means that the number of constraints for #orders will be about #orders * log_2(#balances) * 8 * #pedersonHashConstraints implying that we could process roughly 5K orders with 1M accounts, if there are  2K constraints per pedersonHash.
+Together then, the number of constraints will be of magnitude #orders * log_2(#balances) * 10 * #pedersonHashConstraints implying that we could process roughly 5K orders with 1M accounts, if there are 1.1K constraints per pedersonHash.
 
 
 Biggest foreseen challenge: Generating a trusted setup with 2^28 constraints.
