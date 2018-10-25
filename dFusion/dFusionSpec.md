@@ -286,13 +286,13 @@ There are two main limiting factors for the scalability of this system. The cost
 ### Order costs as payload
 
 
-An order is constructed in the following manner: `(accountLeafIndex, fromTokenIndex, toTokenIndex, limitprice, amount, signature)`. If we put on the following constraints: 
-- We do have only 2^6 different tokens in our exchange
-- We do have only 2^16 different leafIndexes
-- price is encoded with an accuracy of 64 bits using floating points( 61 bits are exponent, bottom 3 are mantissa) 
-- amounts are encoded with an accuracy of 64 bits using floating points( 61 bits are exponent, bottom 3 are mantissa)
-- signature is a pair (s,r,v), where s and r are numbers potentially as big as the elliptic curve prime number. That means (r,s)->512 bits
-Then we can store any order in 3 bytes32 and the total gas costs to k order would be:
+An order is constructed in the following manner: `(accountLeafIndex, fromTokenIndex, toTokenIndex, limitPrice, amount, signature)`. If impose the following constraints: 
+- There are at most 2^6 different tokens in our exchange
+- There are at most 2^16 different leafIndices
+- Price is encoded with an accuracy of 64 bits using floating points (61 bits are exponent, last 3 are mantissa) 
+- Amounts are encoded with an accuracy of 64 bits using floating points (61 bits are exponent, last 3 are mantissa)
+- Signature is a pair (s, r, v), where s and r are numbers potentially as big as the elliptic curve prime number. That means (r, s) -> 512 bits
+Then we can store any order in 3 bytes32 and the total gas costs to k orders would be:
 
 ```
 transaction initiation costs + k* order as payload costs + k* signature verification cost + k* hashing costs + updating the orderHashSha 
@@ -325,9 +325,10 @@ Biggest foreseen challenge: Generating a trusted setup with 2^28 constraints.
 
 ### Price manipulation	
 
-One concern is that the limited space of orders is filled up by an attacker, after a profitiable market order (an order with a low limit sell price) was submitted. This way, the attacker might prevent a fair price finding , as people will not be able to submit their legit orders. As a consequence the attacker might be able to profit from the off-price by buying up the market order cheaply.
+One concern is that the limited space of orders is filled up by an attacker, after a profitiable market order (an order with a low limit sell price) was submitted. This way, the attacker could prevent fair price finding, as others wouldn't be able to submit their legitimate orders. Consequently, the attacker could profit from the off-price by buying the market order cheaply.
 
-This can be prevent by two methods: 
-- Order encryption: Order can be encrypted using a distributed key generation sheme and only be decrypted after the order finalization is finished. Then the attacker would not be aware of the good price of an "market order".
-- Futures on order-participation: 98% of the order space would be distributed using the usual fee model. The rest 2% would be dedicated for people, who used their GNO/OWl or some other token. This way it would be much harder by the attacker to use up all the order space.
+This can be prevent by two methods:
+
+- **Order encryption:** Order can be encrypted using a distributed key generation sheme and only be decrypted after the order finalization is finished. Then the attacker would not be aware of the good price of an "market order".
+- **Futures on order-participation:** A significant proportion (say 98%) of the order space would be distributed using the usual fee model while the rest (say 2%) could be reserved for people, who used their GNO/OWl or some other token. This way it would be much harder for an attacker to fill the order space.
 
