@@ -45,7 +45,7 @@ function appendOrders( bytes32 [] orders){
 	for(i=0; i<orders.length; i++){
 		if("check signature of order") {
 			// hash order without signature
-			orderHashSha = Kecca256(orderHashSha, order[i]) 
+			orderHashSha = Kecca256(orderHashSha, orders[i]) 
 		}
 	}
 }
