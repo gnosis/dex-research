@@ -66,19 +66,21 @@ The transitionHashes&Validation snark will do the following checks:
 - Verify the private input by recalculating the sha of all orders and comparing it to the public input `orderHashSha`.
 - Iterate over all orders again and hash them sequencially using the Pederson hash. Use this hash as output.
 
-Notice that we allow orders, which might not be covered by any balance of the order sender.
+Notice that we allow orders, which might not be covered by any balance of the order sender. These orders will be sorted out later in the settlement of an auction.
 
 In the anchor contract, we have the following functionality for this process:
 
 Anyone can propose a transition to the anchor contract by providing the required information and by providing a very significant bond. It is not required to provide the snark in the first place:
+
 ```js
 Function submitTransitionInformation( bytes32 oldstate, bytes32 newstate)
 ```
+
 In case the send-transition information is incorrect, anyone can challenge it by also providing a significant bond and calling the following function.
 ```js
 Function challengeTransitionInformation( bytes32 oldstate, bytes32 newstate)
 ```
-If the first transition submitter can provide a snark within a predefined time frame (some hours) proving that his transition was correct, the challenge will not be successful. Otherwise, it will be successful.
+Any significantly bonded challenge is, by default, assumed to be legitimate and will be executed after a certain time frame (some ours), unless the first transition submitter can provide a snark proof of correctness within this predefined time frame.
 
 The snark would be evaluated by the anchor contract after calling the following function.
  ```js
@@ -286,11 +288,13 @@ An order is constructed in the following manner: `(accountLeafIndex, fromTokenIn
 - amounts are encoded with an accuracy of 64 bits using floating points( 61 bits are exponent, bottom 3 are mantissa)
 - signature is a pair (s,r,v), where s and r are numbers potentially as big as the elliptic curve prime number. That means (r,s)->512 bits
 Then we can store any order in 3 bytes32 and the total gas costs to k order would be:
+
 ```
 transaction initiation costs + k* order as payload costs + k* signature verification cost + k* hashing costs + updating the orderHashSha 
 21000+k*(6+16+16+64+64+512)*68/8+k*3000+k*60+5000 
 ```
-This means that with 7.4 million gas one can easily store 1000 orders.
+
+This means that with 8.8 million gas one can easily store 1000 orders.
 
 ### Constraints from snarks
 
@@ -309,8 +313,16 @@ In the snark-applyAuction the snark circuits are dominated by the following oper
 That means that the nr of constraints for #orders will be about #orders * log_2(#balances) * 8 * #pedersonHashConstraints
 This means that we could process roughly 5000 orders with 1 mio accounts, if we have 2000 constraints per pedersonHash.
 
-
-
 Biggest foreseen challenge: Generating a trusted setup with 2^28 constraints.
 
-## Summary
+
+### Price manipulation	
+
+One concern is that the limited space of orders is filled up by an attacker, after a profitiable market order (an order with a low limit sell price) was submitted. This way, the attacker might prevent a fair price finding , as people will not be able to submit their legit orders. As a consequence the attacker might be able to profit from the off-price by buying up the market order cheaply.
+
+This can be prevent by two methods: 
+- Order encryption: Order can be encrypted using a distributed key generation sheme and only be decrypted after the order finalization is finished. Then the attacker would not be aware of the good price of an "market order".
+- Futures on order-participation: 98% of the order space would be distributed using the usual fee model. The rest 2% would be dedicated for people, who used their GNO/OWl or some other token. This way it would be much harder by the attacker to use up all the order space.
+
+
+
