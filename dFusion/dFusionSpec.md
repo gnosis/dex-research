@@ -37,7 +37,7 @@ The trading workflow consists of the following sequential processes:
 ### Order collection (with sha hashes)
 
 The anchor smart contract on ethereum will offer the following function:
-```
+```js
 function appendOrders( bytes32 [] orders){ 
 	// some preliminary checks, which will limit the total amount of orders..
 
@@ -71,17 +71,17 @@ Notice that we allow orders, which might not be covered by any balance of the or
 In the anchor contract, we have the following functionality for this process:
 
 Anyone can propose a transition to the anchor contract by providing the required information and by providing a very significant bond. It is not required to provide the snark in the first place:
-```
+```js
 Function submitTransitionInformation( bytes32 oldstate, bytes32 newstate)
 ```
 In case the send-transition information is incorrect, anyone can challenge it by also providing a significant bond and calling the following function.
-```
+```js
 Function challengeTransitionInformation( bytes32 oldstate, bytes32 newstate)
 ```
 If the first transition submitter can provide a snark within a predefined time frame (some hours) proving that his transition was correct, the challenge will not be successful. Otherwise, it will be successful.
 
 The snark would be evaluated by the anchor contract after calling the following function.
- ```
+ ```js
 Function submitSnarkToResolveChallenge(bytes32 oldstate, bytes32 newstate, --snark--)
 ```
 
@@ -166,7 +166,7 @@ Deposits and withdraws need to be processed and incorporated into the 'balanceRH
 
 If someone wants to deposit to anchor contract, we would have to send funds into the following function of the anchor contract:
 
-```
+```js
 Function deposit ( address token, uint amount){
 	// verify that not too much deposits have already been done,
 
@@ -181,7 +181,7 @@ Function deposit ( address token, uint amount){
 That means that all the depositing information are stored in a bytes32 `depositHash`. Each 20 ethereum blocks, we store all the occurring `depositsHash` in a unique hash.
 
 The deposits can be incorporated by any significantly bonded party by calling the following function:
-```
+```js
 Function incorporateDeposits(uint blockNr, oldBalanceHash, newBalanceHash)
 ```
 This function would update the `stateRH` by incorporating the deposits received from `blockNr` to `blockNr+19`.
@@ -213,7 +213,7 @@ Something quite similar will be done with exit requests. There is only one thing
 Exits should only occur after some time delay, as otherwise an illegal state transition might not yet have been challenged.
 
 If a users want to exit, he first needs to do an exit request by calling the following function in the anchor contract:
-```
+```js
 Function exitRequest ( address token, uint amount){
 	// verify that not too much exists request have already been done,
 
@@ -227,7 +227,7 @@ Function exitRequest ( address token, uint amount){
 
 Then any significantly bonded party can incorporate these bundled exit requests into the current stateRH by calling the following function:
 
-```
+```js
 Function incorporateWithdrawals(uint blockNr, bytes32 oldBalanceHash, bytes32 newBalanceHash,bytes32 withdrawalAmounts)
 ``` 
 Here, all withdrawal request was processed, which were registered between the blocks blockNr and blockNr+19. A solution submitter would have to hand over the previous oldBalanceHash, which describes the balances before the withdrawals. It would have to send over the newBalanceHash describing the new balances of the users and withdrawalAmounts, which is also the balancesHashed together from all legit withdrawals from all users.
@@ -257,7 +257,7 @@ This snark would check that:
 
 If a provided solution is not challenged, any users can trigger his withdrawal 1 day after the submission, by providing Merkle proof of his balance stored in withdrawalAmounts[blockNr]
 
-```
+```js
 Function processWithdrawal(uint blockNrOfReg, uint amount, address token, bytes MerkleProof){
 	// check that some time passed
 	require(blockNrOfReg + TimeDelta < now)
