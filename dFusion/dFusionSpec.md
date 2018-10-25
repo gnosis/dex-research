@@ -18,10 +18,10 @@ root hash:
 
 The balance of the i-th leaf from the `balanceTRH_Token` will belong to the account of the i-th leaf in `accountsRH`.
 
-All orders are encoded as limit sell orders: `(accountLeafIndex, fromTokenIndex, toTokenIndex, limitprice, amount, nounce, signature)`. The order should be read in the following way: the user from the specified leaf index would like to sell the token fromTokenIndex for toTokenIndex for at most the limit price and the amount specified.
+All orders are encoded as limit sell orders: `(accountLeafIndex, fromTokenIndex, toTokenIndex, limitPrice, amount, nounce, signature)`. The order should be read in the following way: the user from the specified leaf index would like to sell the token fromTokenIndex for toTokenIndex for at most the limit price and the amount specified.
 
 
-All these root hashes `[ accountsRH, balanceRH_1, …, balanceRH_N]` are getting hashed together and will be stored in a `stateTRH` in the “anchor” smart contract on-chain. The anchor contract will be the contract storing all relevant information for this snapp exchange.
+All these root hashes `[accountsRH, balanceRH_1, ..., balanceRH_N]` are getting hashed together and will be stored in a `stateTRH` in the “anchor” smart contract on-chain. The anchor contract will store all relevant information for this snapp exchange.
 
 ![Variable Build up](./variables.png?raw=true "Variables")
 
@@ -31,7 +31,7 @@ The trading workflow consists of the following sequential processes:
 2. Transition function from sha to Pederson hashes 
 3. Finding the batch price: optimization of batch trading surplus
 4. Balance updates after trade execution 
-5. Processing of pending exist and deposits
+5. Processing of pending exits and deposits
 6. Restart with step 1
 
 ### Order collection (with sha hashes)
@@ -39,13 +39,13 @@ The trading workflow consists of the following sequential processes:
 The anchor smart contract on ethereum will offer the following function:
 ```js
 function appendOrders( bytes32 [] orders){ 
-	// some preliminary checks, which will limit the total amount of orders..
+	// some preliminary checks limiting the number of orders..
 
 	// update of orderHashSha
-	for(i=0;i<orders.length;i++){
-		if( "check signature of order"){
+	for(i=0; i<orders.length; i++){
+		if("check signature of order") {
 			// hash order without signature
-			orderHashSha = Kecca256( orderHashSha, order[i]) 
+			orderHashSha = Kecca256(orderHashSha, orders[i]) 
 		}
 	}
 }
@@ -109,7 +109,7 @@ After the price submission period, the best solution with the highest trading su
 
 `P` is only the price vector of all prices relative to a reference token `Token_1`. As prices are arbitrage-free, we can calculate the `price Token_i: Token_k` =  `(Token_i:Token_1):(Token_1:Token_k)`
 
-Unfortunately, not all orders below the limit price will be filled completely. It might happen that the account sending the order might not have the balance required to settle the sell order. These orders we are calling uncovered orders and they need to be excluded or only partly be filled. Because of this, the solution submitter needs to provide for each order the fraction of the traded surplus:
+Unfortunately, not all orders below the limit price will be filled completely. It might happen that the account sending the order might not have the balance required to settle the sell order. These orders we are calling uncovered orders and they need to be excluded or only partly be filled. Because of this, the solution submitter must provide the fraction of the traded surplus for each order:
 
 | VV | order_1 | ... | order_K|
 | --- | --- | --- | --- |
@@ -117,7 +117,7 @@ Unfortunately, not all orders below the limit price will be filled completely. I
 
 
 
-These two parts of the solution: VV and P must be provided as data payload to the anchor contract and then the anchor contract will sha-hash them together into `hashBatchInfo`.
+These two parts of the solution: VV and P are provided as data payload to the anchor contract which will sha-hash them together into `hashBatchInfo`.
 
 Now, everyone can check whether the provided solution is actually a valid one. If it is not valid, then anyone can challenge the solution submitter. If this happens, the solution submitter needs to prove that his solution is correct by providing the following snark:
 ```
@@ -128,7 +128,7 @@ Snark - applyAuction(
 	Public: orderHashPederson,
 	Private: priceMatrix PxP,
 	Private: orderVolume
-	Private: [ balanceTRH_I    for 0<I<=N]
+	Private: [balanceTRH_i    for 0<i<=N]
 	Private: orders
 	Private: touched balances + leaf number + balance merkle proofs per order,
 	Private: FollowUpOrderOfAccount [index of later order touching balance])
@@ -138,7 +138,7 @@ The snark would check the following things:
 
 - `priceMatrix` has actually the values as induced by the `hashBatchInfo` (with sha)
 - `orderVolume` VV has actually the values induced by the `hashBatchInfo` (with sha)
-- verify  `[ balanceTRH_I    for 0<I<=N]` hashes to `balanceRH`
+- verify  `[balanceTRH_i    for 0<i<=N]` hashes to `balanceRH`
 - verify  `[VV]` has the values induced by `hashBatchInfo`
 
 - for order in [orders]
@@ -146,11 +146,11 @@ The snark would check the following things:
 	- check that the leaf is owned by sender by opening the accountIndexLeaf
 	- check that the nounce is valid and update it
 	- read the potentially fractional surplus of the order
-	- update the balance by substracting sell volume
+	- update the balance by subtracting sell volume
 	- if `FollowUpOrderOfAccount` == 0
 		- check that balance is positive
 	- else 
-			Check that the other order referenced in `FollowUpOrderOfAccount` has the same receiver and it touches the balance
+		- Check that the other order referenced in `FollowUpOrderOfAccount` has the same receiver and it touches the balance
 	- update the balance by adding buy volume
 	- close balance leaves and update Merkle tree hashes
 	- Keep track of the total `selling surplus` per token
@@ -193,11 +193,13 @@ Everyone can check whether the `stateRH` has been updated correctly. If it has n
 If the submitter is challenged, he would have to provide the following snark:
 
 ```
-snark-deposits( Public oldBalanceHash
-		Public newBalanceHash
-		Public depositHash
+snark-deposits( 
+		Public: oldBalanceHash
+		Public: newBalanceHash
+		Public: depositHash
 		Private: [deposit informations]
-		Priavte: [current balances, merkleProof] )
+		Private: [current balances, merkleProof] 
+	)
 ```	
 
 This snark would check that:
@@ -230,29 +232,31 @@ Function exitRequest ( address token, uint amount){
 Then any significantly bonded party can incorporate these bundled exit requests into the current stateRH by calling the following function:
 
 ```js
-Function incorporateWithdrawals(uint blockNr, bytes32 oldBalanceHash, bytes32 newBalanceHash,bytes32 withdrawalAmounts)
+Function incorporateWithdrawals(uint blockNr, bytes32 oldBalanceHash, bytes32 newBalanceHash, bytes32 withdrawalAmounts)
 ``` 
-Here, all withdrawal request was processed, which were registered between the blocks blockNr and blockNr+19. A solution submitter would have to hand over the previous oldBalanceHash, which describes the balances before the withdrawals. It would have to send over the newBalanceHash describing the new balances of the users and withdrawalAmounts, which is also the balancesHashed together from all legit withdrawals from all users.
+Here, all withdrawal request was processed, which were registered between the blocks blockNr and blockNr+19. A solution submitter would have to hand over the previous oldBalanceHash, which describes the balances before the withdrawals. It would have to send over the newBalanceHash describing the new balances of the users and withdrawalAmounts, which is also the balancesHashed together from all legitimate withdrawals from all users.
 
 Again, if the incorporatedWithdrawals results were incorrectly provided, this can be challenged. In case it is challenged, the solution submitter needs to provide the snark proof:
 
 ```
-snark-withdrawals( Public oldBalanceHash
-		Public newBalanceHash
-		Public exitRequestHash
+snark-withdrawals( 
+		Public oldBalanceHash
+		Public: newBalanceHash
+		Public: exitRequestHash
 		Private: [exitRequest informaiton]
-		Priavte: [current balances, merkleProofs] )
+		Private: [current balances, merkleProofs] 
+	)
 		Output: withdrawalAmounts
 ```	
 
 This snark would check that:
 
 - By hashing the `[exitRequest informaiton]`, we are getting the `exitRequestHash`
-- for( withdrawals in `[exitRequest information]`)
+- for( withdrawal in `[exitRequest information]`)
 	- Opening the leaf of with the current balance,
 	- Opening the leaf of the accountHash and 
 	- if `withdrawal.sender == accountLeaf.address` && `withdrawal.amount <= stateRHToken.amount`
-		- Update the leaf with the current balance,
+		- Update the leaf with the current balance
 		- Recalculate the stateRH
 		- incorporate the `withdrawal.amount` into `withdrawalAmounts`
 
@@ -261,15 +265,15 @@ If a provided solution is not challenged, any users can trigger his withdrawal 1
 
 ```js
 Function processWithdrawal(uint blockNrOfReg, uint amount, address token, bytes MerkleProof){
-	// check that some time passed
+	// Ensure sufficient time has passed
 	require(blockNrOfReg + TimeDelta < now)
 
 	// Verify that withdrawal is legit
 	require(withdrawalAmounts[blockNrOfReg].CheckInclusionProof(amount, MerkleProof))
 
-	//Update withdrawalAmounts[blockNrOfReg]
+	// Update withdrawalAmounts[blockNrOfReg]
 
-	//Transfer tokens
+	// Transfer tokens
 	require(Token(token).transfer(..))
 }
 ``` 
@@ -280,6 +284,7 @@ Function processWithdrawal(uint blockNrOfReg, uint amount, address token, bytes 
 There are two main limiting factors for the scalability of this system. The costs associated with sending information to ethereum as payload and the number of constraints from the snarks.
 
 ### Order costs as payload
+
 
 An order is constructed in the following manner: `(accountLeafIndex, fromTokenIndex, toTokenIndex, limitprice, amount, signature)`. If we put on the following constraints: 
 - We do have only 2^6 different tokens in our exchange
@@ -299,19 +304,21 @@ This means that with 8.8 million gas one can easily store 1000 orders.
 ### Constraints from snarks
 
 
-The Dizk paper showed that it is possible to calculate snarks for up to several billion constraints. However, the parallelization described in this methods only works if the prime-1 of the underlying elliptic curve is sufficiently often divisible by 2. The prime-1 of the alt-bn128 curve from ethereum is divisible by 2^28 and hence, we can compute snarks for the constraints system with up to 2^28=2.6 billion constraints.
+The DIZK paper showed that it is possible to calculate snarks for up to several billion constraints. However, the parallelization described in this methods only works if the prime-1 of the underlying elliptic curve is sufficiently often divisible by 2. The prime-1 of the alt-bn128 curve from ethereum is divisible by 2^28 and hence, we can compute snarks for the constraints system with up to 2^28 ~ 2.6B constraints.
 
 
-For sure the biggest constraint system comes with the snark checking the actual trade and updating all balances. In the following, we estimate the number of circuits by estimation how often we have to hash something. This should be sufficient, as the amount of total constraints is heavily dominated by the circuits of the hash function.
+
+Certainly, our biggest constraint system comes with the snark checking the actual trade and updating all balances. In the following, we estimate the number of circuits by estimating how often we have to hash something. Such and estimation should suffice, as the total number of constraints is heavily dominated by the circuits of the hash function.
 
 In the snark-applyAuction the snark circuits are dominated by the following operations:
 
-- iteration over all orders -> constraints mulitlpy #orders
-- for each order we open 3 leaves: accountleave balanceLeaf_SendingToken, balanceLeaf_ReceivingToken -> 3 * log_2(#balances) * 2 * #pedersonHashConstraints
-- for each order we recalculate the merkle root: accountleave balanceLeaf_SendingToken, balanceLeaf_ReceivingToken -> log_2(#balances) * 2 * #pedersonHashConstraints
+- Iteration over all orders -> constraints multiply #orders
+- For each order we open 3 leaves: 
+	- accountLeaf, balanceLeaf\_SendingToken, balanceLeaf\_ReceivingToken -> 3 * log_2(#balances) * 2 * #pedersonHashConstraints
+- for each order we recalculate the merkle root: 
+	- accountLeaf, balanceLeaf\_SendingToken, balanceLeaf\_ReceivingToken -> 2* log_2(#balances) * 2 * #pedersonHashConstraints
 
-That means that the nr of constraints for #orders will be about #orders * log_2(#balances) * 8 * #pedersonHashConstraints
-This means that we could process roughly 5000 orders with 1 mio accounts, if we have 2000 constraints per pedersonHash.
+Together then, the number of constraints will be of magnitude #orders * log_2(#balances) * 10 * #pedersonHashConstraints implying that we could process roughly 5K orders with 1M accounts, if there are 1.1K constraints per pedersonHash.
 
 Biggest foreseen challenge: Generating a trusted setup with 2^28 constraints.
 
@@ -323,6 +330,4 @@ One concern is that the limited space of orders is filled up by an attacker, aft
 This can be prevent by two methods: 
 - Order encryption: Order can be encrypted using a distributed key generation sheme and only be decrypted after the order finalization is finished. Then the attacker would not be aware of the good price of an "market order".
 - Futures on order-participation: 98% of the order space would be distributed using the usual fee model. The rest 2% would be dedicated for people, who used their GNO/OWl or some other token. This way it would be much harder by the attacker to use up all the order space.
-
-
 
