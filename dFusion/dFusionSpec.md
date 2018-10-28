@@ -221,9 +221,6 @@ If a users want to exit, he first needs to do an exit request by calling the fol
 Function exitRequest ( address token, uint amount){
 	// verify that not too much exists request have already been done,
 
-	// sending of funds
-	require( Token(token).transferFrom(...))
-
 	// Storing deposit information
 	exitRequestHash[blocknr/20] = sha256(exitRequestHash[blocknr/20], msg.sender, amount, token) 
 }
