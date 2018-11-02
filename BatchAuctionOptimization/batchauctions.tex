@@ -727,7 +727,7 @@ as well as \emph{disjunctive programming}, introduced by \textsc{Balas} \cite{BA
 \paragraph{Big-M reformulation}
 
 In the big-M approach, the constraints for both $ \tilde{\mathfrak{C}}^0 $ and
-$ \tilde{\mathfrak{C}}^0 $ are modified so that they are equivalent to the original ones if the
+$ \tilde{\mathfrak{C}}^1 $ are modified so that they are equivalent to the original ones if the
 binary variable takes the respective value, and are rendered redundant by large-enough constants in
 the opposite case.
 As for our constraint systems, this translates into:
@@ -1104,15 +1104,21 @@ The (geometric) means of the runtimes have been computed only \wrt the instances
 solved to optimality before the timelimit. Conversely, the average optimality gap does not take
 solved instances into account.
 
-The results of our computational experiments as in \tabref{tab:results_mip1_bigm} and 
-\tabref{tab:results_mip2_dp}
-show that runtimes of the MIP formulation sharply increase both with the number of assets and the
-number of orders that are being considered.
+In general, the results of our computational experiments as in \tabref{tab:results_mip1} and 
+\tabref{tab:results_mip2} show that runtimes of the two MIP formulations sharply increase both with
+the number of tokens and the number of orders that are being considered.
+While all instances with no more than 200 orders could be solved relatively fast by all models,
+instances with 500 orders are much harder to solve, with some (or even most) of the instances
+running into our set timelimit.
+The MIP model I \eqref{eq:mip1} generally performs better on our testsets.
+Interestingly, for this model the big-M reformulation seems to be superior, whereas for the MIP
+model II, running times are lower using the Disjunctive Programming reformulation.
 
-\todo[inline]{More verbal explanation on results!}
-
-Several instances with more than 20 assets and more than 200 orders could not even be solved to
-optimality within the timelimit.
+Without further model improvements, instances with 50 tokens and 500 orders already seem to impose
+a limit to the tractable problem size.
+While this limit may be pushed towards somewhat bigger instances by making use of additional valid
+inequalities such as \eqref{eq:mip1_order_exclusion_general}, it appears unlikely that the
+tractable problem size can be increased by some orders of magnitude.
 If larger problems are to be considered, we can think of the following heuristics/approximations:
 \begin{itemize}
     \item Aggregate orders with similar limit prices on every asset pair
@@ -1124,42 +1130,23 @@ If larger problems are to be considered, we can think of the following heuristic
 \begin{table}
   \begin{subtable}[h]{\textwidth}
     \centering
-    %\begin{tabular}{C{16mm}R{20mm}R{15mm}R{15mm}R{15mm}R{15mm}}
-    %  \toprule
-    %  && \multicolumn{4}{c}{\# assets}\\
-    %  \cmidrule{3-6}
-    %  \# orders &                         &    5  &   10  &     20  &     50  \\
-    %  \midrule
-    %  100       & $ \varnothing $ runtime &  0.32 &  0.32 &    0.90 &    5.54 \\
-    %            & \# timeouts             &     0 &     0 &       0 &       0 \\
-    %            & -- $ \varnothing $ gap  &     - &     - &       - &       - \\
-    %  \midrule
-    %  200       & $ \varnothing $ runtime &  1.31 &  2.49 &   26.25 &  571.10 \\
-    %            & \# timeouts             &     0 &     0 &       0 &      12 \\
-    %            & -- $ \varnothing $ gap  &     - &     - &       - & 23.46\% \\
-    %  \midrule
-    %  500       & $ \varnothing $ runtime & 15.67 & 82.47 &  522.72 &       . \\
-    %            & \# timeouts             &     0 &     0 &      11 &       - \\
-    %            & -- $ \varnothing $ gap  &     - &     - & 21.59\% &       - \\
-    %  \bottomrule
-    %\end{tabular}
     \begin{tabular}{C{16mm}R{20mm}R{15mm}R{15mm}R{15mm}R{15mm}}
       \toprule
       && \multicolumn{4}{c}{\# assets}\\
       \cmidrule{3-6}
-      \# orders &                         &    5  &    10  &     20  &     50  \\
+      \# orders &                         &    5  &    10  &     20  &    50  \\
       \midrule
-      100       & $ \varnothing $ runtime &  0.15 &   0.20 &     0.24 &   0.50 \\
-                & \# timeouts             &     0 &      0 &        0 &      0 \\
-                & -- $ \varnothing $ gap  &     - &      - &        - &      - \\
+      100       & $ \varnothing $ runtime &  0.15 &   0.20 &    0.24 &   0.50 \\
+                & \# timeouts             &     0 &      0 &       0 &      0 \\
+                & -- $ \varnothing $ gap  &     - &      - &       - &      - \\
       \midrule
-      200       & $ \varnothing $ runtime &  0.42 &   1.78 &     2.26 &   6.67 \\
-                & \# timeouts             &     0 &      0 &        0 &      0 \\
-                & -- $ \varnothing $ gap  &     - &      - &        - &      - \\
+      200       & $ \varnothing $ runtime &  0.42 &   1.78 &    2.26 &   6.67 \\
+                & \# timeouts             &     0 &      0 &       0 &      0 \\
+                & -- $ \varnothing $ gap  &     - &      - &       - &      - \\
       \midrule
-      500       & $ \varnothing $ runtime &  3.46 & 158.66 &        . &      . \\
-                & \# timeouts             &     0 &      0 &        . &      . \\
-                & -- $ \varnothing $ gap  &     - &      - &        . &      . \\
+      500       & $ \varnothing $ runtime &  3.46 & 158.66 &  190.70 & 896.63 \\
+                & \# timeouts             &     0 &      0 &       0 &      7 \\
+                & -- $ \varnothing $ gap  &     - &      - &       - & 4.23\% \\
       \bottomrule
     \end{tabular}
     \vspace{1mm}
@@ -1175,17 +1162,17 @@ If larger problems are to be considered, we can think of the following heuristic
       \cmidrule{3-6}
       \# orders &                         &    5  &    10  &     20  &     50  \\
       \midrule
-      100       & $ \varnothing $ runtime &  0.25 &   0.38 &     0.48 &   1.09 \\
-                & \# timeouts             &     0 &      0 &        0 &      0 \\
-                & -- $ \varnothing $ gap  &     - &      - &        - &      - \\
+      100       & $ \varnothing $ runtime &  0.25 &   0.38 &    0.48 &    1.09 \\
+                & \# timeouts             &     0 &      0 &       0 &       0 \\
+                & -- $ \varnothing $ gap  &     - &      - &       - &       - \\
       \midrule
-      200       & $ \varnothing $ runtime &  0.92 &   3.34 &     4.08 &  12.28 \\
-                & \# timeouts             &     0 &      0 &        0 &      0 \\
-                & -- $ \varnothing $ gap  &     - &      - &        - &      - \\
+      200       & $ \varnothing $ runtime &  0.92 &   3.34 &    4.08 &   12.28 \\
+                & \# timeouts             &     0 &      0 &       0 &       0 \\
+                & -- $ \varnothing $ gap  &     - &      - &       - &       - \\
       \midrule
-      500       & $ \varnothing $ runtime &  6.96 & 184.60 &        . &      . \\
-                & \# timeouts             &     0 &      1 &        . &      . \\
-                & -- $ \varnothing $ gap  &     - & 3.25\% &        . &      . \\
+      500       & $ \varnothing $ runtime &  6.96 & 184.60 &  229.98 & 1398.84 \\
+                & \# timeouts             &     0 &      1 &       2 &      17 \\
+                & -- $ \varnothing $ gap  &     - & 3.25\% &  2.27\% &  4.85\% \\
       \bottomrule
     \end{tabular}
     \vspace{1mm}
@@ -1206,19 +1193,19 @@ If larger problems are to be considered, we can think of the following heuristic
       \toprule
       && \multicolumn{4}{c}{\# assets}\\
       \cmidrule{3-6}
-      \# orders &                         &     5  &    10  &     20  &    50  \\
+      \# orders &                         &     5  &    10  &    20  &    50  \\
       \midrule
-      100       & $ \varnothing $ runtime &   0.44 &   0.65 &    0.54 &   0.57 \\
-                & \# timeouts             &      0 &      0 &       0 &      0 \\
-                & -- $ \varnothing $ gap  &      - &      - &       - &      - \\
+      100       & $ \varnothing $ runtime &   0.44 &   0.65 &   0.54 &   0.57 \\
+                & \# timeouts             &      0 &      0 &      0 &      0 \\
+                & -- $ \varnothing $ gap  &      - &      - &      - &      - \\
       \midrule
-      200       & $ \varnothing $ runtime &   4.14 &  18.40 &   14.27 &  20.18 \\
-                & \# timeouts             &      0 &      0 &       0 &      0 \\
-                & -- $ \varnothing $ gap  &      - &      - &       - &      - \\
+      200       & $ \varnothing $ runtime &   4.14 &  18.40 &  14.27 &  20.18 \\
+                & \# timeouts             &      0 &      0 &      0 &      0 \\
+                & -- $ \varnothing $ gap  &      - &      - &      - &      - \\
       \midrule
-      500       & $ \varnothing $ runtime & 647.98 & 646.57 &       . &      . \\
-                & \# timeouts             &      0 &     19 &       . &      . \\
-                & -- $ \varnothing $ gap  &      - & 8.19\% &       . &      . \\
+      500       & $ \varnothing $ runtime & 647.98 & 646.57 & 857.77 &      - \\
+                & \# timeouts             &      0 &     19 &     19 &     20 \\
+                & -- $ \varnothing $ gap  &      - & 8.19\% & 6.85\% & 8.12\% \\
       \bottomrule
     \end{tabular}
     \vspace{1mm}
@@ -1232,19 +1219,19 @@ If larger problems are to be considered, we can think of the following heuristic
       \toprule
       && \multicolumn{4}{c}{\# assets}\\
       \cmidrule{3-6}
-      \# orders &                         &    5  &    10  &     20  &     50  \\
+      \# orders &                         &    5  &    10  &    20  &    50  \\
       \midrule
-      100       & $ \varnothing $ runtime &  0.34 &   0.85 &    1.12 &   1.14 \\
-                & \# timeouts             &     0 &      0 &       0 &      0 \\
-                & -- $ \varnothing $ gap  &     - &      - &       - &      - \\
+      100       & $ \varnothing $ runtime &  0.34 &   0.85 &   1.12 &   1.14 \\
+                & \# timeouts             &     0 &      0 &      0 &      0 \\
+                & -- $ \varnothing $ gap  &     - &      - &      - &      - \\
       \midrule
-      200       & $ \varnothing $ runtime &  1.18 &   8.81 &   10.64 &  25.50 \\
-                & \# timeouts             &     0 &      0 &       0 &      0 \\
-                & -- $ \varnothing $ gap  &     - &      - &       - &      - \\
+      200       & $ \varnothing $ runtime &  1.18 &   8.81 &  10.64 &  25.50 \\
+                & \# timeouts             &     0 &      0 &      0 &      0 \\
+                & -- $ \varnothing $ gap  &     - &      - &      - &      - \\
       \midrule
-      500       & $ \varnothing $ runtime & 24.70 & 288.50 &       . &      . \\
-                & \# timeouts             &     0 &      3 &       . &      . \\
-                & -- $ \varnothing $ gap  &     - & 2.31\% &       . &      . \\
+      500       & $ \varnothing $ runtime & 24.70 & 288.50 & 315.62 &      - \\
+                & \# timeouts             &     0 &      3 &      6 &     20 \\
+                & -- $ \varnothing $ gap  &     - & 2.31\% & 2.66\% & 5.39\% \\
       \bottomrule
     \end{tabular}
     \vspace{1mm}
@@ -1274,10 +1261,13 @@ The problem can possibly be extended in various directions:
 
 
 
+
+
 %%%%%%%%%%%%%%%%%%%%
 %%  BIBLIOGRAPHY  %%
 %%%%%%%%%%%%%%%%%%%%
 
+\newpage
 \bibliographystyle{plain}
 \bibliography{literature}
 
