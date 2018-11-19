@@ -43,7 +43,7 @@ function appendOrders( bytes32 [] orders){
 
 	// update of orderHashSha
 	for(i=0; i<orders.length; i++){
-		if("check signature of order") {
+		if("check signature and batchID of order") {
 			// hash order without signature
 			orderHashSha = Kecca256(orderHashSha, orders[i]) 
 		}
@@ -127,40 +127,33 @@ Snark - applyAuction(
 	Public: hashBatchInfo,
 	Public: orderHashPederson,
 	Private: priceMatrix PxP,
-	Private: orderVolume
-	Private: [balanceTRH_i    for 0<i<=N]
+	Private: volumeVector
+	Private: balances
 	Private: orders
 	Private: touched balances + leaf number + balance merkle proofs per order,
-	Private: FollowUpOrderOfAccount [index of later order touching balance])
-	Output: newstaetRH
+	Output: newstateRH
 ```
 The snark would check the following things:
 
 - `priceMatrix` has actually the values as induced by the `hashBatchInfo` (with sha)
 - `orderVolume` VV has actually the values induced by the `hashBatchInfo` (with sha)
-- verify  `[balanceTRH_i    for 0<i<=N]` hashes to `balanceRH`
-- verify  `[VV]` has the values induced by `hashBatchInfo`
+- verify `[balance_i for 0<i<=N]` hashes to `stateRH` (with pedersen)
 
+- let `currentOrderHash = 0`
 - for order in [orders]
-	- open balance leaf of the receiving account by check balance + proof in `stateRH`
-	- check that the leaf is owned by sender by opening the accountIndexLeaf
-	- check that the nounce is valid and update it
 	- read the potentially fractional surplus of the order
 	- update the balance by subtracting sell volume
-	- if `FollowUpOrderOfAccount` == 0
-		- check that balance is positive
-	- else 
-		- Check that the other order referenced in `FollowUpOrderOfAccount` has the same receiver and it touches the balance
 	- update the balance by adding buy volume
-	- close balance leaves and update Merkle tree hashes
 	- Keep track of the total `selling surplus` per token
-	- Keep track of the total `buying surplus ` per token
+	- Keep track of the total `buying surplus` per token
 	- Keep track of the total `selling volume` per token
 	- Keep track of the total `buying volume ` per token
+	- update `currentOrderHash = hash(currentOrderHash, order)` (with pedersen)
 	
-- For all token, check that `selling volume` equals `buying volume`
-- Check that the calculated total trading surplus equals the public input `tradingWelfare`.
-
+- For all token, check that `selling volume == buying volume`
+- Check that `selling surplus + buying surplus == tradingWelfare`
+- Check that `currentOrderHash == orderHashPederson`
+- For all balances, check that `balance > 0` and calculate/return `newstateRH`
 
 ### Processing of pending exit, deposits
 
