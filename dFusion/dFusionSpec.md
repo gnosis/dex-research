@@ -5,17 +5,24 @@
 A specification developed by Gnosis.
 
 
-The following specification uses the snark application (snapp) onchain scaling approach, in order to build a scalable fully decentralized exchange with decentralized order matching. The scalability is enabled storing information only in hashes and allow snarks the manipulation of these hashes in predefined logic gates [cp](https://ethresear.ch/t/on-chain-scaling-to-potentially-500-tx-sec-through-mass-tx-validation/3477). In order to allow bigger number of constraints for the snarks, we are planning to use the ideas described in [DIZK](https://www.usenix.org/system/files/conference/usenixsecurity18/sec18-wu.pdf). Orders are matched in a batch auction with an arbitrage-free price clearing technique developed by Gnosis: [Uniform Clearing Prices]( https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf).
+The following specification uses the snark application (snapp) onchain scaling approach, in order to build a scalable fully decentralized exchange with decentralized order matching. 
+The scalability is enabled storing information only in hashes and allow snarks the manipulation of these hashes in predefined logic gates [cp](https://ethresear.ch/t/on-chain-scaling-to-potentially-500-tx-sec-through-mass-tx-validation/3477).
+In order to allow bigger number of constraints for the snarks, we are planning to use the ideas described in [DIZK](https://www.usenix.org/system/files/conference/usenixsecurity18/sec18-wu.pdf).
+Orders are matched in a batch auction with an arbitrage-free price clearing technique developed by Gnosis: [Uniform Clearing Prices]( https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf).
 
 ## Specification
 The envisioned exchange will enable `K` accounts to trade via limit orders between `N` predefined ERC20 tokens.
-For each account, we chain each ERC20 token balance together and store them as pedersen hash (not merkleized) in the anchor smart contract, which will store all relevant information for this snapp exchange. The following diagram shows the state construction:
+For each account, we chain each ERC20 token balance together and store them as pedersen hash (not merkleized) in the anchor smart contract, which will store all relevant information for this snapp exchange.
+The following diagram shows the state construction:
 
 ![State construction](./dFusion%20rootHash.png?raw=true "State construction")
 
 To allow `K` to be small, a bi-map of an accounts public key (on-chain address) to its `accountIndex` will be stored in the anchor contract as well. Accounts will pay "rent" to occupy an active account. The account index can be used to locate a users token balances in the state.
 
-All orders are encoded as limit sell orders: `(accountIndex, fromTokenIndex, toTokenIndex, limitPrice, amount, batchId, signature)`. The order should be read in the following way: the user occupying the specified *accountTndex* would like to sell the token *fromTokenIndex* for *toTokenIndex* for at most the limit price and the amount specified. The batchId and signature allow a third party to submit an order on behalf of others (saving gas when batching multiple orders together). The user only has to specify which batch their order is valid for and sign all the information with their private key.
+All orders are encoded as limit sell orders: `(accountIndex, fromTokenIndex, toTokenIndex, limitPrice, amount, batchId, signature)`.
+The order should be read in the following way: the user occupying the specified *accountTndex* would like to sell the token *fromTokenIndex* for *toTokenIndex* for at most the limit price and the amount specified.
+The batchId and signature allow a third party to submit an order on behalf of others (saving gas when batching multiple orders together).
+The user only has to specify which batch their order is valid for and sign all the information with their private key.
 
 The trading workflow consists of the following sequential processes:
 1. On-Chain order collection
