@@ -20,7 +20,7 @@ The following diagram shows the state construction:
 To allow `K` to be small, a bi-map of an accounts public key (on-chain address) to its `accountIndex` will be stored in the anchor contract as well. Accounts will pay "rent" to occupy an active account. The account index can be used to locate a users token balances in the state.
 
 All orders are encoded as limit sell orders: `(accountIndex, fromTokenIndex, toTokenIndex, limitPrice, amount, batchId, signature)`.
-The order should be read in the following way: the user occupying the specified *accountTndex* would like to sell the token *fromTokenIndex* for *toTokenIndex* for at most the limit price and the amount specified.
+The order should be read in the following way: the user occupying the specified *accountIndex* would like to sell the token *fromTokenIndex* for *toTokenIndex* for at most the *limitPrice* and the *amount* specified.
 The batchId and signature allow a third party to submit an order on behalf of others (saving gas when batching multiple orders together).
 The user only has to specify which batch their order is valid for and sign all the information with their private key.
 
