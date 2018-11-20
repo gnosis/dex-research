@@ -26,13 +26,13 @@ The user only has to specify which batch their order is valid for and sign all t
 
 The trading workflow consists of the following sequential processes:
 1. On-Chain order collection
-2. Transition function from sha to Pederson hashes (zkSnark)
+2. Transition function from sha to Pedersen hashes (zkSnark)
 3. Finding the batch price: optimization of batch trading surplus (offchain)
-4. Verifying batch price and Balance updates/trade execution (zkSnark)
+4. Verifying batch price and trade execution (zkSnark)
 5. Processing of pending exits and deposits (zkSnark)
 6. Restart with step 1
 
-### Order collection (with sha hashes)
+### On-Chain order collection
 
 The anchor smart contract on ethereum will offer the following function:
 ```js
@@ -54,7 +54,7 @@ Notice, that the orders are only sent over as transaction payload, but will not 
 
 Also notice, that we allow orders, which might not be covered by any balance of the order sender. These orders will be sorted out later in the settlement of an auction.
 
-### Transition function from sha to Pedersen hashes 
+### Transition function from sha to Pedersen hashes (zkSnark)
 
 In the first step, the orders are hashed together using SHA256 since this is very cheap on the EVM. However, SHA256 is very “expensive” in snarks. We therefore translate the resulting orderHash into a pedersen hash after order collection for a batch has finished. 
 
@@ -73,7 +73,7 @@ Since computing the actual snark proof is very time-intense we optimistically ac
 Anyone can propose a transition to the anchor contract by providing the required information:
 
 ```js
-Function submitTransitionInformation(bytes32 orderHashPedersen)
+Function submitTransitionInformation(uint batchId, bytes32 orderHashPedersen)
 ```
 
 In case the information is incorrect, anyone can challenge it by also providing a significant bond and calling the following function.
@@ -85,12 +85,12 @@ Any significantly bonded challenge is, by default, assumed to be legitimate and 
 
 The snark will be evaluated by the anchor contract after calling the following function. The contract will populate public inputs and outputs to the snark with the data from the challenged submission.
  ```js
-Function submitSnarkToResolveChallenge(--snark--)
+Function submitSnarkToResolveChallenge(batchId, --snark--)
 ```
 
 For the time of the challenge period we will store multiple "forks" of the state (one for each submitted solution). While producing a snark proof takes a lot of time, executing the computation in a native program on a local computer is fast. Therefore any client should be able to "predict", which challenges will be successful and can thus chose on which fork they want to continue trading.
 
-### Finding batch price: optimization of batch trading surplus
+### Finding the batch price: optimization of batch trading surplus (offchain)
 
 After the previous step, the orders participating in a batch have finalized. Now, the uniform clearing price maximizing the trading surplus between all trading pairs can be calculated. The traders surplus of one order is the difference between the uniform clearning price and the limit price, multipied by the volume of the order with respect to some reference token. The exact procedure is described [here]( https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf). Calculating the uniform clearing prices is an np hard optimization problem and most likely the global optimum will not be found in the pre-defined short time frame: `SolvingTime` - we think that 3-10 minutes are reasonable. While it is a pity that the global optimum cannot be found, the procedure is still fair, as everyone can submit their best solution. The anchor contract will store all submissions and will select the solution with the maximal 'traders surplus' as the final solution. We define the traders surplus as the sum of all differences between the uniform clearning prices and the limit price of an touched order multiplied by the surplus of the order.
 
@@ -98,7 +98,7 @@ This means the uniform clearing price of the auction is calculated in a permissi
 Each time a solution is submitted to the anchor contract, of course, the submitter also needs to bond himself. If he provides the solution, he also has to provide in the next process step the balance update information and has to answer any challenge request.
 
 
-### Balance updates after trade execution
+### Verifying batch price and trade execution (zkSnark)
 
 
 After the price submission period, the best solution with the highest trading surplus will be chosen by the anchor contract. The submitter of this solution needs to do 2 steps:
@@ -132,8 +132,7 @@ Snark - applyAuction(
 	Private: priceMatrix PxP,
 	Private: volumeVector
 	Private: balances
-	Private: orders
-	Private: touched balances + leaf number + balance merkle proofs per order,
+	Private: orders,
 	Output: newstate
 )
 ```
@@ -159,7 +158,7 @@ The snark would check the following things:
 - Check that `currentOrderHash == orderHashPederson`
 - For all balances, check that `balance > 0` and calculate/return `newstate`
 
-### Processing of pending exit, deposits
+### Processing of pending exits and deposits (zkSnark)
 
 Deposits and withdraws need to be processed and incorporated into the 'stateHash' as well. For this, we make again use of snarks and specific challenging periods.
 
