@@ -73,7 +73,7 @@ Since computing the actual snark proof is very time-intense we optimistically ac
 Anyone can propose a transition to the anchor contract by providing the required information:
 
 ```js
-Function submitTransitionInformation(uint batchId, bytes32 orderHashPedersen)
+Function submitTransitionInformation(uint branchId, bytes32 orderHashPedersen)
 ```
 
 In case the information is incorrect, anyone can challenge it by also providing a significant bond and calling the following function.
@@ -85,7 +85,7 @@ Any significantly bonded challenge is, by default, assumed to be legitimate and 
 
 The snark will be evaluated by the anchor contract after calling the following function. The contract will populate public inputs and outputs to the snark with the data from the challenged submission.
  ```js
-Function submitSnarkToResolveChallenge(batchId, --snark--)
+Function submitSnarkToResolveChallenge(branchId, --snark--)
 ```
 
 During the challenge period, multiple "forks" of the state will be stored (one for each submitted solution). . While producing a snark proof takes a lot of time, executing the computation in a native program on a local computer is fast. Therefore any client should be able to "predict", which challenges will be successful and can thus chose on which fork they want to continue trading.
@@ -203,7 +203,7 @@ snark-deposits(
 This snark would check that:
 
 - By SHA256 hashing the `[deposit information]`, we are getting the `depositHash`
-- Calculate the stateHash based on updated balances and make sure it matches input
+- Calculate the stateHash based on current balances and make sure it matches input
 - for( deposits in `[deposit information]`)
 	- Update the leaf with the current balance,
 - Recalculate the stateHash based on updated balances
@@ -246,7 +246,7 @@ snark-withdrawals(
 This snark would check that:
 
 - By hashing the `[exitRequest informaiton]`, we are getting the `exitRequestHash`
-- Calculate the stateHash based on updated balances and make sure it matches input
+- Calculate the stateHash based on current balances and make sure it matches input
 - for( withdrawal in `[exitRequest information]`) 
 	- if `withdrawal.amount <= stateRHToken.amount`
 		- Update the leaf with the current balance
