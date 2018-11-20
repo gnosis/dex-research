@@ -188,7 +188,7 @@ This function would update the `state` by incorporating the deposits received fr
 
 Everyone can check whether the `stateRH` has been updated correctly. If it has not been updated correctly, then the person submitting this solution can be challenged by providing a bond.
 
-To resolve the challenge they have to provide the following snark:
+To resolve the challenge one must provide the following snark:
 
 ```
 snark-deposits( 
