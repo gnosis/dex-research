@@ -162,7 +162,7 @@ The snark would check the following things:
 
 Deposits and withdraws need to be processed and incorporated into the 'stateHash' as well. For this, we make again use of snarks and specific challenging periods.
 
-If someone wants to deposit funds into the exchange, they will have to send funds into the following function of the anchor contract:
+In order to deposit funds into the exchange, one would send funds into the following function of the anchor contract:
 
 ```js
 Function deposit ( address token, uint amount){
