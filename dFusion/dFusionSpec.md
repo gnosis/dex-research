@@ -88,7 +88,7 @@ The snark will be evaluated by the anchor contract after calling the following f
 Function submitSnarkToResolveChallenge(batchId, --snark--)
 ```
 
-For the time of the challenge period we will store multiple "forks" of the state (one for each submitted solution). While producing a snark proof takes a lot of time, executing the computation in a native program on a local computer is fast. Therefore any client should be able to "predict", which challenges will be successful and can thus chose on which fork they want to continue trading.
+During the challenge period, multiple "forks" of the state will be stored (one for each submitted solution). . While producing a snark proof takes a lot of time, executing the computation in a native program on a local computer is fast. Therefore any client should be able to "predict", which challenges will be successful and can thus chose on which fork they want to continue trading.
 
 ### Finding the batch price: optimization of batch trading surplus (offchain)
 
