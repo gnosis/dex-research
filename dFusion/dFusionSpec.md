@@ -128,7 +128,7 @@ Snark - applyAuction(
 	Public: state,
 	Public: tradingWelfare,
 	Public: hashBatchInfo,
-	Public: orderHashPederson,
+	Public: orderHashPedersen,
 	Private: priceMatrix PxP,
 	Private: volumeVector
 	Private: balances
@@ -155,7 +155,7 @@ The snark would check the following things:
 	
 - For all token, check that `selling volume == buying volume`
 - Check that `selling surplus + buying surplus == tradingWelfare`
-- Check that `currentOrderHash == orderHashPederson`
+- Check that `currentOrderHash == orderHashPedersen`
 - For all balances, check that `balance > 0` and calculate/return `newstate`
 
 ### Processing of pending exits and deposits (zkSnark)
