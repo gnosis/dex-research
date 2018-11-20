@@ -21,7 +21,7 @@ To allow `K` to be small, a bi-map of an accounts public key (on-chain address) 
 
 All orders are encoded as limit sell orders: `(accountIndex, fromTokenIndex, toTokenIndex, limitPrice, amount, batchId, signature)`.
 The order should be read in the following way: the user occupying the specified *accountIndex* would like to sell the token *fromTokenIndex* for *toTokenIndex* for at most the *limitPrice* and the *amount* specified.
-The batchId and signature allow a third party to submit an order on behalf of others (saving gas when batching multiple orders together).
+The *batchId* and *signature* allow a third party to submit an order on behalf of others (saving gas when batching multiple orders together).
 The user only has to specify which batch their order is valid for and sign all the information with their private key.
 
 The trading workflow consists of the following sequential processes:
