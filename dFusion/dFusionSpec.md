@@ -290,7 +290,7 @@ transaction initiation costs + k* order as payload costs + k* signature verifica
 21000+k*(6+16+16+64+64)*68/8+k*3000+k*60+5000 
 ```
 
-This means that within a single ethereum block we could store up to 1000 orders.
+This means that up to 1000 orders can be stored within a single ethereum block .
 
 ### Constraints from snarks
 
