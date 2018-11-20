@@ -253,7 +253,7 @@ This snark would check that:
 		- incorporate the `withdrawal.amount` into `withdrawalRH`
 - Recalculate the stateHash based on updated balances
 
-After the challenge period has passed, any user can trigger their withdrawal, by providing Merkle proof of the balance stored in withdrawalAmounts[blockNr]
+After the challenge period has passed, any user can trigger their withdrawal by providing Merkle proof of the balance stored in `withdrawalAmounts[blockNr]`.
 
 ```js
 Function processWithdrawal(uint blockNrOfReg, uint amount, address token, bytes MerkleProof){
