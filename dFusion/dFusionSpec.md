@@ -6,7 +6,7 @@ A specification developed by Gnosis.
 
 
 The following specification uses the snark application (snapp) onchain scaling approach, in order to build a scalable fully decentralized exchange with decentralized order matching. 
-The scalability is enabled storing information only in hashes and allow snarks the manipulation of these hashes in predefined logic gates [[link](https://ethresear.ch/t/on-chain-scaling-to-potentially-500-tx-sec-through-mass-tx-validation/3477)].
+Scalability is achieved by storing only hashed information and allowing snarks to manipulate these through predefined logical gates [[link](https://ethresear.ch/t/on-chain-scaling-to-potentially-500-tx-sec-through-mass-tx-validation/3477)].
 Orders are matched in a batch auction with an arbitrage-free price clearing technique developed by Gnosis: [Uniform Clearing Prices]( https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf).
 
 ## Summary
