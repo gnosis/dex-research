@@ -10,7 +10,7 @@ Scalability is achieved by storing only hashed information and allowing snarks t
 Orders are matched in a batch auction with an arbitrage-free price clearing technique developed by Gnosis: [Uniform Clearing Prices]( https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf).
 
 ## Summary
-The envisioned exchange will enable `K` accounts to trade via limit orders between `N` predefined ERC20 tokens.
+The envisioned exchange will enable `K` accounts to trade via limit orders between `T` predefined ERC20 tokens.
 Limit orders are collected and matched in batches, with each batch containing up to `M` orders. 
 Orders within a batch can be matched directly (e.g. an order trading token A for B against another order trading token B for A) or in arbitrarily long "ringtrades" (e.g. an order trading token A for B, with another one trading token B for C, with a third one trading token C for A).
 
@@ -28,16 +28,19 @@ If the verification fails the provided alternative state is assumed correct unle
 ## State stored in the smart contract
 
 For each account, we chain each of ERC20 token balance together and store them as pedersen hash (not merkleized) in the anchor smart contract.
-This "compressed" representation of all account balances is collision resistant and can thus be used  which will store all relevant information for this snapp exchange.
-The following diagram shows the state construction:
+This "compressed" representation of all account balances is collision resistant and can thus be used to uniquely commit to the complete "uncompressed" state that lists all balances explicitly.
+The "uncompressed" state will be stored off-chain.
+All changes to the state will be announced via smart contract events.
+Thus, the full state will be fully reproducible for any participant by replaying all blocks since the creation of the smart contract.
+The following diagram shows how the "compressed" state hash is constructed:
 
 ![State construction](./dFusion%20rootHash.png?raw=true "State construction")
 
 To allow `K` to be small, a bi-map of an accounts public key (on-chain address) to its `accountIndex` will be stored in the anchor contract as well. 
 Accounts will pay "rent" to occupy an active account. The account index can be used to locate a users token balances in the state.
 
-Furthermore, we store a bi-map of token address to its index `0 <= n <= N`, for each token that can be traded on the exchange.
-When specifying tokens inside orders, deposits and withdrawel requests, we use the token's index `0 <= n <= N` instead of the full address.
+Furthermore, we store a bi-map of token address to its index `0 <= t <= T`, for each token that can be traded on the exchange.
+When specifying tokens inside orders, deposits and withdrawel requests, we use the token's index `0 <= t <= T` instead of the full address.
 
 As orders, deposits and withdrawl requests are collected they are not directly stored in the smart contract.
 Doing so would require a `SSTORE` instruction which would be too gas-expensive.
@@ -140,9 +143,9 @@ After the price submission period, the best solution with the highest trading su
 
 1) posting the full solution into the ethereum chain as payload. The solution is a price vector P, a new stateHash with the updated account balances, a vector of trading surpluss (VV) for each order.
 
-| P | Token_1:Token_1 | ... | Token_N:Token_1|
+| P | Token_1:Token_1 | ... | Token_T:Token_1|
 | --- | --- | --- | --- | 
-| price | p_1 | ... | p_N |
+| price | p_1 | ... | p_T |
 
 
 `P` is only the price vector of all prices relative to a reference token `Token_1`. As prices are arbitrage-free, we can calculate the `price Token_i: Token_k` =  `(Token_i:Token_1):(Token_1:Token_k)`
@@ -175,7 +178,7 @@ The snark would check the following things:
 
 - `priceMatrix` has actually the values as induced by the `hashBatchInfo` (with sha)
 - `orderVolume` VV has actually the values induced by the `hashBatchInfo` (with sha)
-- verify `[tok_j_i for 0<j<K & 0<i<=N]` hashes to `state` (with pedersen)
+- verify `[tok_j_i for 0<j<K & 0<i<=T]` hashes to `state` (with pedersen)
 
 - let `currentOrderHash = 0`
 - for order in [orders]
