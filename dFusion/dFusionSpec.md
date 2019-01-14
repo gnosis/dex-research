@@ -33,7 +33,7 @@ We therefore "optimistically" accept solutions and set a crypto-economic incenti
 
 For each account, we chain each of ERC20 token balance together and store them as pedersen hash (not merkleized) in the anchor smart contract.
 This "compressed" representation of all account balances is collision resistant and can thus be used to uniquely commit to the complete "uncompressed" state containing all balances explicitly. 
-The "uncompressed" state will be stored off-chain. All changes to the state will be announced via smart contract events. 
+The "uncompressed" state will be stored off-chain and all state transitions will be announced via smart contract events. 
 Thus, the full state will be fully reproducible for any participant by replaying all blocks since the creation of the smart contract. 
 The following diagram shows how the "compressed" state hash is constructed:
 
