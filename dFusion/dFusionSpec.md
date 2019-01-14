@@ -74,7 +74,7 @@ To summarize, here is a list of state that is stored inside the smart contract:
 - Bi-Map of ERC20 token addresses to internal dƒusion tokenId that the exchange supports
 - Rolling hash of pending orders, withdrawls and deposit requests (SHA)
 - Map of stateTransitionId to pair of "valid withdrawel requests merkle-root" (SHA) and bitmap of already claimed withdraws
-- Current state of the batch auction (e.g. *price-findeing* vs. *order-collection*)
+- Current state of the batch auction (e.g. *price-finding* vs. *order-collection*)
 
 ## Batch Auction Workflow
 
