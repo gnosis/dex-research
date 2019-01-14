@@ -80,8 +80,7 @@ To summarize, here is a list of state that is stored inside the smart contract:
 
 The trading workflow consists of the following sequential processes:
 1. On-Chain order collection
-2. Finding the batch price: 
-tion of batch trading surplus (off-chain)
+2. Finding the batch price: optimization of batch trading surplus (off-chain)
 3. Verifying batch price and trade execution (zkSnark)
 4. Restart with step 1
 
@@ -128,7 +127,7 @@ To process a batch, participants compute the uniform clearing price maximizing t
 The traders surplus of an order is defined as the difference between the uniform clearning price and the limit price, multipied by the volume of the order with respect to some reference token. 
 The exact procedure is described [here]( https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf). 
 Calculating the uniform clearing prices is an np-hard optimization problem and most likely the global optimum will not be found in the pre-defined short time frame: `SolvingTime` - estimated between 3-10 minutes. 
-While it is a pity that the global optimum cannot be found, the procedure is still fair, as everyone can submit their best solution.
+While we are unlikely to find a global optimum, the procedure is still fair, as everyone can submit their best solution.
 Since posting the complete solution (all prices and traded volumes) would be too gas expensive to put on-chain for each candidate solution, participants only submit the 'traders surplus' they claim there solution is able to achieve.
 The anchor contract will store all submissions and will select the solution with the maximal 'traders surplus' as the final solution.
 
