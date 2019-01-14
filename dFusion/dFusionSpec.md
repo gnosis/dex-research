@@ -62,7 +62,7 @@ This will transfer their tokens from the smart contract's into their public addr
 In order to avoid double withdraws, we also store a bitmap for each "withdraw merkle-root".
 Each bit in that maps denotes if the withdraw has alreay been claimed.
 
-Participants can provide state transitions that apply pending deposits and withdrawls only while the order collection process is ongoing (the current batch is not yet frozen).
+Participants can provide state transitions that apply pending deposits and withdrawals only while the order collection process is ongoing (the current batch is not yet frozen).
 Since price finding and order matching is a computationally expensive task, we don't want the account state to change while the optimization problem is ongoing, as this could potentially invalidate correct solutions (e.g. a withdraw could lead to insufficient balance for a matched trade).
 As soon as the matching of a closed batch is applied, pending withdrawls and deposits can again be applied to the state.
 
