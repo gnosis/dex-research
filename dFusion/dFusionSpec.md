@@ -18,7 +18,7 @@ The matching process is decentralized.
 After orders have been collected over a certain amount of time, a batch is frozen and any sufficiently bonded participant can suggest a matching of orders in the current batch.
 
 If more than one solution is submitted within a certain amount of time after the batch closes, the one that generates the largest "trader surplus" (detailed explanation below, for now think "trading volume") is selected and executed.
-For this, the party that suggested the selected solution has to post enough information about the solution on-chain, so that any participant can quickly check the validity of the solution.
+For this, the party whose solution proposal was selected must post sufficient information on-chain, so that other participants can quickly validate.
 
 Anyone can challenge a solution on-chain (while providing a bond and an alternative solution) within a certain time-period after posting.
 Such disputes are resolved by verifying a zkSnark proof on-chain that checks if the provided solution fulfills a number of constraints (specified in detail below).
