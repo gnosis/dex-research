@@ -46,7 +46,7 @@ Furthermore, we store a bi-map of token address to its index `0 <= t <= T`, for 
 When specifying tokens inside orders, deposits and withdrawel requests, we use the token's index `0 <= t <= T` instead of the full address.
 
 As limit orders and deposits and withdrawal requests are collected they are not directly stored in the smart contract.
-Doing so would require a `SSTORE` evm instruction for each item.
+Doing so would require a `SSTORE` EVM instruction for each item.
 This would be too gas-expensive:
 Assuming an order can be encoded in 256 bits, storing a batch of 10.000 on chain would cost ~5M gas (5.000 gas for SSTORE * 10.000 orders).
 Instead the smart contract emits a smart contract event containing the relevant order information (account, from_token, to_token, limit) and stores a rolling SHA hash.
