@@ -52,7 +52,7 @@ Assuming an order can be encoded in 256 bits, storing a batch of 10.000 on chain
 Instead the smart contract emits a smart contract event containing the relevant order information (account, from_token, to_token, limit) and stores a rolling SHA hash.
 For a new order, the rolling hash is computed by hashing the previous rolling hash with the current order.
 
-Any participants can apply pending deposit and withdrawl requests to the current account balance state.
+Any participants can apply pending deposit and withdrawal requests to the current account balance state.
 To do so, they provide a new state commitment that represents all account balances after the application of pending requests.
 Moreover, as the new state is stored on the smart contract, pending requests are reset.
 
