@@ -56,7 +56,7 @@ Any participants can apply pending deposit and withdrawal requests to the curren
 To do so, they provide a new state commitment that represents all account balances after the application of pending requests.
 Moreover, as the new state is stored on the smart contract, pending requests are reset.
 
-When a party applies withdrawl requests to the account balance state, they also provide the list of valid withdraws (in form of their merkle root) which we store in the smart contract inside a mapping (`transitionId` -> `valid withdraw merkle root`).
+When a party applies withdrawal requests to the account balance state, they also provide the list of valid withdraws (in form of their Merkle root) which we store in the smart contract inside a mapping (`transitionId` -> `valid withdraw Merkle root`).
 Participants can later claim their withdraw by providing a merkle inclusion proof of their withdraw in any of the "valid withdraw merkle-roots".
 This will transfer their tokens from the smart contract's into their public address.
 In order to avoid double withdraws, we also store a bitmap for each "withdraw merkle-root".
