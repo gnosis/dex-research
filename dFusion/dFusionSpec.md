@@ -116,7 +116,7 @@ Notice, that the orders are only sent over as transaction payload, but will not 
 All relevant information is emitted as events.
 This will allow any participant to reproduce all orders of the current batch by replaying the ethereum blocks since batch creation and filtering them for these events.
 
-Also notice, that we allow orders, which might not be covered by any balance of the order sender. 
+Also notice, the system (snark + contract) allows orders, which might not be covered by any balance of the order sender. 
 These orders will be sorted out later in the settlement of an auction.
 
 ### Finding the batch price: optimization of batch trading surplus (off-chain)
