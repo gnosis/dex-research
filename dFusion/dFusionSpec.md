@@ -140,7 +140,7 @@ Where, deposit slot is deterministically governed the EVM's current block number
 Deposits may be applied by specifying deposit slot and updated `stateRoot`. This new state root is computed by
 - gathering all the deposit events for that slot,
 - computing the updated balances for all cooresponding deposit transactions and
-- hashing this information together (as a Pedersen Hash)
+- computing the pedersen hash of all account balances
 
 For security reasons, the `applyDeposits` function must be called with the following parameters
 - slot,
