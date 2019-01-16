@@ -342,9 +342,9 @@ problem in terms of mathematical optimization formulations.
 
 At first, we will express all information given in the orders in terms of data matrices and
 vectors, aiming at being able to write down a complete optimization model.
-Recall that every order $ \omega \in \orders $ is defined by a tuple
-$ (j,k,\overline{x},\overline{y},\pi) $ specifying the buy and sell tokens, the maximum
-amount of tokens to be bought and sold, as well as the limit price.
+Recall that every limit sell order $ \omega \in \orders $ is defined by a tuple
+$ (j,k,\overline{y},\pi) $ specifying the sell- and buy-token, the maximum amount of
+tokens to be sold, as well as the limit price.
 
 We introduce two data matrices
 \begin{align*}
@@ -358,31 +358,18 @@ We introduce two data matrices
 As for now, we are only considering orders of one token type against one other, so there must be
 exactly one entry equal to $ 1 $ per row (order) in both $ \mathbf{T}^b $ and $ \mathbf{T}^s $.
 
-The maximum amount of tokens to be bought in order $ \omega_i $, denoted by $ \overline{x}_i $,
-shall be stored, for all orders, in a vector
-$ \overline{\mathbf{x}} \in \mathbb{R}^N_{\ge 0} \cup \{+\infty\} $.
-Generically, $ \overline{x}_i $ takes a finite value if $ \omega_i $ is a limit buy order
-(\ie $ i \in \ibuyorders $).
-In case $ \omega_i $ is a sell order (\ie $ i \in \isellorders $), $ \overline{x}_i $ is set to
-$ +\infty $, since the seller does not specify an upper limit on the tokens to receive.
+Let $ (\overline{y}_i) =: \overline{\mathbf{y}} \in \mathbb{R}^N_{\ge 0} $
+contain the maximum amounts of tokens to be sold in every order.
 
-Similarly, let
-$ (\overline{y}_i) =: \overline{\mathbf{y}} \in \mathbb{R}^N_{\ge 0} \cup \{+\infty\} $ contain the
-maximum amounts of tokens to be sold in every order.
-For all limit sell orders $ \omega_i $, we have $ \overline{y}_i < +\infty $.
-On the other hand, if $ \omega_i $ is a limit buy order, we can either set
-$ \overline{y}_i = +\infty $ and rely on the implicit bound given via the limit price $ \pi_i $ (as
-defined below), or state it explicitely as $ \overline{y}_i = \overline{x}_i \cdot \pi_i $.
-
-The limit prices of all orders shall be stored as vector $ (\pi_i) =: \bm{\pi} \in \mathbb{R}^N_
-{\ge 0} $, where $ \pi_i \in \bm{\pi} $ refers to the exchange rate between the respective buy and
-sell tokens at which order $ \omega_i $ may be executed (according to the definition in
-\subsecref{sec:problem}).
+Finally, the limit prices of all orders shall be stored as vector
+$ (\pi_i) =: \bm{\pi} \in \mathbb{R}^N_{\ge 0} $, where $ \pi_i \in \bm{\pi} $ refers to the
+exchange rate between the respective buy and sell tokens at which order $ \omega_i $ may be
+executed (according to the definition in \subsecref{sec:problem}).
 
 \vspace{-.2cm}
 \paragraph{Variables}
 
-In general, we want to determine exchange rates between all token pairs.
+Primarily, we want to determine exchange rates between all token pairs.
 However, if we directly considered those exchange rates being variables, modelling
 arbitrage-freeness constraints of type \eqref{eq:arbitrage_freeness} automatically leads to many
 multiplications being required.
@@ -517,17 +504,14 @@ Optionally, we could incorporate a minimum fraction of execution, denoted by a p
 $ r^\Min \in [0,1] $, for the case that an order may be executed.
 This parameter can either be set globally for all orders, or for every order individually.
 
-In general, for an order given as $ \omega = (j,k,\overline{x},\overline{y},\pi) $, this yields
+In general, for an order given as $ \omega = (j,k,\overline{y},\pi) $, this yields
 the following two sets of constraints:
 \begin{align}
   \mathfrak{C}^1 := \left\{
-  \begin{array}{rlll}
-    x &\in & [\, r^\Min \, \overline{x}, \, \overline{x}\,]
-      &\text{if} \enskip \omega \in \buyorders\\
-    y &\in & [\, r^\Min \, \overline{y}, \, \overline{y}\,]
-      &\text{if} \enskip \omega \in \sellorders\\
-    x \cdot p_j &= & y \cdot p_k \\[1mm]
-    \frac{p_j}{p_k} &\le & \pi
+  \begin{array}{rll}
+    y &\in & [\, r^\Min \, \overline{y}, \, \overline{y}\,] \\
+    y \cdot p_j &= & x \cdot p_k \\[1mm]
+    \frac{p_j}{p_k} &\ge & \pi
   \end{array}
   \right\}
   \quad
@@ -537,7 +521,7 @@ the following two sets of constraints:
   \begin{array}{rll}
     x &= & 0 \\
     y &= & 0 \\[1mm]
-    \frac{p_j}{p_k} &> & \pi
+    \frac{p_j}{p_k} &< & \pi
   \end{array}
   \right\}
   \label{eq:order_model_generic}
@@ -545,22 +529,39 @@ the following two sets of constraints:
 
 \paragraph{Objective}
 
-Our primary objective shall be to determine token prices/exchange rates such that the feasible
-\emph{trading volume} is maximized.
+Our primary objective shall be to determine token prices/exchange rates such that the total
+feasible \emph{trading volume} is maximized.
 Thereby, trading volume refers to the sum of all tokens traded across all orders, weighted by their
 respective price, \ie it measures the value of all transactions in terms of units of the reference
 token $ \tau_0 $.
-Thus, for every order $ \omega = (j,k,\overline{x},\overline{y},\pi) $, we introduce an additional
+Thus, for every order $ \omega = (j,k,\overline{y},\pi) $, we introduce an additional
 variable $ v \ge 0 $, for which we require
 \begin{align}
-  v = x \cdot p_j \qquad \text{and} \qquad v = y \cdot p_k
+  v = y \cdot p_j \qquad \text{and} \qquad v = x \cdot p_k
   \label{eq:trading_volume}
 \end{align}
 The trading volumes of all orders shall be stored in a vector
 $ \mathbf{v} \in \mathbb{R}^N_{\ge 0} $.
-It is then our objective to maximize $ \sum_{i \in \iorders} v_i $
+It is then our objective to maximize $ \sum_{i \in \iorders} v_i $.
+
+Alternatively, we want to consider optimizing the total \emph{trading surplus}
+(or \emph{traders' welfare}).
+If some sell order $ \omega = (j,k,\overline{y},\pi) $ is executed, \ie a certain amount~$ y $
+of token~$ \tau_j $ sold, the trading surplus $ w $ measures the value of the difference between
+the amount~$ x $ of tokens $ \tau_k $ that is purchased and the minimum amount~$ y \cdot \pi $ that
+the trader would have accepted:
+\begin{align}
+  w &= ( x - y \> \pi ) \> p_k \\
+    &= x \> p_k - y \> \pi \> p_k \\
+    &= v -  y \cdot \pi \cdot p_k
+  \label{eq:trading_surplus}
+\end{align}
 
 
+\todo[inline]{Write about traders' surplus!}
+
+
+\newpage
 \subsection{Nonlinear programming model}
 \label{subsec:NLPmodel}
 
@@ -589,17 +590,13 @@ As we will see, it is possible to avoid binary variables.
   && \forall \> i \in \iorders
   \label{eq:nlp_sellvolume}
   \\[2mm]
-  x_i &\le \overline{x}_i
+  y_i &\le \overline{y}_i
   && \forall \> i \in \iorders
   \label{eq:nlp_tokenamount_1}
   \\[1mm]
-  y_i &\le \overline{y}_i
+  x_i &\ge y_i \, \pi_i
   && \forall \> i \in \iorders
   \label{eq:nlp_tokenamount_2}
-  \\[1mm]
-  y_i &\le x_i \, \pi_i
-  && \forall \> i \in \iorders
-  \label{eq:nlp_tokenamount_3}
   \\[2mm]
   n
   &= \sum\limits_{j \in \itokens} \frac{1}{p^\mathrm{old}_j} \cdot p_j,
@@ -638,12 +635,12 @@ $ \omega_i $ is not executed at all, the corresponding trade volume $ v_i $ will
 However, this comes at the price of introducing nonlinearity (and even nonconvexity) into the
 model.
 
-The limits in terms of maximum token amounts to be bought/sold in a limit order are incorporated
-into the model via the constraints~\eqref{eq:nlp_tokenamount_1} and \eqref{eq:nlp_tokenamount_2}.
-Constraint~\eqref{eq:nlp_tokenamount_3} ensures that the limit price is satisfied, if the order is
+The maximum token amount to be sold as specified in every limit order is incorporated into the
+model via constraint~\eqref{eq:nlp_tokenamount_1}.
+Constraint~\eqref{eq:nlp_tokenamount_2} ensures that the limit price is satisfied, if the order is
 to be executed, or that both $ x_i $ and $ y_i $ are set to zero otherwise.
-In sum, the constraints~\eqref{eq:nlp_buyvolume}--\eqref{eq:nlp_tokenamount_3} capture both cases
-of \eqref{eq:order_model_generic} simultaneously.
+Altogether, the constraints~\eqref{eq:nlp_buyvolume}--\eqref{eq:nlp_tokenamount_2} capture both
+cases of \eqref{eq:order_model_generic} simultaneously.
 
 Finally, as described earlier, the constraints \eqref{eq:nlp_reftoken} and \eqref{eq:nlp_maxfluct}
 specify the representation of the reference token and enforce a maximum fluctuation of exchange
@@ -667,8 +664,8 @@ alternative to the NLP model presented above.
 Thereby, the challenge is to find an equivalent linear formulation for 
 \eqref{eq:order_model_generic}.
 
-The key idea is to refrain from explicitely computing the values $ x $ and $ y $ for every order
-$ \omega = (j,k,\overline{x},\overline{y},\pi) $, but only working with the trading volume $ v $ as
+The key idea is to avoid explicitely computing the values $ x $ and $ y $ for every order
+$ \omega = (j,k,\overline{y},\pi) $, but only working with the trading volume $ v $ as
 defined in \eqref{eq:trading_volume} instead.
 With uniform clearing prices, $ x $ and $ y $ can be computed unambiguously from the value of $ v $
 later on.
@@ -676,11 +673,8 @@ The order constraints \eqref{eq:order_model_generic} can be expressed as follows
 \begin{align}
   \tilde{\mathfrak{C}}^1 := \left\{
   \begin{array}{rlll}
-    v &\in & [\>r^\Min \> \overline{x} \> p_j, \>\overline{x} \> p_j \>]
-      &\text{if} \enskip \omega \in \buyorders\\
-    v &\in & [\>r^\Min \> \overline{y} \> p_k, \>\overline{y} \> p_k \>]
-      &\text{if} \enskip \omega \in \sellorders\\[1mm]
-    \frac{p_j}{p_k} &\le & \pi
+    v &\in & [\>r^\Min \> \overline{y} \> p_j, \>\overline{y} \> p_j \>] \\[1mm]
+    \frac{p_j}{p_k} &\ge & \pi
   \end{array}
   \right\}
   \quad
@@ -689,7 +683,7 @@ The order constraints \eqref{eq:order_model_generic} can be expressed as follows
   \tilde{\mathfrak{C}}^0 := \left\{
   \begin{array}{rll}
     v &= & 0 \\[1mm]
-    \frac{p_j}{p_k} &> & \pi
+    \frac{p_j}{p_k} &< & \pi
   \end{array}
   \right\}
   \label{eq:order_model_mip1}
@@ -713,29 +707,20 @@ the opposite case.
 As for our constraint systems, this translates into:
 \begin{subequations}
 \begin{align}
-  p_j &\le \pi \, p_k + (1-z) (\overline{p}_j - \pi \underline{p}_k) \\
-  p_j &\ge (\pi+\varepsilon) \, p_k
-    + z \, (\underline{p}_j - (\pi+\varepsilon) \, \overline{p}_k) \\[1mm]
-  v &\le \overline{x} \, p_j
-    && \text{if} \enskip \omega \in \buyorders \\
-  v &\le \overline{x} \, \overline{p}_j \, z
-    && \text{if} \enskip \omega \in \buyorders \\
-  v &\ge r^\Min \, \overline{x} \, (p_j - (1-z) \, \overline{p}_j)
-    && \text{if} \enskip \omega \in \buyorders \\[2mm]
-  v &\le \overline{y} \, p_k
-    && \text{if} \enskip \omega \in \sellorders \\
-  v &\le \overline{y} \, \overline{p}_k \, z
-    && \text{if} \enskip \omega \in \sellorders \\
-  v &\ge r^\Min \, \overline{y} \, (p_k - (1-z) \, \overline{p}_k)
-    && \text{if} \enskip \omega \in \sellorders
+  p_j &\ge \pi \, p_k + (1-z) (\underline{p}_j - \pi \overline{p}_k) \\
+  p_j &\le (\pi-\varepsilon) \, p_k
+    + z \, (\overline{p}_j - (\pi-\varepsilon) \, \underline{p}_k) \\[1mm]
+  v &\le \overline{y} \, p_j \\
+  v &\le \overline{y} \, \overline{p}_j \, z \\
+  v &\ge r^\Min \, \overline{y} \, (p_j - (1-z) \, \overline{p}_j)
 \end{align}
 \label{eq:order_model_mip1_bigM}
 \end{subequations}
 
 It can easily be verified that substituting $ z=1 $ and $ z=0 $ yields the desired constraints
 \eqref{eq:order_model_mip1}.
-Notice that the strict inequality $ \frac{p_j}{p_k} > \pi $ in $ \tilde{\mathfrak{C}}^0 $ is
-approximated by an inequality $ \frac{p_j}{p_k} \ge \pi + \varepsilon $, with some very small
+Notice that the strict inequality $ \frac{p_j}{p_k} < \pi $ in $ \tilde{\mathfrak{C}}^0 $ is
+approximated by an inequality $ \frac{p_j}{p_k} \le \pi - \varepsilon $, with some very small
 $ \varepsilon > 0 $.
 
 \paragraph{Disjunctive programming reformulation}
@@ -746,44 +731,40 @@ the feasible regions of $ \tilde{\mathfrak{C}}^0 $ and $ \tilde{\mathfrak{C}}^1 
 This property can be secured in the disjunctive programming approach through the addition of
 additional auxiliary variables.
 
-For every order $ \omega = (j,k,\overline{x},\overline{y},\pi) $, we introduce a set of auxiliary
+For every order $ \omega = (j,k,\overline{y},\pi) $, we introduce two pairs of auxiliary
 non-negative price variables:
-$ p^{b,0}, p^{b,1} $ -- referring to the price $ p_j $ of the buy-token, as well as
-$ p^{s,0}, p^{s,1} $ -- referring to the price $ p_k $ of the sell-token.
+$ p^{s,0}, p^{s,1} $ -- referring to the price $ p_j $ of the sell-token, as well as
+$ p^{b,0}, p^{b,1} $ -- referring to the price $ p_k $ of the buy-token.
 Then, a disjunctive programming formulation can be given as follows:
 \begin{subequations}
 \begin{align}
-  (1-z) \, \underline{p}_j &\le p^{b,0} \le (1-z) \, \overline{p}_j
-    \label{eq:mip1_dp_buyprice_0}\\
-  (1-z) \, \underline{p}_k &\le p^{s,0} \le (1-z) \, \overline{p}_k
+  (1-z) \, \underline{p}_j &\le p^{s,0} \le (1-z) \, \overline{p}_j
     \label{eq:mip1_dp_sellprice_0}\\
-  z \, \underline{p}_j &\le p^{b,1} \le z \, \overline{p}_j
-    \label{eq:mip1_dp_buyprice_1}\\
-  z \, \underline{p}_k &\le p^{s,1} \le z \, \overline{p}_k
+  (1-z) \, \underline{p}_k &\le p^{b,0} \le (1-z) \, \overline{p}_k
+    \label{eq:mip1_dp_buyprice_0}\\
+  z \, \underline{p}_j &\le p^{s,1} \le z \, \overline{p}_j
     \label{eq:mip1_dp_sellprice_1}\\[2mm]
-  p_j &= p^{b,0} + p^{b,1}
-    \label{eq:mip1_dp_buyprice_aggr}\\
-  p_k &= p^{s,0} + p^{s,1}
-    \label{eq:mip1_dp_sellprice_aggr}\\[2mm]
-  p^{b,1} &\le \pi \, p^{s,1}
+  z \, \underline{p}_k &\le p^{b,1} \le z \, \overline{p}_k
+    \label{eq:mip1_dp_buyprice_1}\\
+  p_j &= p^{s,0} + p^{s,1}
+    \label{eq:mip1_dp_sellprice_aggr}\\
+  p_k &= p^{b,0} + p^{b,1}
+    \label{eq:mip1_dp_buyprice_aggr}\\[2mm]
+  p^{s,1} &\ge \pi \, p^{b,1}
     \label{eq:mip1_dp_xrate_1}\\
-  p^{b,0} &\ge (\pi+\varepsilon) \, p^{s,0}
+  p^{s,0} &\le (\pi-\varepsilon) \, p^{b,0}
     \label{eq:mip1_dp_xrate_0}\\[2mm]
-  v &\le \overline{x} \, p^{b,1} &\text{if} \enskip \omega \in \buyorders
-    \label{eq:mip1_dp_volume_buy_ub}\\
-  v &\ge r^\Min \, \overline{x} \, p^{b,1} &\text{if} \enskip \omega \in \buyorders
-    \label{eq:mip1_dp_volume_buy_lb}\\[2mm]
-  v &\le \overline{y} \, p^{s,1} &\text{if} \enskip \omega \in \sellorders
+  v &\le \overline{y} \, p^{s,1}
     \label{eq:mip1_dp_volume_sell_ub}\\
-  v &\ge r^\Min \, \overline{y} \, p^{s,1} &\text{if} \enskip \omega \in \sellorders
+  v &\ge r^\Min \, \overline{y} \, p^{s,1}
     \label{eq:mip1_dp_volume_sell_lb}
 \end{align}
 \label{eq:order_model_mip1_DP}
 \end{subequations}
 
-The general idea is that both $ p^{b,1} $ and $ p^{s,1} $ shall take the true value of $ p_j $ and
+The general idea is that both $ p^{s,1} $ and $ p^{b,1} $ shall take the true value of $ p_j $ and
 $ p_k $ within the respective bounds if $ z = 1 $ (\ie the order can be executed), and be set to
-zero otherwise; and vice-versa for $ p^{b,0} $ and $ p^{s,0} $.
+zero otherwise; and vice-versa for $ p^{s,0} $ and $ p^{b,0} $.
 This is modelled through constraints \eqref{eq:mip1_dp_buyprice_0}--\eqref{eq:mip1_dp_sellprice_1}.
 The aggregation of the auxiliary price variables to the actual token prices is expressed in
 constraints \eqref{eq:mip1_dp_buyprice_aggr} and \eqref{eq:mip1_dp_sellprice_aggr}.
