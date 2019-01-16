@@ -101,6 +101,8 @@ On the level of contract storage, these contraints imply a bijective mapping {1,
 
 Note that: Registering accounts by specified index (rather than incrementing) enables the possiblity for accounts to be closed and account slots to be made available.
 
+TODO - holding an account will likely incur some kind of fee.
+
 #### Registering tokens
 
 Token registration is performed by token address.
