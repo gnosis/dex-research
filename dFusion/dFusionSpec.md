@@ -125,7 +125,7 @@ The contract verifies, that
 
 Token transfers (from sender to contract) are made during the deposit request phase, but the sender's balance is not represented in the `stateRoot` until these requests have been processed.
 
-Sender may not exit their balances untill the stateRoot has been updated with the appropriate deposit requests. However, deposit processing will be made publicially available. That is to say, any end user could potentially process their own deposits.
+Sender may not exit their balances until the stateRoot has been updated with the appropriate deposit requests. However, any participant can process deposits. That is to say, an end user could potentially process their own deposits.
 
 Upon successful transfer, the deposit is included in the appropriate depositRequest slot and the EVM emit's a "Deposit" event containing the following information
     - Account ID,
