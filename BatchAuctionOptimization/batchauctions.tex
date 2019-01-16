@@ -188,82 +188,62 @@ $ p_{j|k} $, meaning the price of one unit of $ \tau_j $ measured in units of $ 
 As an example, if $ p_{j|k} = 10 $, one would need to pay an amount of $ 10 $ units of $ \tau_k $
 in order to purchase one unit of $ \tau_j $.
 
-Let there be a set $ \orders = \{ \omega_1 \ldots \omega_N \} $ of $ N $ limit orders in the batch
-to be processed and let $ \ibuyorders, \isellorders \subseteq \{ 1 \ldots N \} =: \iorders $ denote
-the sets of indices of buy and sell orders, respectively.
-Every order must be of exactly one of the two types, so $ \ibuyorders \cap \isellorders =
-\emptyset $ and $ \ibuyorders \cup \isellorders = \{ 1 \ldots N \} $.
-
-The details of each order shall be specified via a tuple $ (j,k,\overline{x},\overline{y},\pi) $,
-where the elements are to be understood as follows:
+Let there be a set $ \orders = \{ \omega_1 \ldots \omega_N \} $ of $ N $ \emph{limit sell orders}
+in the batch to be processed and let $ \iorders := \{ 1 \ldots N \} $ denote its set of indices.
+Every order is specified as a tuple $ \omega = (j,k,\overline{y},\pi) $ whose semantic meaning is
+\vspace{-.6cm}
+\begin{center}
+  \emph{
+    "Sell (at most) $ \overline{y} $ units of token $ \tau_j $ for token $ \tau_k $
+    if the exchange rate $ p_{j|k} $ is at least $ \pi $".
+  }
+\end{center}
+\vspace{-.5cm}
+More precisely, we define and understand the elements of every such tuple as follows:
 \begin{align*}
   j &\in \itokens &&
-    \ldots \quad \text{buy token} \> \tau_j\\
+    \ldots \quad \tau_j \> \text{is the token to be sold}\\
   k &\in \itokens &&
-    \ldots \quad \text{sell token} \> \tau_k\\
-  \overline{x} &\in \mathbb{R}_{\ge 0} \cup \{+\infty\} &&
-    \ldots \quad \text{maximum amount of} \> \tau_j \> \text{to be bought}\\
-  \overline{y} &\in \mathbb{R}_{\ge 0} \cup \{+\infty\} &&
-    \ldots \quad \text{maximum amount of} \> \tau_k \> \text{to be sold}\\
+    \ldots \quad \tau_k \> \text{is the token to be bought}\\
+  \overline{y} &\in \mathbb{R}_{\ge 0} &&
+    \ldots \quad \text{maximum amount of} \> \tau_j \> \text{to be sold}\\
   \pi &> 0 &&
-    \ldots \quad \text{limit price for order execution, \ie} \> p_{j|k} \le \pi
+    \ldots \quad \text{limit price for order execution, \ie} \> p_{j|k} \ge \pi
 \end{align*}
 
-\vspace{-.3cm}
-With this, a limit buy order can be expressed as $ (j,k,\overline{x},+\infty,\pi) $,
-which reads
+Please note that, theoretically, limit buy orders could be expressed in a similar way as
+a tuple~$ (j,k,\overline{x},\pi) $ that reads
 \vspace{-.6cm}
 \begin{center}
   \emph{
     "Buy (at most) $ \overline{x} $ units of token $ \tau_j $ for token $ \tau_k $
-    if the rate $ p_{j|k} $ is at most $ \pi $".
+    if the exchange rate $ p_{j|k} $ is at most $ \pi $".
   }
 \end{center}
-
-\vspace{-.4cm}
-Analogously, a limit sell order is represented by a tuple $ (j,k,+\infty,\overline{y},\pi) $
-meaning
-\vspace{-.6cm}
-\begin{center}
-  \emph{
-    "Sell (at most) $ \overline{y} $ units of token $ \tau_k $ for token $ \tau_j $
-    if the rate $ p_{k|j} $ is at least $ \frac{1}{\pi} $".
-  }
-\end{center}
-\vspace{-.3cm}
-
-Since we are only considering these two order types, either $ \overline{x} $ or $ \overline{y} $
-needs to be $ +\infty $, whereas the other needs to take a finite value.
-
-\newpage
-The semantics of the two order types are somewhat similar in that there is one token to be
-exchanged against another, if a certain limit price is guaranteed.
-Such orders are hence referred to as \emph{limit orders}.
+\vspace{-.5cm}
 The difference between buy and sell orders is the following:
 \begin{itemize}
-  \item In a buy order, a fixed (maximum) buy volume $ \overline{x} $ is set, so the buyer
+  \item In a buy order, a fixed (maximum) buy volume $ \overline{x} $ is set, so the trader
   indicates a preference to buy $ \overline{x} $ units of token $ \tau_j $.
   The amount of units of token $ \tau_k $ to be sold is flexible, as long as the limit price is
   respected (the smaller, the better).
-  \item In a sell order, a fixed (maximum) sell volume $ \overline{y} $ is set, so the seller
+  \item In a sell order, a fixed (maximum) sell volume $ \overline{y} $ is set, so the trader
   indicates a preference to sell $ \overline{y} $ units of token $ \tau_k $.
   The amount of units of token $ \tau_j $ to be bought is flexible, as long as the limit price
   is respected (the higher, the better).
 \end{itemize}
 \vspace{.3cm}
 
-Nevertheless, the question remains whether it makes sense to keep the distinction between buy and
-sell orders.
-Consider a buy order $ (j,k,\overline{x},+\infty,\pi) $, which reveals that the buyer would be
-ready to sell at most $ \pi \cdot \overline{x} $ tokens $ \tau_k $ in exchange for tokens
-$ \tau_j $.
-Then, from an economically rational point of view, the buyer should not object to receiving more
+However, without loss of generality, we will restrict ourselves to only considering sell orders in
+this paper.
+In fact, the following argument can be used to convert limit buy orders into sell orders:
+Consider a buy order $ (j,k,\overline{x},\pi) $, which reveals that the trader would be ready to
+sell at most $ \pi \cdot \overline{x} $ tokens $ \tau_k $ in exchange for tokens $ \tau_j $.
+Then, from an economically rational point of view, the trader should not object to receiving more
 than $ \overline{x} $ tokens $ \tau_j $ for a maximum of $ \pi \cdot \overline{x} $ tokens
 $ \tau_k $, \ie if the exchange rate $ p_{j|k} $ is lower than $ \pi $.
-Hence, the buy order could be translated into an equivalent sell order
-$ (j,k,+\infty,\pi \cdot \overline{x},\pi) $.
-In this paper, however, we will continue to treat the different order types separately.
-
+Hence, the trader would only benefit from submitting a sell order
+$ (k,j,\pi \cdot \overline{x},\frac{1}{\pi}) $.
 
 \paragraph{Objectives}
 
@@ -283,12 +263,12 @@ high level as follows:
 \begin{itemize}
   \item \emph{(limit price)}:\\
   for all orders
-  $ \omega_i = (j_i,k_i,\overline{x}_i,\overline{y}_i,\pi_i) \in \orders $:
-  the order can only be executed (fully or fractionally) if the exchange rate does not exceed the
-  limit price, \ie $ p_{j_i|k_i} \le \pi $.
+  $ \omega = (j,k,\overline{y},\pi) \in \orders $:
+  the order can only be executed (fully or fractionally) if the exchange rate satisfies the
+  limit price, \ie $ p_{j|k} \ge \pi $.
   \item \emph{(token balance)}:\\
-  for every token $ \tau_j \in \tokens $: the amount of tokens $ \tau_j $ that were bought must
-  equal the amount of tokens $ \tau_j $ that were sold across all orders.
+  for every token $ \tau \in \tokens $: the amount of tokens $ \tau $ that were bought must
+  equal the amount of tokens $ \tau $ that were sold across all orders.
   \item \emph{(price coherence)}:\\
   for all token pairs $ (\tau_j,\tau_k) $: $ p_{j|k} \cdot p_{k|j} = 1 $.
   \item \emph{(arbitrage freeness)}:\\
