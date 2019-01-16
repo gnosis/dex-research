@@ -82,11 +82,9 @@ The trading workflow consists of the following sequential processes:
 
 0. Account opening, deposits & withdrawals
 1. On-Chain order collection
-2. Transition function from sha to Pedersen hashes (zkSnark)
-3. Finding the batch price: optimization of batch trading surplus (offchain)
-4. Verifying batch price and trade execution (zkSnark)
-5. Processing of pending exits and deposits (zkSnark)
-6. Restart with step 0
+2. Finding the batch price: optimization of batch trading surplus (off-chain)
+3. Verifying batch price and trade execution (zkSnark)
+4. Restart with step 1
 
 ### Account opening & token registration
 
