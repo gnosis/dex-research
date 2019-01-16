@@ -109,8 +109,6 @@ Only the contract owner may register tokens by address.
 
 **Note that** the contract does not verify the requested token address is actually that of an ERC20 token. This implies that security is enforced by permissions (i.e. only owner may register tokens).
 
-In the event that a *non-token* is registered as a token, the indexing slot would be permanently occupied, but no successful deposits could ever be made. However, if the registered token does implement a transferFrom successful deposits could occur
-
 ### Deposits & Withdrawals
 
 #### Depositing token
