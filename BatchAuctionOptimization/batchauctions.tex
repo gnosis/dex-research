@@ -819,74 +819,86 @@ substitution for \eqref{eq:mip1_orderdisj}, the full MIP model can be stated as:
 \paragraph{Additional inequalities}
 
 The model does not take into account that there exist dependencies between orders on the same token
-pair, that can heuristically be described as follows:
-Whenever an order with a certain limit price $ \pi^* $ is executed (fully or partially) at some
-determined market price, all orders offering an even better limit price must also be executed.
-Conversely, if some order can not be executed, all orders with worse limit prices may not be
-executed as well.
-This idea induces a natural ordering of the orders that we are now going to formalize:
-let the set of (undirected) token index pairs be denoted by
-$ \itokenpairs := \{(j,k) \in \itokens \times \itokens, j < k\} $, with $ (j,k) \in \itokenpairs $
-representing the pair of tokens $ \tau_j $ and $ \tau_k $.
+pair as well as across adjacent token pairs.
+In the following, we will derive valid inequalities that capture some of these dependencies.
 
-For every token pair $ (j,k) \in \itokenpairs $, we collect all orders for which $ \tau_j $ is the
-token to be bought and $ \tau_k $ is the token to be sold, \ie all
-$ \omega = (j, k,\, \cdot \,,\, \cdot \,,\, \cdot) \in \orders $,
-and sort them in an increasing order by their limit prices.
-Assuming that there are $ m $ such orders for token pair $ (j,k) $, we get
-$ \pi^{(1)}_{j,k} < \pi^{(2)}_{j,k} < \ldots < \pi^{(m)}_{j,k} $.
-We then pick the binary variables $ z_i $ belonging to the orders under consideration, and permute
-them into the same order, \ie $ (z^{(0)}, z^{(1)}, \ldots, z^{(m)}) $.
-The idea described above consequently translates into precedence constraints of the form
-\begin{align}
-  z^{(l)} \le z^{(l+1)} \qquad \forall \, l = 1 \ldots m\!-\!1.
-  \label{eq:mip1_order_precedence}
-\end{align}
-We repeat the same procedure for all orders
-$ \omega = (k, j,\, \cdot \,,\, \cdot \,,\, \cdot) \in \orders $,
-\ie for opposite roles of the tokens involved.
-In our computational experiments, these constraints proven to be very beneficial for the solving
-performance.
+First, whenever a sell order with a certain limit price is executed (fully or partially)
+at some determined market price, all orders on the same token pair with a better (\ie lower) limit
+price must also be executed.
+Conversely, if some order can not be executed, all orders with worse (\ie higher) limit prices may
+not be executed as well.
+In particular, let
+$ \omega_{i_1} = (j,k,\cdot,\pi_{i_1}) $ and $ \omega_{i_2} = (j,k,\cdot,\pi_{i_2}) $
+be two orders selling $ \tau_j $ for $ \tau_k $ with $ \pi_{i_1} \le \pi_{i_2} $.
+Then, we can relate the corresponding binary variables as $ z_{i_1} \ge z_{i_2} $.
 
-Moreover, we can also find inequalities for subsets of orders that are mutually exclusive, \ie not
-all orders in such a subset can be executed at the same time.
-In particular, on a token pair $ (j,k) \in \itokenpairs $, if there are two orders
-$ \omega^{(1)} = (j,k,\cdot,\cdot,\pi^{(1)}) $ and $ \omega^{(2)} = (k,j,\cdot,\cdot,\pi^{(2)}) $,
-where $ \pi^{(1)} \cdot \pi^{(2)} < 1 $, we can conclude that at most one of them may be active in
-order to maintain arbitrage-freeness \eqref{eq:arbitrage_freeness}.
-This can be written as inequality 
-\begin{subequations}
+This idea induces a natural ordering of the orders on every token pair by their limit price.
+Let there be $ N_{j,k} $ sell orders $ (\omega_{i_1}, \omega_{i_2}, \ldots, \omega_{i_{N_{j,k}}}) $
+on token pair $ (\tau_j,\tau_k) $, \ie orders that offer token~$ \tau_j $ for $ \tau_k $.
+Assuming that these orders are sorted increasingly by their limit prices
+\begin{align*}
+  \pi_{i_1} \le \pi_{i_2} \le \ldots \le \pi_{i_{N_{j,k}}},
+\end{align*}
+this yields the chain of inequalities
 \begin{align}
-  z^{(1)} + z^{(2)} \le 1.
-  \label{eq:mip1_order_exclusion}
+  z_{i_1} \ge z_{i_2} \ge \ldots \ge z_{i_{N_{j,k}}}.
+  \label{eq:valid_inequality_A}
 \end{align}
-This type of inequality can of course also be generalized to chains of orders along cycles of
-tokens.
-Let $ (\tau_{j_1}, \tau_{j_2}, \ldots, \tau_{j_m}, \tau_{j_1}) $ be such a token cycle of length
-$ m $.
-Then, for a set of orders
-$ \{
-\omega^{(1)} = (j_1,j_2,\cdot,\cdot,\pi^{(1)}), \>
-\omega^{(2)} = (j_2,j_3,\cdot,\cdot,\pi^{(2)}), \>
+Hence, there are only $ N_{j,k} - 1 $ non-redundant such inequalities per token pair and thus
+always less than $ N $ overall.
+Please note that if two orders $ \omega_{i_1} $ and $ \omega_{i_2} $ are given with equal limit
+prices $ \pi_{i_1} = \pi_{i_2} $, the equality $ z_{i_1} = z_{i_2} $ needs to hold.
+
+Other types of valid inequalities can be derived when considering two orders going in the
+opposite direction, \ie $ \omega_{i_1} = (j,k, \cdot ,\pi_{i_1}) $ selling token~$ \tau_j $ for
+$ \tau_k $ and $ \omega_{i_2} = (k,j, \cdot ,\pi_{i_2}) $ vice-versa.
+Then, if $ \pi_{i_1} \cdot \pi_{i_2} > 1 $, we can conclude that $ \omega_{i_1} $ and
+$ \omega_{i_2} $ can not both be executed at same time, because their feasible price ranges are
+disjoint.
+Hence, we can impose
+\begin{align*}
+  z_{i_1} + z_{i_2} \le 1.
+\end{align*}
+
+Conversely, $ \pi_{i_1} \cdot \pi_{i_2} \le 1 $ would imply that every exchange rate between
+$ \tau_j $ and $ \tau_k $ allows executing at least one of the two orders, which yields
+\begin{align*}
+  z_{i_1} + z_{i_2} \ge 1.
+\end{align*}
+
+These two types of inequalities can also be generalized to chains of orders along cycles of tokens.
+Let $ (\tau_{j_1}, \tau_{j_2}, \ldots, \tau_{j_m}, \tau_{j_1}) $ be such a token cycle of
+length $ m $, and let there be a set of orders
+$ \left(
+\omega_{i_1} = (j_1,j_2,\cdot,\cdot,\pi_{i_1}), \>
+\omega_{i_2} = (j_2,j_3,\cdot,\cdot,\pi_{i_2}), \>
 \ldots, \>
-\omega^{(m)} = (j_m,j_1,\cdot,\cdot,\pi^{(m)})
-\} $
-with $ \prod_{i=1}^m \pi^{(i)} < 1 $, the following needs to hold:
+\omega_{i_m} = (j_m,j_1,\cdot,\cdot,\pi_{i_m})
+\right) $.
+Now, if $ \prod_{l=1}^m \pi_{i_l} > 1 $, our arbitrage-freeness requirement again forbids that all
+orders can be executed at the same time. Hence, we can write
 \begin{align}
-  \sum\limits_{i=1}^m z^{(i)} \le m-1.
-  \label{eq:mip1_order_exclusion_general}
+  \sum\limits_{l=1}^m z_{i_l} \le m-1.
+  \label{eq:valid_inequality_B1}
 \end{align}
-\end{subequations}
 
-In both cases, there are many possible choices of subsets of orders that are mutually exclusive.
-This holds true in particular for the generalized constraint variant
-\eqref{eq:mip1_order_exclusion_general} the longer the token cycles become.
-Hence, for instances with a large number of orders, it will be impractical to include all possible
-inequalities, so some care should be taken on selecting the most impactful ones.
-So far, we have done experiments with cycle lengths $ m \in \{2,3\} $, in which the mutual
-exclusion constraints have shown to have a significant positive impact on the solving process.
+In the other case where $ \prod_{l=1}^m \pi_{i_l} \le 1 $, we know that at least one of the orders
+needs to be allowed being executed, which yields
+\begin{align}
+  \sum\limits_{l=1}^m z_{i_l} \ge 1.
+  \label{eq:valid_inequality_B2}
+\end{align}
 
-\todo[inline]{Which inequalities to select!?}
+In both cases \eqref{eq:valid_inequality_B1} and \eqref{eq:valid_inequality_B2}, we can use the
+inequalities \eqref{eq:valid_inequality_A} in order to detect redundancies.
+However, even the numbers of non-redundant inequalities of these types grow significantly with the
+length of the token cycles that are being considered.
+For our practical purposes, we have incorporated inequalities for cycles of length $ m=\{2,3\} $
+and observed remarkable performance gains.
+
+\todo[inline]{Describe how exactly non-redundant inequalities are determined!?}
+
+\todo[inline]{Computational results!}
 
 
 \newpage
