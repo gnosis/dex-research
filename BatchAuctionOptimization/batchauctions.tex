@@ -19,6 +19,7 @@
 \usepackage{caption}         % For subtables.
 \usepackage{subcaption}      % For subtables.
 %\usepackage{subfig}
+\usepackage{comment}
 
 
 %%%%%%%%%%%%%%%%%
@@ -300,6 +301,7 @@ high level as follows:
 Notice that the above constraints also imply $ p_{j|j} = 1 $ for every
 token~$ \tau_j \in \tokens $.
 
+\begin{comment}
 \paragraph{Properties}
 
 Here is a list of research questions that we would like to answer.
@@ -312,7 +314,7 @@ Here is a list of research questions that we would like to answer.
   equal to the limit price.
   \item What is the impact of optimizing the trading volume vs. the traders' welfare?
 \end{itemize}
-
+\end{comment}
 
 \paragraph{Example}
 
@@ -321,7 +323,7 @@ A typical instance of our batch auction problem could look like shown in
 It is assumed that some token pairs will encounter high trading demand whereas other will only
 rarely be traded on.
 
-\begin{figure}[t]
+\begin{figure}[h!]
   \centering
   \includegraphics[width=.75\textwidth]{figures/token_order_graph.png}
   \caption{Token-order-graph representing a multi-token batch auction instance. Nodes correspond
