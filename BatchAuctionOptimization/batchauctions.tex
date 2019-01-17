@@ -554,14 +554,15 @@ of token~$ \tau_j $ sold, the trading surplus $ w $ measures the value of the di
 the amount~$ x $ of tokens $ \tau_k $ that is purchased and the minimum amount~$ y \cdot \pi $ that
 the trader would have accepted:
 \begin{align}
-  w &= ( x - y \> \pi ) \> p_k \\
-    &= x \> p_k - y \> \pi \> p_k \\
-    &= v -  y \cdot \pi \cdot p_k
+  w &= ( x - y \cdot \pi ) \> p_k% \\
+  %  &= x \cdot p_k - y \cdot \pi \cdot p_k \\
+  %  &= v -  y \cdot \pi \cdot p_k
   \label{eq:trading_surplus}
 \end{align}
+We store the trading surplus of every order in a vector
+$ \mathbf{w} \in \mathbb{R}^N_{\ge_0} $.
 
-
-\todo[inline]{Write about traders' surplus!}
+\todo[inline]{More research on trading surplus (linear formulation, relation to volume, etc.)!}
 
 
 \newpage
