@@ -31,7 +31,7 @@ We therefore "optimistically" accept solutions and set a crypto-economic incenti
 
 ## State stored in the smart contract
 
-For each account, we chain each of ERC20 token balance together and store them as pedersen hash (not merkleized) in the anchor smart contract.
+For each account, ERC20 token balance are chained together and stored as a pedersen hash (not merkleized) in the anchor smart contract.
 This "compressed" representation of all account balances is collision resistant and can thus be used to uniquely commit to the complete "uncompressed" state containing all balances explicitly. 
 The "uncompressed" state will be stored off-chain and all state transitions will be announced via smart contract events. 
 Thus, the full state will be fully reproducible for any participant by replaying all blocks since the creation of the smart contract. 
@@ -116,7 +116,7 @@ Notice, that the orders are only sent over as transaction payload, but will not 
 All relevant information is emitted as events.
 This will allow any participant to reproduce all orders of the current batch by replaying the ethereum blocks since batch creation and filtering them for these events.
 
-Also notice, that we allow orders, which might not be covered by any balance of the order sender. 
+Also notice, the system (snark + contract) allows orders, which might not be covered by any balance of the order sender. 
 These orders will be sorted out later in the settlement of an auction.
 
 ### Finding the batch price: optimization of batch trading surplus (off-chain)
