@@ -234,14 +234,15 @@ The difference between buy and sell orders is the following:
 \end{itemize}
 \vspace{.3cm}
 
-However, without loss of generality, we will restrict ourselves to only considering sell orders in
+However, for notational simplicity, we will restrict ourselves to only considering sell orders in
 this paper.
-In fact, the following argument can be used to convert limit buy orders into sell orders:
+In fact, assuming that the trader has constant utility for an arbitrary number of buy-tokens,
+the following argument can be used to convert limit buy orders to sell orders:
 Consider a buy order $ (j,k,\overline{x},\pi) $, which reveals that the trader would be ready to
 sell at most $ \pi \cdot \overline{x} $ tokens $ \tau_k $ in exchange for tokens $ \tau_j $.
-Then, from an economically rational point of view, the trader should not object to receiving more
-than $ \overline{x} $ tokens $ \tau_j $ for a maximum of $ \pi \cdot \overline{x} $ tokens
-$ \tau_k $, \ie if the exchange rate $ p_{j|k} $ is lower than $ \pi $.
+Then, the trader would not object to receiving more than $ \overline{x} $ tokens $ \tau_j $ for a
+maximum of $ \pi \cdot \overline{x} $ tokens $ \tau_k $, \ie if the exchange rate $ p_{j|k} $ is
+lower than $ \pi $.
 Hence, the trader would only benefit from submitting a sell order
 $ (k,j,\pi \cdot \overline{x},\frac{1}{\pi}) $.
 
