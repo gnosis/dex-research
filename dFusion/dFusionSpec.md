@@ -91,7 +91,7 @@ The trading workflow consists of the following sequential processes:
 
 #### Registering accounts
 The contract specifies a constant number of accounts, `K`, that can be opened by anyone by providing an `accountIndex` such that `1 <= accountIndex <= K`. 
-The account index is referred to, synonomously, as the account ID.
+The account index is referred to interchangeably as the account ID.
 
 Upon opening an account, the contract verifies that
     - there is no account currently occupying the requested index and
