@@ -149,7 +149,6 @@ Although some aspects may not be entirely necessary, the contract verifies the f
 
 - requested slot is strictly less than current deposit index. This ensures that deposit hash is no longer actively updated.
 - requested deposits have not already been applied
-- deposit hash being applied agrees with the one stored in the contract.
 - current stateRoot agrees with the one used in preocessing deposits.
 
 Upon succefull validation for the state transition, the contract updates the new `stateRoot` with the proposed and emits and event of type applyDeposits along with both of the previous and new stateRoots respectively.
