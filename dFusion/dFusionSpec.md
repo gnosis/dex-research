@@ -143,7 +143,6 @@ Deposits may be applied by specifying deposit slot and updated `stateRoot`. This
 For security reasons, the `applyDeposits` function must be called with the following parameters
 - slot,
 - currentStateHash,
-- currentDepositHash and
 - newStateRoot
 
 Although some aspects may not be entirely necessary, the contract verifies the following before updating the StateRoot;
