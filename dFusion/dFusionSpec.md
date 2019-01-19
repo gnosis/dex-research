@@ -31,7 +31,7 @@ We therefore "optimistically" accept solutions and set a crypto-economic incenti
 
 ## State stored in the smart contract
 
-For each account, we chain each of ERC20 token balance together and store them as pedersen hash (not merkleized) in the anchor smart contract.
+For each account, ERC20 token balance are chained together and stored as a pedersen hash (not merkleized) in the anchor smart contract.
 This "compressed" representation of all account balances is collision resistant and can thus be used to uniquely commit to the complete "uncompressed" state containing all balances explicitly. 
 The "uncompressed" state will be stored off-chain and all state transitions will be announced via smart contract events. 
 Thus, the full state will be fully reproducible for any participant by replaying all blocks since the creation of the smart contract. 
@@ -79,10 +79,89 @@ To summarize, here is a list of state that is stored inside the smart contract:
 ## Batch Auction Workflow
 
 The trading workflow consists of the following sequential processes:
+
+0. Account opening, deposits & withdrawals
 1. On-Chain order collection
 2. Finding the batch price: optimization of batch trading surplus (off-chain)
 3. Verifying batch price and trade execution (zkSnark)
 4. Restart with step 1
+
+### Account opening & token registration
+
+
+#### Registering accounts
+The contract specifies a constant number of accounts, `K`, that can be opened by anyone by providing an `accountIndex` such that `1 <= accountIndex <= K`. 
+The account index is referred to interchangeably as the account ID.
+
+Upon opening an account, the contract verifies that
+    - there is no account currently occupying the requested index and
+    - the sender does not currently occupy an account slot.
+
+On the level of contract storage, these contraints imply a bijective mapping {1, 2, ..., K} <-> addresses.
+
+Note that: Registering accounts by specified index (rather than incrementing) enables the possiblity for accounts to be closed and account slots to be made available.
+
+TODO - holding an account will likely incur some kind of fee.
+
+#### Registering tokens
+
+Token registration is performed by token address.
+Tokens are indexed incrementally (implying that they can never be removed) from 1 to `T` (the maximum number of allowed tokens).
+Only the contract owner may register tokens by address.
+
+**Note that** the contract does not verify the requested token address is actually that of an ERC20 token. This implies that security is enforced by permissions (i.e. only owner may register tokens).
+
+### Deposits & Withdrawals
+
+#### Depositing token
+
+Deposits are requested by token index and amount.
+The contract verifies, that
+        - the sender has registered an account,
+        - the token index is that of a valid registered token and
+        - the sender has sufficient balance
+
+Token transfers (from sender to contract) are made during the deposit request phase, but the sender's balance is not represented in the `stateRoot` until these requests have been processed.
+
+Sender may not exit their balances until the stateRoot has been updated with the appropriate deposit requests. However, any participant can process deposits. That is to say, an end user could potentially process their own deposits.
+
+Upon successful transfer, the deposit is included in the appropriate depositRequest slot and the EVM emit's a "Deposit" event containing the following information
+    - Account ID,
+    - Token Index,
+    - Amount Transferred,
+    - Deposit Slot
+
+Where, deposit slot is deterministically governed the EVM's current block number as the integer division of block number by 20. This allows for asynchronicity so that one knows (after a certain block) that the deposit hash is no longer `active` (i.e. will not change). This is required for the asynchronous handling of in-flight transactions.
+
+#### Processing Deposits:
+
+Deposits may be applied by specifying deposit slot and updated `stateRoot`. This new state root is computed by
+- gathering all the deposit events for that slot,
+- computing the updated balances for all cooresponding deposit transactions and
+- computing the pedersen hash of all account balances
+
+For security reasons, the `applyDeposits` function must be called with the following parameters
+- slot,
+- currentStateHash,
+- newStateRoot
+
+Although some aspects may not be entirely necessary, the contract verifies the following before updating the StateRoot;
+
+- requested slot is strictly less than current deposit index. This ensures that deposit hash is no longer actively updated.
+- requested deposits have not already been applied
+- current stateRoot agrees with the one used in preocessing deposits.
+
+Upon succefull validation for the state transition, the contract updates the new `stateRoot` with the proposed and emits and event of type applyDeposits along with both of the previous and new stateRoots respectively.
+
+**Note that** stateRoots are stored in the contract as an array in preparation for the implementation of *roll backs*. That is, reserving the possibility to challenge successful state transisitions.
+
+#### Exit Requests
+
+TODO
+
+#### Process Exits
+
+TODO
 
 ### On-Chain order collection
 
@@ -116,7 +195,7 @@ Notice, that the orders are only sent over as transaction payload, but will not 
 All relevant information is emitted as events.
 This will allow any participant to reproduce all orders of the current batch by replaying the ethereum blocks since batch creation and filtering them for these events.
 
-Also notice, that we allow orders, which might not be covered by any balance of the order sender. 
+Also notice, the system (snark + contract) allows orders, which might not be covered by any balance of the order sender. 
 These orders will be sorted out later in the settlement of an auction.
 
 ### Finding the batch price: optimization of batch trading surplus (off-chain)
