@@ -238,8 +238,11 @@ Each time a solution is submitted to the anchor contract, the submitter also nee
 The participant providing the winning solution will later also have to provide the updated account balances that result from applying their order matching.
 In return for their efforts, solution providers will be rewarded with a fraction of transaction fees that are collected for each order.
 
-Verifying batch price and trade execution (zkSnark)
----------------------------------------------------
+zkSnarks
+========
+
+Verifying batch price and trade execution
+-----------------------------------------
 
 After the solution submission period, the best solution with the highest trading surplus will be chosen by the anchor contract. 
 The submitter of this solution then needs to post the full solution into the ethereum chain as calldata payload. 
@@ -342,8 +345,8 @@ The snark verifies the following:
 - For all balances, check that `balance > 0` 
 - return `newstate` by hashing all balances together (with pedersen)
 
-Processing of pending exits and deposits (zkSnark)
---------------------------------------------------
+Processing of pending exits and deposits
+----------------------------------------
 
 Deposits and withdraws need to be processed and incorporated into the 'stateHash' as well. For this, we make again use of snarks and specific challenging periods.
 
