@@ -13,8 +13,8 @@ Orders are matched in a batch auction with an arbitrage-free price clearing tech
 Summary
 =======
 
-The envisioned exchange will enable `K` accounts to trade via limit orders between `T` predefined ERC20 tokens.
-Limit orders are collected and matched in batches, with each batch containing up to `M` orders. 
+The envisioned exchange will enable **K** accounts to trade via limit orders between **T** predefined ERC20 tokens.
+Limit orders are collected and matched in batches, with each batch containing up to **M** orders. 
 Orders within a batch can be matched directly (e.g. an order trading token A for B against another order trading token B for A) or in arbitrarily long "ringtrades" (e.g. an order trading token A for B, with another one trading token B for C, with a third one trading token C for A).
 
 The matching process is decentralized.
@@ -44,14 +44,14 @@ The following diagram shows how the "compressed" state hash is constructed:
 
 .. image:: rootHash.png
 
-To allow `K` to be small, a bi-map of an accounts public key (on-chain address) to its `accountIndex` will be stored in the anchor contract as well. 
+To allow **K** to be small, a bi-map of an accounts public key (on-chain address) to its **accountId** will be stored in the anchor contract as well. 
 Accounts will pay "rent" to occupy an active account. The account index can be used to locate a users token balances in the state.
 
-Furthermore, we store a bi-map of token address to its index `0 <= t <= T`, for each token that can be traded on the exchange.
-When specifying tokens inside orders, deposits and withdrawel requests, we use the token's index `0 <= t <= T` instead of the full address.
+Furthermore, we store a bi-map of token address to its index **0 <= t <= T**, for each token that can be traded on the exchange.
+When specifying tokens inside orders, deposits and withdrawel requests, we use the token's index **0 <= t <= T** instead of the full address.
 
 As limit orders and deposits and withdrawal requests are collected they are not directly stored in the smart contract.
-Doing so would require a `SSTORE` EVM instruction for each item.
+Doing so would require a **SSTORE** EVM instruction for each item.
 This would be too gas-expensive:
 Assuming an order can be encoded in 256 bits, storing a batch of 10.000 on chain would cost ~50M gas (5.000 gas for SSTORE * 10.000 orders).
 Instead the smart contract emits a smart contract event containing the relevant order information (account, from_token, to_token, limit) and stores a rolling SHA hash.
@@ -61,7 +61,7 @@ Any participants can apply pending deposit and withdrawal requests to the curren
 To do so, they provide a new state commitment that represents all account balances after the application of pending requests.
 Moreover, as the new state is stored on the smart contract, pending requests are reset.
 
-When a party applies withdrawal requests to the account balance state, they also provide the list of valid withdraws (in form of their Merkle root) which we store in the smart contract inside a mapping (`transitionId` -> `valid withdraw Merkle root`).
+When a party applies withdrawal requests to the account balance state, they also provide the list of valid withdraws (in form of their Merkle root) which we store in the smart contract inside a mapping (**transitionId** -> **valid withdraw Merkle root**).
 Participants can later claim their withdraw by providing a merkle inclusion proof of their withdraw in any of the "valid withdraw merkle-roots".
 This will transfer their tokens from the smart contract's into their public address.
 In order to avoid double withdraws, we also store a bitmap for each "withdraw merkle-root".
@@ -99,7 +99,7 @@ Account opening & token registration
 
 Registering accounts
 ~~~~~~~~~~~~~~~~~~~~
-The contract specifies a constant number of accounts, `K`, that can be opened by anyone by providing an `accountIndex` such that `1 <= accountIndex <= K`. 
+The contract specifies a constant number of accounts, **K**, that can be opened by anyone by providing an **accountId** such that **1 <= accountId <= K**. 
 The account index is referred to interchangeably as the account ID.
 
 Upon opening an account, the contract verifies that
@@ -116,7 +116,7 @@ Registering tokens
 ~~~~~~~~~~~~~~~~~~
 
 Token registration is performed by token address.
-Tokens are indexed incrementally (implying that they can never be removed) from 1 to `T` (the maximum number of allowed tokens).
+Tokens are indexed incrementally (implying that they can never be removed) from 1 to **T** (the maximum number of allowed tokens).
 Only the contract owner may register tokens by address.
 
 **Note that** the contract does not verify the requested token address is actually that of an ERC20 token. This implies that security is enforced by permissions (i.e. only owner may register tokens).
@@ -127,13 +127,12 @@ Deposits & Withdrawals
 Depositing token
 ~~~~~~~~~~~~~~~~
 
-Deposits are requested by token index and amount.
-The contract verifies, that
-        - the sender has registered an account,
-        - the token index is that of a valid registered token and
-        - the sender has sufficient balance
+Deposits are requested by token index and amount. The contract verifies, that
+    - the sender has registered an account,
+    - the token index is that of a valid registered token and
+    - the sender has sufficient balance
 
-Token transfers (from sender to contract) are made during the deposit request phase, but the sender's balance is not represented in the `stateRoot` until these requests have been processed.
+Token transfers (from sender to contract) are made during the deposit request phase, but the sender's balance is not represented in the **stateRoot** until these requests have been processed.
 
 Sender may not exit their balances until the stateRoot has been updated with the appropriate deposit requests. However, any participant can process deposits. That is to say, an end user could potentially process their own deposits.
 
@@ -143,17 +142,17 @@ Upon successful transfer, the deposit is included in the appropriate depositRequ
     - Amount Transferred,
     - Deposit Slot
 
-Where, deposit slot is deterministically governed the EVM's current block number as the integer division of block number by 20. This allows for asynchronicity so that one knows (after a certain block) that the deposit hash is no longer `active` (i.e. will not change). This is required for the asynchronous handling of in-flight transactions.
+Where, deposit slot is deterministically governed the EVM's current block number as the integer division of block number by 20. This allows for asynchronicity so that one knows (after a certain block) that the deposit hash is no longer **active** (i.e. will not change). This is required for the asynchronous handling of in-flight transactions.
 
 Processing Deposits
 ~~~~~~~~~~~~~~~~~~~
 
-Deposits may be applied by specifying deposit slot and updated `stateRoot`. This new state root is computed by
+Deposits may be applied by specifying deposit slot and updated **stateRoot**. This new state root is computed by
 - gathering all the deposit events for that slot,
 - computing the updated balances for all cooresponding deposit transactions and
 - computing the pedersen hash of all account balances
 
-For security reasons, the `applyDeposits` function must be called with the following parameters
+For security reasons, the **applyDeposits** function must be called with the following parameters
 - slot,
 - currentStateHash,
 - newStateRoot
@@ -164,7 +163,7 @@ Although some aspects may not be entirely necessary, the contract verifies the f
 - requested deposits have not already been applied
 - current stateRoot agrees with the one used in preocessing deposits.
 
-Upon succefull validation for the state transition, the contract updates the new `stateRoot` with the proposed and emits and event of type applyDeposits along with both of the previous and new stateRoots respectively.
+Upon succefull validation for the state transition, the contract updates the new **stateRoot** with the proposed and emits and event of type applyDeposits along with both of the previous and new stateRoots respectively.
 
 **Note that** stateRoots are stored in the contract as an array in preparation for the implementation of *roll backs*. That is, reserving the possibility to challenge successful state transisitions.
 
@@ -185,15 +184,16 @@ TODO
 On-Chain order collection
 -------------------------
 
-All orders are encoded as limit sell orders: `(accountIndex, fromTokenIndex, toTokenIndex, limitPrice, amount, batchId, signature)`.
-The order should be read in the following way: the user occupying the specified *accountIndex* would like to sell the token *fromTokenIndex* for *toTokenIndex* for at most the *limitPrice* and the *amount* specified.
+All orders are encoded as limit sell orders: **(accountId, fromTokenIndex, toTokenIndex, limitPrice, amount, batchId, signature)**.
+The order should be read in the following way: the user occupying the specified *accountId* would like to sell the token *fromTokenIndex* for *toTokenIndex* for at most the *limitPrice* and the *amount* specified.
 The *batchId* and *signature* allow a third party to submit an order on behalf of others (saving gas when batching multiple orders together).
 The user only has to specify which batch their order is valid for and sign all the information with their private key.
 
 The anchor smart contract on ethereum will offer the following function:
+
 .. code:: js
 
-    function appendOrders( bytes32 [] orders) { 
+    function appendOrders(bytes32 [] orders) { 
         // some preliminary checks limiting the number of orders..
 
         // update of orderHashSha
@@ -228,7 +228,7 @@ A new batch could immediately start collecting new orders while the previous one
 To process a batch, participants compute the uniform clearing price maximizing the trading surplus between all trading pairs can. 
 The traders surplus of an order is defined as the difference between the uniform clearning price and the limit price, multipied by the volume of the order with respect to some reference token. 
 The exact procedure is described [here](https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf). 
-Calculating the uniform clearing prices is an np-hard optimization problem and most likely the global optimum will not be found in the pre-defined short time frame: `SolvingTime` - estimated between 3-10 minutes. 
+Calculating the uniform clearing prices is an np-hard optimization problem and most likely the global optimum will not be found in the pre-defined short time frame: **SolvingTime** - estimated between 3-10 minutes. 
 While we are unlikely to find a global optimum, the procedure is still fair, as everyone can submit their best solution.
 Since posting the complete solution (all prices and traded volumes) would be too gas expensive to put on-chain for each candidate solution, participants only submit the 'traders surplus' they claim there solution is able to achieve.
 The anchor contract will store all submissions and will select the solution with the maximal 'traders surplus' as the final solution.
@@ -246,39 +246,39 @@ Verifying batch price and trade execution
 
 After the solution submission period, the best solution with the highest trading surplus will be chosen by the anchor contract. 
 The submitter of this solution then needs to post the full solution into the ethereum chain as calldata payload. 
-The solution is a new stateHash with the updated account balances, a price vector `P`:
+The solution is a new stateHash with the updated account balances, a price vector **P**:
 
 
 =====  =================  =====  ================= 
  P      Token_1:Token_1    ...    Token_T:Token_1 
------  -----------------  -----  -----------------
+=====  =================  =====  =================
 price   p_1                ...    p_T
------  -----------------  -----  -----------------
+=====  =================  =====  =================
 
-of all prices relative to a reference token `Token_1`. Since prices are arbitrage-free, we can calculate the `price Token_i: Token_k` =  `(Token_i:Token_1):(Token_1:Token_k)`.
+of all prices relative to a reference token **Token_1**. Since prices are arbitrage-free, we can calculate the **price Token_i: Token_k** =  **(Token_i:Token_1):(Token_1:Token_k)**.
 
-Along with the prices, the solution submitter also has to post a vector `V` of `buyVolumes` for each order:
+Along with the prices, the solution submitter also has to post a vector **V** of **buyVolumes** for each order:
 
 
-=========  =======  ===  ======= 
+=========  =======  ===  =======
  V         order_1  ...  order_K  
----------  -------  ---  -------
+=========  =======  ===  =======
 buyVolume  o_1      ...  o_K
----------  -------  ---  -------
+=========  =======  ===  =======
 
 
-Anyone can caluclate the `sellVolume` from the price of the token pair and the buyVolume.
+Anyone can caluclate the **sellVolume** from the price of the token pair and the buyVolume.
 
 The solution submitter also submits a pedersen hash of all orders that were inside the applied batch.
 This pedersen hash is assumed to be equivalent to the sha hash of all orders that is already stored in the smart contract (the equivalence can be challenged).
 The reason we prefer having the hash as a pedersen hash is that it can be calculated much more efficiently inside a snark.
-The size of our batch is bound by the amount of orders that the `applyAuction` snark (see below) can compute.
-By spending less computation on hashing we can fit process larger batches inside `applyAuction`.
+The size of our batch is bound by the amount of orders that the **applyAuction** snark (see below) can compute.
+By spending less computation on hashing we can fit process larger batches inside **applyAuction**.
 
 *//TODO what if the participant that claimed the surplus never submits? Are we sequentially degrading to second best, third best solution, or at that point allowing any solution?*
 
 The new state is optimistically assumed correct and the pedersen hash equivalent of orderHash is stored alongside as trasition metadata. 
-V and P are provided as data payload to the anchor contract which will hash them together into `hashBatchInfo` (which is also stored as transition metadata).
+V and P are provided as data payload to the anchor contract which will hash them together into **hashBatchInfo** (which is also stored as transition metadata).
 With this hash the solution is unambiguously "committed" on-chain with a minimum amount of gas.
 If someone challenges the solution later, the smart contract can verify that a proof is for this particular solution by requiring that the private inputs to the proof hash to the values stored metadata.
 
@@ -293,23 +293,22 @@ There are two types of challenges:
 
 To resolve a challenge of type 1), the solution submitter needs to prove that his solution is correct by providing proof for the following zkSnark:
 
-.. code:: js
+.. code:: python
 
     zkSnark - TransitionHashes&Validation (
                         public input: orderHashSha,
                         public input: orderHashPedersen,
-                        Private input: [orders]
-                )
+                        Private input: [orders])
 
 
 It will do the following checks:
 
-- `orders` hashes to `input.orderHashSha`
-- `orders` hashes to `input.orderHashPedersen`
+- **orders** hashes to **input.orderHashSha**
+- **orders** hashes to **input.orderHashPedersen**
 
 To resolve a challenge of type 2), the solution submitter needs to prove that his solution is correct by providing proof for the following zkSnark:
 
-.. code:: js
+.. code:: python
 
     zkSnark - applyAuction(
         Public: state,
@@ -325,25 +324,25 @@ To resolve a challenge of type 2), the solution submitter needs to prove that hi
 
 The snark verifies the following:
 
-- `priceVector` and `buyVolumes` hashes to `input.hashBatchInfo` (with sha)
-- `balances` hashes to `input.state` (with pedersen)
-- `orders` hashes to `input.orderHash` (with pedersen)
+- **priceVector** and **buyVolumes** hashes to **input.hashBatchInfo** (with sha)
+- **balances** hashes to **input.state** (with pedersen)
+- **orders** hashes to **input.orderHash** (with pedersen)
 
-- for each `order` in `orders`
-    - `order.buyVolume` and `order.sellVolume` have same ratio as `order.buyToken` and `order.sellToken`
+- for each **order** in **orders**
+    - **order.buyVolume** and **order.sellVolume** have same ratio as **order.buyToken** and **order.sellToken**
     - Verify tnhe order only has non-zero volume if the limit price is below the market price
-    - Verify the order has not more volume than specified in `order.amount`
+    - Verify the order has not more volume than specified in **order.amount**
     - Calculate trader surplus for this order
     - Increment total surplus according to surplus of order
-    - Increment `totalSellVolume[order.sellToken]` by `order.sellAmount`
-    - Increment `totalBuyVolume[order.BuyToken]` by `order.buyAmount`
-    - Update the balance of the order author by subtracting `order.sellVolume` from `balance[order.sellToken]`
-    - Update the balance of the order author by addint `order.buyVolume` from `balance[order.buyToken]`
+    - Increment **totalSellVolume[order.sellToken]** by **order.sellAmount**
+    - Increment **totalBuyVolume[order.BuyToken]** by **order.buyAmount**
+    - Update the balance of the order author by subtracting **order.sellVolume** from **balance[order.sellToken]**
+    - Update the balance of the order author by addint **order.buyVolume** from **balance[order.buyToken]**
     
-- For all tokens `t`, check that `totalSellVolume[t] == totalBuyVolume[t]` (solution doesn't mint or burn tokens)
-- Check that `tradingSurplus == input.tradingSurplus`
-- For all balances, check that `balance > 0` 
-- return `newstate` by hashing all balances together (with pedersen)
+- For all tokens **t**, check that **totalSellVolume[t] == totalBuyVolume[t]** (solution doesn't mint or burn tokens)
+- Check that **tradingSurplus == input.tradingSurplus**
+- For all balances, check that **balance > 0** 
+- return **newstate** by hashing all balances together (with pedersen)
 
 Processing of pending exits and deposits
 ----------------------------------------
@@ -360,14 +359,14 @@ In order to deposit funds into the exchange, one would send funds into the follo
         // sending of funds
         require( Token(token).transferFrom(...))
         
-        uint accountIndex = ... //lookup accountIndex from msg.sender
+        uint accountId = ... //lookup accountId from msg.sender
 
         // Storing deposit information
-        depositHash[blocknr/20] = sha256(depositHash[blocknr/20], accountIndex, amount, token) 
+        depositHash[blocknr/20] = sha256(depositHash[blocknr/20], accountId, amount, token) 
     }
 
 
-TThat means that all the depositing information are stored in a bytes32 `depositHash`. Each 20 ethereum blocks, we store all the occurring `depositsHash` in a unique hash.
+TThat means that all the depositing information are stored in a bytes32 **depositHash**. Each 20 ethereum blocks, we store all the occurring **depositsHash** in a unique hash.
 
 The deposits can be incorporated by any significantly bonded party by calling the following function:
 
@@ -375,13 +374,13 @@ The deposits can be incorporated by any significantly bonded party by calling th
 
     Function applyDeposits(uint blockNr, bytes32 newState)
 
-This function would update the `state` by incorporating the deposits received from `blockNr` to `blockNr+19`.
+This function would update the **state** by incorporating the deposits received from **blockNr** to **blockNr+19**.
 
-Everyone can check whether the `stateRH` has been updated correctly. If it has not been updated correctly, then the person submitting this solution can be challenged by providing a bond.
+Everyone can check whether the **stateRH** has been updated correctly. If it has not been updated correctly, then the person submitting this solution can be challenged by providing a bond.
 
 To resolve the challenge one must provide the following snark:
 
-.. code:: js
+.. code:: python
 
     snark-deposits( 
             Public: oldState
@@ -394,9 +393,9 @@ To resolve the challenge one must provide the following snark:
 
 This snark would check that:
 
-- By SHA256 hashing the `[deposit information]`, we are getting the `depositHash`
+- By SHA256 hashing the **[deposit information]**, we are getting the **depositHash**
 - Calculate the stateHash based on current balances and make sure it matches input
-- for( deposits in `[deposit information]`)
+- for( deposits in **[deposit information]**)
     - Update the leaf with the current balance,
 - Recalculate the stateHash based on updated balances
         
@@ -408,10 +407,10 @@ Something quite similar will be done with exit requests. If a user wants to exit
     Function exitRequest (address token, uint amount){
         // verify that not too much exists request have already been done,
 
-        uint accountIndex = ... //lookup accountIndex from msg.sender
+        uint accountId = ... //lookup accountId from msg.sender
         
         // Storing deposit information
-        exitRequestHash[blocknr/20] = sha256(exitRequestHash[blocknr/20], accountIndex, amount, token) 
+        exitRequestHash[blocknr/20] = sha256(exitRequestHash[blocknr/20], accountId, amount, token) 
     }
 
 
@@ -422,7 +421,7 @@ Then any significantly bonded party can incorporate these bundled exit requests 
     Function incorporateWithdrawals(uint blockNr, bytes32 newState, bytes32 withdrawalRH)
 
 
-Here, all withdrawal requests are processed, which were registered between the blocks blockNr and blockNr+19. `withdrawalRH` is the merkle root of all valid finalized withdrawals for the given block period.
+Here, all withdrawal requests are processed, which were registered between the blocks blockNr and blockNr+19. **withdrawalRH** is the merkle root of all valid finalized withdrawals for the given block period.
 
 Again, if the incorporatedWithdrawals results were incorrectly provided, this can be challenged. In case it is challenged, the solution submitter needs to provide the snark proof:
 
@@ -440,15 +439,15 @@ Again, if the incorporatedWithdrawals results were incorrectly provided, this ca
 
 This snark would check that:
 
-- By hashing the `[exitRequest informaiton]`, we are getting the `exitRequestHash`
+- By hashing the **[exitRequest informaiton]**, we are getting the **exitRequestHash**
 - Calculate the stateHash based on current balances and make sure it matches input
-- for( withdrawal in `[exitRequest information]`) 
-    - if `withdrawal.amount <= stateRHToken.amount`
+- for( withdrawal in **[exitRequest information]**) 
+    - if **withdrawal.amount <= stateRHToken.amount**
         - Update the leaf with the current balance
-        - incorporate the `withdrawal.amount` into `withdrawalRH`
+        - incorporate the **withdrawal.amount** into **withdrawalRH**
 - Recalculate the stateHash based on updated balances
 
-After the challenge period has passed, any user can trigger their withdrawal by providing Merkle proof of the balance stored in `withdrawalAmounts[blockNr]`.
+After the challenge period has passed, any user can trigger their withdrawal by providing Merkle proof of the balance stored in **withdrawalAmounts[blockNr]**.
 
 .. code:: python
 
@@ -473,7 +472,7 @@ There are two main limiting factors for the scalability of this system. The cost
 Order costs as payload
 ----------------------
 
-An order is constructed in the following manner: `(accountLeafIndex, fromTokenIndex, toTokenIndex, limitPrice, amount, signature)`. If impose the following constraints: 
+An order is constructed in the following manner: **(accountLeafIndex, fromTokenIndex, toTokenIndex, limitPrice, amount, signature)**. If impose the following constraints: 
 - There are at most 2^6 different tokens in our exchange
 - There are at most 2^16 different leafIndices
 - Price is encoded with an accuracy of 64 bits using floating points (61 bits are exponent, last 3 are mantissa) 
