@@ -7,8 +7,8 @@ dFusion - Decentralized Scalable Onchain Exchange
 A specification developed by Gnosis.
 
 The following specification uses the snark application (snapp) onchain scaling approach, in order to build a scalable fully decentralized exchange with decentralized order matching. 
-Scalability is achieved by storing only hashed information and allowing snarks to manipulate these through predefined logical gates [[link](https://ethresear.ch/t/on-chain-scaling-to-potentially-500-tx-sec-through-mass-tx-validation/3477)].
-Orders are matched in a batch auction with an arbitrage-free price clearing technique developed by Gnosis: [Uniform Clearing Prices]( https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf).
+Scalability is achieved by storing only hashed information and allowing snarks to manipulate these through predefined logical gates `link <https://ethresear.ch/t/on-chain-scaling-to-potentially-500-tx-sec-through-mass-tx-validation/3477>`_.
+Orders are matched in a batch auction with an arbitrage-free price clearing technique developed by Gnosis: `Uniform Clearing Prices <https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf>`_.
 
 Summary
 =======
@@ -227,7 +227,7 @@ After a certain time-frame or once the maximum number of orders per batch are co
 A new batch could immediately start collecting new orders while the previous one is being processed.
 To process a batch, participants compute the uniform clearing price maximizing the trading surplus between all trading pairs can. 
 The traders surplus of an order is defined as the difference between the uniform clearning price and the limit price, multipied by the volume of the order with respect to some reference token. 
-The exact procedure is described [here](https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf). 
+The exact procedure is described `here <https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf>`_. 
 Calculating the uniform clearing prices is an np-hard optimization problem and most likely the global optimum will not be found in the pre-defined short time frame: **SolvingTime** - estimated between 3-10 minutes. 
 While we are unlikely to find a global optimum, the procedure is still fair, as everyone can submit their best solution.
 Since posting the complete solution (all prices and traded volumes) would be too gas expensive to put on-chain for each candidate solution, participants only submit the 'traders surplus' they claim there solution is able to achieve.
