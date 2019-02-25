@@ -3,6 +3,9 @@
 \usepackage{amsthm,color}
 \usepackage{beamerthemeshadow}
 
+\usepackage[export]{adjustbox}
+
+
 % \usepackage{amsmath,amsthm,tikz,xypic, multicols}
 % \newtheorem{prop}{Proposition}
 % \newtheorem{defn}{Definition}
@@ -14,9 +17,9 @@
 
 
 \title{d$\mathcal{F}$usion Exchange \\ Decentralized Multi-Token Batch Auctions as a Snark-Application}
-\author{Benjamin Smith}
+\author{Benjamin H. Smith}
 \institute{GNOSIS}
-\date{\today}
+\date{\today  \\ \vspace{1cm} \tiny{Joint work with Alex Herrmann, Felix Leupold, Oliver Beige \& Tom Walther}}
 
 \begin{document}
 
@@ -32,142 +35,167 @@
 
 \subsection{Multi-Token Batch Auction}
 
-\frame{\frametitle{Overview}
-We are going to take a top-down approach
+\frame{
+    % \frametitle{Limit Orders and Linear Optimization}
 
-% $\sigma = (a_k, \bar{y}, i, j, \pi)$ \footnote{means sell at most $\bar{y}$ of token $\tau_i$ for $\tau_j$ if the price, $\p_{ij}$ is at least $\pi$} 
-\begin{itemize}
-    \item \emph{Limit orders}  between any (registered) token pairs are collected in a batch (over 3 minutes or up to $N$ orders). 
-        
-    %\pause
-    $N$ - dictated by the capacity of the snarks$\dagger$
-    %\pause
-        
-    \item \emph{Order matching} algorithm is modelled as a \emph{Mixed Integer Program} with;
-    %\pause
+    \includegraphics[scale=0.06, right]{solver.png}
+    \vspace{-1cm}
+
+    We are going to take a top-down approach
+
     \begin{itemize}
-        \item \emph{Objective Function} is one of trader's welfare or trading surplus
+        \item \emph{Limit orders}  between any (registered) token pairs are collected in a batch (over 3 minutes or up to $N$ orders). 
         %\pause
-        \item \emph{Feasibility Region} is encompassed by
-        \begin{enumerate}
-            \item Respected Limit Prices
+        $N$ - dictated by the capacity of the snarks$\dagger$
+        %\pause
+        \item \emph{Order matching} algorithm is modelled as a \emph{Mixed Integer Program} with;
+        %\pause
+        \begin{itemize}
+            \item \emph{Objective Function} is one of trader's welfare or trading surplus
             %\pause
-            \item Conservation of Value [Tokens not created or destroyed]
-            %\pause
-            \item Price Coherence [$p_{ij} \cdot p_{ji} = 1$]
-            %\pause
-            \item Arbitrage Freeness [prices along cycles multiply to 1]
-        \end{enumerate}
+            \item \emph{Feasibility Region} is encompassed by
+            \begin{enumerate}
+                \item Respected Limit Prices
+                %\pause
+                \item Conservation of Value [Tokens not created or destroyed]
+                %\pause
+                \item Price Coherence [$p_{ij} \cdot p_{ji} = 1$]
+                %\pause
+                \item Arbitrage Freeness [prices along cycles multiply to 1]
+            \end{enumerate}
+        \end{itemize}
     \end{itemize}
-\end{itemize}
 }
 
 \subsection{Benefits of this model}
-\frame{\frametitle{Cool Frame title}
+\frame{
+    \frametitle{Benefits}
 
-\begin{itemize}
-    \item \emph{Ring Trades} - higher likelihood or order fulfilment
-    %\pause
-    \item \emph{Inherently fair} - as defined by the feasible region
-\end{itemize}
+    \begin{itemize}
+        \item \emph{Ring Trades} - higher likelihood or order fulfilment
+        %\pause
+        \item \emph{Inherently fair} - as defined by the feasible region
+    \end{itemize}
 }
 
 \section{Scalability \& Decentralization}
 
 \subsection{Achieving Decentralization}
-\frame{\frametitle{Frame Title}
 
-Placing and settlement of orders takes place in an Ethereum Smart Contract
+\frame{
+    \frametitle{Decentralization}
 
-\begin{itemize}
-\item Anyone can submit solution proposals to auction results 
+    Placing and settlement of orders occurs in an Ethereum Smart Contract
+
     \begin{itemize}
-    \item Smart Contract will choose the best
-    \item Reward mechanism for best solution
-    \item Winning solution will be expected to provide Snark Proof (Proof of Optimization)
+        \item Anyone can submit solution proposals for auction results 
+            \begin{itemize}
+                \item Smart Contract will choose the best
+                \item Reward mechanism for best solution
+                \item Winning solution will be expected to provide Snark Proof (Proof of Optimization)
+            \end{itemize}
+        \item Anyone can propose state transition
+        \item State transitions can be challenged
     \end{itemize}
-
-\item Anyone can propose state transition
-\item State transitions can be Challenged
-\end{itemize}
 }
 
 \subsection{Achieving Scalability}
-\frame{\frametitle{Limited, sufficient, on-chain storage}
 
+\frame{
+    \frametitle{Scalability}
 
-\begin{itemize}
-    \item $K$ - accounts
-    \item $T$ - tokens
-    \item a few other constants (max tokens, max accounts, etc)
-    \item Account State Hash representing balances $B_{k,t}$
-\end{itemize}
+    Limited but sufficient on-chain storage
+
+    \begin{itemize}
+        \item $K$ - accounts
+        \item $T$ - tokens
+        \item constants (max tokens, max accounts, etc)
+        \item Account state hash (representing balances $\{B_{k,t}\}_{\forall k, t}$)
+    \end{itemize}
 }
 
-\frame{\frametitle{Atomic Swaps}
+\frame{
+    \frametitle{Atomic Swaps}
 
-\begin{itemize}
-    \item auction settlements 
-    \item other states transitions (deposits \& withdrawals)
-\end{itemize}
+    \begin{itemize}
+        \item auction settlements 
+        \item other states transitions (deposits \& withdrawals)
+    \end{itemize}
 }
 
-\frame{\frametitle{SNARKS}
+\frame{
+    \frametitle{SNARKS}
+    \includegraphics[scale=0.015, right]{snark.png}
+    \vspace{-1cm}
 
-(Succinct Non-interactive ARguments of Knowledge)
+    (Succinct Non-interactive ARguments of Knowledge)
 
-\begin{itemize}
+    \begin{itemize}
 
-    \item Prover (Solution Proposer) does a lot of computation off-chain [more than necessary] to prove that a computation was executed correctly to generate an easily verifiable proof which is submitted on-chain in the form of a smart contract
-    \item In terms of complexity, An $O(n)$ algorithm can be proven to have been statistically executed correctly with $O(n^3)$ and generates a proof that can be verified in $O(1)$ [The $O(1)$ proof is on-chain while the $O(n^3)$ generation is left off]
-
-    \item We use snarks in three different places. Namely for any transition of account balances.
-    \begin{enumerate}
-        \item Processing Deposits
-    \item Processing Withdrawals
-    \item Auction Settlement
-    \end{enumerate}
-\end{itemize}
+        \item {\bf Prover} (a.k.a. Solution Proposer) does computation off-chain to prove that auction results are feasible. 
+        \item {\bf Verifyer} snark-proof is submitted on-chain in the form of a Smart Contract
+        \item Snarks used for all State Transitions (i.e. account balance updates)
+        \begin{enumerate}
+            \item Processing Deposits
+            \item Processing Withdrawals
+            \item Auction Settlement
+        \end{enumerate}
+    \end{itemize}
 }
 
 \section{Snark Applications}
 
 \subsection{Rudimentary Components}
 
-\frame{\frametitle{Smart Contract}
-Contract contains
-\begin{enumerate}
-    \item Elementary Items and Accessibility
-    \begin{itemize}
-        \item tokens, accounts and a way to register them
-    \end{itemize}
-    \item Participation requests
-    \begin{itemize}
-        \item deposit, withdraw and (application specific) place limit order
-        \item Emit Events
-    \end{itemize}
-    \item Account State Transitions
-    \begin{itemize}
-        \item processing deposits, withdrawals and auction results
-    \end{itemize}
-    \item Challenge, Resolve \& Rollback
-\end{enumerate}
+\frame{
+    \frametitle{Smart Contract}
+    \includegraphics[scale=0.02, right]{contract.png}
+    \vspace{-2cm}
+
+    Contract contains
+    \begin{enumerate}
+        \item Elementary Items and Accessibility
+        \begin{itemize}
+            \item tokens, accounts and registration of them
+        \end{itemize}
+        \item Participation requests
+        \begin{itemize}
+            \item deposit, withdraw and limit order
+            \item Emit Events
+        \end{itemize}
+        \item State Transitions (balances)
+        \begin{itemize}
+            \item processing deposits, withdrawals and auction results
+        \end{itemize}
+        \item Challenge, Resolve \& Rollback
+    \end{enumerate}
 }
 
 \subsection{Event Listener}
 
-\frame{\frametitle{Off-chain}
-Requests are emitted as an event by the Contract
+\frame{
+    \frametitle{Off-chain}
+    \includegraphics[scale=0.05, right]{listener.png}
+    \vspace{-2cm}
+    \begin{itemize}
+    \item
+    Requests are emitted as an event by the Contract
+    \begin{itemize}
+        \item {\bf Deposit}
 
-\begin{itemize}
-    \item deposit - "Account k Deposited d of token t"
-    \item withdraw - "Account k Withdrew d of token t"
-    \item limit order - "Account k wants to trade at most d of token i for token j if the exchange rate is at most r"
+            "Account $k$ deposited $d$ of token $t$"
+        \item {\bf Withdraw}
+
+            "Account $k$ withdrew $d$ of token $t$"
+        \item {\bf Limit Order}
+
+            "Account $k$ to trade $\leq d$ of $t_i$ for $t_j$ if exchange rate is $\leq r$"
+    \end{itemize}
+    \item
+    Contract doesn't store the information contained in events.
+    \item
+    Event Listener collecting and storing relevant info (Anyone)
 \end{itemize}
-
-Contract doesn't store the information contained in events.
-
-Off-chain Event Listeners are in place collecting and storing this information (Anyone can listen)
 }
 
 
@@ -175,40 +203,63 @@ Off-chain Event Listeners are in place collecting and storing this information (
 
 \subsection{Contract Driver}
 
-\frame{\frametitle{Off-chain}
-When time is right, this information stored by the listener can be used to "Drive" the contract (i.e. update Account states)
+\frame{
+    \frametitle{Off-chain}
+    \includegraphics[scale=0.03, right]{driver.png}
+    
 
-\begin{itemize}
-    \item Perform all the balance updates and hashing according to the requests
-    \item Calls Process Request Functions (AccountStateTransitions)
-    \item Computes snark proofs on challenge;
-\end{itemize}
+    Information stored by listener is used to "Drive" the contract %(i.e. update Account states)
+
+    \begin{itemize}
+        \item Perform all the balance updates and hashing
+        \item Call process-request functions (AccountStateTransitions)
+        \item (On Challenge) Computes snark proofs
+    \end{itemize}
 }
 
 \subsection{Snarks revisited}
 
-\frame{\frametitle{deposits \& withdrawals}
+\frame{
+    \frametitle{deposits \& withdrawals}
     Snark contains all information regarding deposits in that slot
 }
 
 
-\frame{\frametitle{Auction Settlement}
+\frame{
+    \frametitle{Auction Settlement}
     Snark contains, prices and limit-order fulfilment is sufficient to demonstrate constraints of Linear Program
 }
 
 
 \section{Upcoming Challenges}
 
-\frame{\frametitle{Fork-able States}
-
+\frame{
+    \frametitle{Future Features}
+    \begin{enumerate}
+        \item Fork-able States
+        \item Basket Orders
+        \item Batch Requests (i.e. offchain order collection - as a service)
+        \item Continuation Orders
+    \end{enumerate}
 }
 
-\frame{\frametitle{Batch Requests}
-     i.e. Off-Chain Order Collectors (as a service) 
-}
 
-\frame{\frametitle{Auction Participation Features}
-    (e.g. continuation orders)
+\frame{
+    \frametitle{Resources}
+    All our efforts are open-sourced through Gnosis GmbH at
+
+    \begin{center}
+        \href{http://github.com/gnosis/}{http://github.com/gnosis/}
+    \end{center}
+
+    \begin{thebibliography}{99}
+        \bibitem{dFResearch} \emph{Formal Specification}: gnosis/dex-research
+        \bibitem{dFContracts} \emph{Smart Contracts}: gnosis/dex-contracts
+        \bibitem{dFServices} \emph{Infastructure (Listener \& Driver)}: gnosis/dex-services
+    \end{thebibliography}
+
+
+
 }
 
 
