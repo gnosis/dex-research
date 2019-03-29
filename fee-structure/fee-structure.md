@@ -19,7 +19,7 @@ A sequence of parametrization steps by adding complexity could look as follows.
 1. **Fixed**: A single, invariant value x is assigned a priori to a parameter: τ = x.
 2. VARIABLE The parameter is expressed as a function of state parameters: τ = f(x). The choice of the function is predefined a priori.
 3. **Adaptive** A functional form is fitted to the (history of) observed states: τ = f(x, t,...). 
-4. GENERATIVE A generative algorithm anticipates resource needs and allocates resources based on the (history of) observed states: τ = τ0 iff f(x, t), τ1 else.
+4. **Generative** A generative algorithm anticipates resource needs and allocates resources based on the (history of) observed states: τ = τ0 iff f(x, t), τ1 else.
 
 ### Governance mechanism toolbox
 
