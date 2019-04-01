@@ -1,0 +1,27 @@
+\begin{tikzpicture}
+
+  % Horizontal axis for p_{j|k}.
+  \draw[->] (0,0) -- (4.2,0) node[anchor=west] {$p_{j|k}$};
+  \draw (3.5,0) node[anchor=north] {$\pi$};
+
+  \draw[->] (0,3) -- (4.2,3) node[anchor=west] {$p_{j|k}$};
+  \draw (3.5,0) node[anchor=north] {$\pi$};
+
+  % Limit price.
+  \draw[dotted] (3.5,0) -- (3.5,2.5);
+  \draw[dotted] (3.5,3) -- (3.5,5.5);
+
+  % Vertical axes.
+  \draw[-] (0,0) -- (0,2.5);
+  \draw[very thick,color=C1] (0,1) -- (3.5,2); % sell demand
+  \node[mark size=2pt,color=C1] at (3.5,2) {\pgfuseplotmark{*}};
+  \draw[very thick,color=C1] (3.5,0.05) -- (4,0.05); % sell demand
+  \draw (0,1) node[anchor=east] {$\overline{x} \cdot p_{j|k}$};
+
+  \draw[-] (0,3) -- (0,5.5);
+  \draw[very thick,color=C0] (0,4.5) -- (3.5,4.5); % buy demand
+  \node[mark size=2pt,color=C0] at (3.5,4.5) {\pgfuseplotmark{*}};
+  \draw[very thick,color=C0] (3.5,3.05) -- (4,3.05); % buy demand
+  \draw (0,4.5) node[anchor=east] {$\overline{x}$};
+
+\end{tikzpicture}
