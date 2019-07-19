@@ -25,7 +25,7 @@ After orders have been collected over at least a certain amount of time, a batch
 If more than one solution is submitted within a certain amount of time after the batch closes, the one that generates the largest "trader utility" (detailed explanation below, for now think "trading volume") is selected and executed.
 For this, the party whose solution proposal was selected must post sufficient information on-chain, so that other participants can quickly validate.
 
-Anyone can point out incorrect solutions on-chain within the so called _finalization_ period .
+Anyone can point out incorrect solutions on-chain within the so called *finalization* period .
 Within this finalization period, callouts are facilitated via so called fraud proofs.
 For any non-satisfied constraints of a solution (specified in detail below), a specific fraud proof can be generated and the fraud can be validated onchain.
 
@@ -76,7 +76,7 @@ To summarize, here is a list of state that is stored inside the smart contract:
 - Merkle-root-state-hash of all token balances 
 - Bi-Map of accounts public keys (ethereum addresses) to dƒusion accountId
 - Bi-Map of ERC20 token addresses to internal dƒusion tokenId that the exchange supports
-- Several rolling hash of pending orders, withdrawls and deposit requests (SHA)
+- Several rolling hashes of pending orders, withdrawls and deposit requests (SHA)
 - Map of stateTransitionId to pair of "valid withdrawel requests merkle-root" (SHA) and bitmap of already claimed withdraws
 - Current state of the batch auction (e.g. *price-finding* vs. *order-collection*)
 
