@@ -185,14 +185,18 @@ On-Chain order collection
 
 All orders are encoded as limit sell orders: **(accountId, fromTokenIndex, toTokenIndex, buyAmount, sellAmount, validUntilAuctionId, flagIsBuy, flagIsCancelation, signature)**.
 The order should be read in the following way: the user occupying the specified *accountId* would like to sell the token *fromTokenIndex* for *toTokenIndex* for at most the ratio *buyAmount* / *sellAmount*.
-Additionally, the user would like to buy at most *buyAmount* tokens if the *flag_isBuy* is true, otherwise he would like to sell at most *sellAmount* tokens.
+Additionally, the user would like to buy at most *buyAmount* tokens if the *flag_isBuy* is true, otherwise, he would like to sell at most *sellAmount* tokens.
 Any placed order is placed into an order stream, a queue data type.
-Any order in the orderstream is valid, until the auction with the id validUntilAuctionId is reached or the order is popped out of the queue data, due to a new insertation.
+Any order in the orderstream is valid until the auction with the id *validUntilAuctionId* is reached or the order is popped out of the queue data, due to a new insert.
+Additionally, an order can be resubmitted with the positive *flagIsCancelation* and then the order is also considered to be canceled. 
+It does not matter, whether the cancelation order is before or after the actual order, in any case, the order is canceled.
+If we would not have this logic, then anyone could just replay canceled orders.
 
+The order stream is made up of last 2**24 placed orders or order cancelations.
+The order stream is finite, as any solutions need to index orders with a certain amount of bits (24).
+Orders in the order stream are batched into smaller batches of size 2**7, and for each of these batches, the rolling order hash is stored on-chain.
+Each solution will just be able to consider the orders from the order stream stored in the last 2**(24-7) rolling order batches.
 
-The order stream is made up by last 2**24 placed orders or order cancelations.
-The order stream is finate, as any solutions needs to index orders with a certain amount of bits (24).
-Orders in the order stream are batched into smaller batches of size 2**7, and for each of these batches 
 The *batchId* and *signature* allow a third party to submit an order on behalf of others (saving gas when batching multiple orders together).
 
 The anchor smart contract on ethereum will offer the following function:
@@ -228,6 +232,8 @@ This will allow any participant to reproduce all orders of the current batch by 
 Also notice, the system allows orders, which might not be covered by any balance of the order sender. 
 These orders will be sorted out later in the settlement of an auction. 
 During the auction settlement, only a subset of the orderstream is actually considered and can be settled.
+
+Any order once touched in a solution will also never be considered as a valid order, as we can not differeniate between intentially replayed orders and maliciously replayed ordres.
 
 
 Finding the batch price: optimization of batch trading utility (off-chain)
@@ -392,6 +398,12 @@ Order cancelation
 - verify that cancelation happend after order placement
 - verify that cancelation is valid by reconstructing rolling order hash
 
+Order already settled in previous auction
+-----------------------------------------
+- provide unique reference to solution with settled order and its order index
+- resubmit as payload the whole referenced solution and validate the order was touched with positive trading volume
+- validate the order was part of current solution
+Note: this means that a settled order can never be used in the system again with the exact order data. If we want to allow it, we should use nonces.
 
 Fraud-Proofs for deposits and withdrawals
 =========================================
