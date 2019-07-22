@@ -182,7 +182,7 @@ TODO
 On-Chain order collection
 -------------------------
 
-All orders are encoded as limit sell orders: **(accountId, fromTokenIndex, toTokenIndex, buyAmount, sellAmount, validUntilAuctionId, flagIsBuy, flagIsCancelation, signature)**.
+All orders are encoded as limit sell orders: **(accountId, buyTokenId, sellTokenId, buyAmount, sellAmount, validUntilAuctionId, flagIsBuy, flagIsCancelation, signature)**.
 The order should be read in the following way: the user occupying the specified *accountId* would like to sell the token *fromTokenIndex* for *toTokenIndex* for at most the ratio *buyAmount* / *sellAmount*.
 Additionally, the user would like to buy at most *buyAmount* tokens if the *flag_isBuy* is true, otherwise, he would like to sell at most *sellAmount* tokens.
 Any placed order is placed into an order stream, a queue data type.
