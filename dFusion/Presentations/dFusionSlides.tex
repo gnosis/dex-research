@@ -15,6 +15,7 @@
 \def\pF{{\mathcal{F}}}
 
 
+%dƒusion Exchange
 
 \title{d$\mathcal{F}$usion Exchange \\ Decentralized Multi-Token Batch Auctions as a Snark-Application}
 \author{Benjamin H. Smith}
@@ -46,14 +47,14 @@
     \begin{itemize}
         \item \emph{Limit orders}  between any (registered) token pairs are collected in a batch (over 3 minutes or up to $N$ orders). 
         %\pause
-        $N$ - dictated by the capacity of the snarks$\dagger$
+        % $N$ - dictated by the capacity of the snarks
         %\pause
-        \item \emph{Order matching} algorithm is modelled as a \emph{Mixed Integer Program} with;
+        \item \emph{Order matching} modelled as \emph{Mixed Integer Program} with;
         %\pause
         \begin{itemize}
-            \item \emph{Objective Function} is one of trader's welfare or trading surplus
+            \item \emph{Objective Function} trading surplus
             %\pause
-            \item \emph{Feasibility Region} is encompassed by
+            \item \emph{Feasibility Region}
             \begin{enumerate}
                 \item Respected Limit Prices
                 %\pause
@@ -85,7 +86,7 @@
 \frame{
     \frametitle{Decentralization}
 
-    Placing and settlement of orders occurs in an Ethereum Smart Contract
+    Placing and settlement of orders in Smart Contract
 
     \begin{itemize}
         \item Anyone can submit solution proposals for auction results 
@@ -103,45 +104,44 @@
 
 \frame{
     \frametitle{Scalability}
-
-    Limited but sufficient on-chain storage
-
     \begin{itemize}
-        \item $K$ - accounts
-        \item $T$ - tokens
-        \item constants (max tokens, max accounts, etc)
-        \item Account state hash (representing balances $\{B_{k,t}\}_{\forall k, t}$)
+        \item Limited, but sufficient on-chain storage
+        \begin{itemize}
+            \item $K$ - accounts
+            \item $T$ - tokens
+            \item Constants (max tokens, max accounts, etc)
+            \item Account state hash (representing balances $\{B_{k,t}\}_{\forall k, t}$)
+        \end{itemize}
+        \item Atomic Swaps  
+        \begin{itemize}
+            \item Auction settlements 
+            \item Deposits \& Withdrawals
+        \end{itemize}
+        \item SNARKS
+        % \begin{itemize}
+        %     \item Snark-proof 
+        % \end{itemize}
     \end{itemize}
 }
+% \frame{
+%     \frametitle{SNARKS}
+%     \includegraphics[scale=0.015, right]{snark.png}
+%     \vspace{-1cm}
 
-\frame{
-    \frametitle{Atomic Swaps}
+%     (Succinct Non-interactive ARguments of Knowledge)
 
-    \begin{itemize}
-        \item auction settlements 
-        \item other states transitions (deposits \& withdrawals)
-    \end{itemize}
-}
+%     \begin{itemize}
 
-\frame{
-    \frametitle{SNARKS}
-    \includegraphics[scale=0.015, right]{snark.png}
-    \vspace{-1cm}
-
-    (Succinct Non-interactive ARguments of Knowledge)
-
-    \begin{itemize}
-
-        \item {\bf Prover} (a.k.a. Solution Proposer) does computation off-chain to prove that auction results are feasible. 
-        \item {\bf Verifyer} snark-proof is submitted on-chain in the form of a Smart Contract
-        \item Snarks used for all State Transitions (i.e. account balance updates)
-        \begin{enumerate}
-            \item Processing Deposits
-            \item Processing Withdrawals
-            \item Auction Settlement
-        \end{enumerate}
-    \end{itemize}
-}
+%         \item {\bf Prover} (a.k.a. Solution Proposer) does computation off-chain to prove that auction results are feasible. 
+%         \item {\bf Verifyer} snark-proof is submitted on-chain in the form of a Smart Contract
+%         \item Snarks used for all State Transitions (i.e. account balance updates)
+%         \begin{enumerate}
+%             \item Processing Deposits
+%             \item Processing Withdrawals
+%             \item Auction Settlement
+%         \end{enumerate}
+%     \end{itemize}
+% }
 
 \section{Snark Applications}
 
@@ -152,16 +152,16 @@
     \includegraphics[scale=0.02, right]{contract.png}
     \vspace{-2cm}
 
-    Contract contains
+    Contains
     \begin{enumerate}
         \item Elementary Items and Accessibility
         \begin{itemize}
             \item tokens, accounts and registration of them
         \end{itemize}
-        \item Participation requests
+        \item Participation Requests
         \begin{itemize}
             \item deposit, withdraw and limit order
-            \item Emit Events
+            \item emit events
         \end{itemize}
         \item State Transitions (balances)
         \begin{itemize}
@@ -217,18 +217,17 @@
     \end{itemize}
 }
 
-\subsection{Snarks revisited}
+% \subsection{Snarks revisited}
 
-\frame{
-    \frametitle{deposits \& withdrawals}
-    Snark contains all information regarding deposits in that slot
-}
+% \frame{
+%     \frametitle{deposits \& withdrawals}
+%     Snark contains all information regarding deposits in that slot
+% }
 
-
-\frame{
-    \frametitle{Auction Settlement}
-    Snark contains, prices and limit-order fulfilment is sufficient to demonstrate constraints of Linear Program
-}
+% \frame{
+%     \frametitle{Auction Settlement}
+%     Snark contains, prices and limit-order fulfilment is sufficient to demonstrate constraints of Linear Program
+% }
 
 
 \section{Upcoming Challenges}

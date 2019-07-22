@@ -1,0 +1,40 @@
+\documentclass[11pt]{article}
+\usepackage{tikz}
+\usetikzlibrary{arrows}
+
+\begin{document}
+
+\begin{tikzpicture}
+
+\tikzset{vertex/.style = {shape=circle,draw,minimum size=1.5em}}
+\tikzset{edge/.style = {->,> = latex'}}
+% vertices
+\node[vertex] (a) at  (0,0) {};
+\node[vertex] (b) at  (4,3) {};
+\node[vertex] (c) at  (8,0) {};
+\node[vertex] (d) at  (4,-3) {$t$};
+\node[vertex] (a1) at (1.5,0) {};
+\node[vertex] (a2) at (3,0) {};
+%edges
+\draw[edge] (b) to (a);
+\draw[edge] (b) to (c);
+\draw[edge] (a) to (d);
+\draw[edge] (c) to (d);
+
+\draw[edge] (a)  to[bend left] (a1);
+\draw[edge] (a1) to[bend left] (a);
+
+\draw[edge] (a1) to[bend left] (a2);
+\draw[edge] (a2) to[bend left] (a1);
+
+\path (a2) to node {\dots} (c);
+\node [shape=circle,minimum size=1.5em] (a3) at (4.5,0) {};
+\draw[edge] (a2) to[bend left] (a3);
+\draw[edge] (a3) to[bend left] (a2);
+
+\node [shape=circle,minimum size=1.5em] (c1) at (6.5,0) {};
+\draw[edge] (c) to[bend left] (c1);
+\draw[edge] (c1) to[bend left] (c);
+\end{tikzpicture}
+
+\end{document}
