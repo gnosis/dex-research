@@ -239,7 +239,7 @@ Any order once touched in a solution will also never be considered as a valid or
 Finding the batch price: optimization of batch trading utility (off-chain)
 --------------------------------------------------------------------------
 
-After a certain time-frame, anyone can trigger a "batch-freeze" and the a snap-shot of the latest orderstream is made.
+After a certain time-frame, anyone can trigger a "batch-freeze" and a snap-shot of the latest order-stream is made.
 A new batch could immediately start collecting new orders while the previous one is being processed.
 To process a batch, participants compute the uniform clearing price maximizing the trading utility between all trading pairs. 
 The traders utility of an order is defined as the difference between the uniform clearning price and the limit price, multipied by the volume of the order with respect to some reference token. 
