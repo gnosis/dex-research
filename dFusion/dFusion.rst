@@ -316,7 +316,7 @@ However, then rounding errors could happen, which will also effect the constrain
 Hence, we provide both volumes.
 
 Furthermore, for the feasibility of the fraud proofs, intermediate state-hashes need to be provided.
-Intermediate state-hashes are a mixture of temporary variables for the order processing ( such as current trader utility and total buyVolume - sellVolume per token) and the intemediate state root hashes.
+Intermediate state-hashes are a mixture of temporary variables for the order processing (such as current trader utility and total buyVolume - sellVolume per token) and the intermediate state root hashes.
 
 .. image:: intermediate-state-hash.png
 
