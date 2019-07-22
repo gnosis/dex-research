@@ -193,7 +193,7 @@ If we would not have this logic, then anyone could just replay canceled orders.
 
 The order stream is a queue able to hold 2^24 placed orders or order cancelations.
 The order stream is finite, as any solutions need to index orders with a fixed number of bits (24).
-Orders in the order stream are batched into smaller batches of size 2**7, and for each of these batches, the rolling order hash is stored on-chain.
+Orders in the order stream are batched into smaller batches of size 2^7, and for each of these batches, the rolling order hash is stored on-chain.
 Each solution will just be able to consider the orders from the order stream stored in the last 2**(24-7) rolling order batches.
 
 The *signature* must sign the order with the private key of the *accountID*.
