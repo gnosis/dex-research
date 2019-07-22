@@ -6,17 +6,17 @@ dFusion - Decentralized Scalable Onchain Exchange
 
 A specification developed by Gnosis.
 
-The following specification describes a scalable fully decentralized exchange with decentralized order matching. 
-Scalability is achieved by storing only hashed information onchain and allowing any bonded party to propose state-transitions.
-Predefined on-chain verification smart contracts allow any client to generate fraud proofs and thereby revert invalid state transitions.
+The following specification describes a scalable, fully decentralized exchange with decentralized order matching. 
+Scalability is achieved by storing only hashed information on-chain and allowing any bonded party to propose state-transitions.
+Pre-deployed on-chain verification smart contracts allow any client to generate fraud proofs and thereby revert invalid state transitions.
 
 Orders are matched in a batch auction with an arbitrage-free price clearing technique developed by Gnosis: `Uniform Clearing Prices <https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf>`_.
 
 Summary
 =======
 
-The envisioned exchange will enable **K** (in the magnitue of 2**24) accounts to trade via limit orders between **T** (in the magnitude of 2**10) predefined ERC20 tokens.
-Limit orders are collected onchain in an orderstream and subsets of these orders are matched in batches, with each batch containing up to **M** (in the magnitude of 2**10) orders. 
+The envisioned exchange will enable **K** (in the magnitude of 2^24) accounts to trade via limit orders between **T** (in the magnitude of 2^10) predefined ERC20 tokens.
+Limit orders are collected on-chain in an orderstream and subsets of these orders are matched in batches, with each batch containing up to **M** (in the magnitude of 2^10) orders. 
 Orders within a batch can be matched directly (e.g. an order trading token A for B against another order trading token B for A) or in arbitrarily long "ringtrades" (e.g. an order trading token A for B, with another one trading token B for C, with a third one trading token C for A).
 
 The matching process is decentralized.
@@ -25,26 +25,26 @@ After orders have been collected over at least a certain amount of time, a batch
 If more than one solution is submitted within a certain amount of time after the batch closes, the one that generates the largest "trader utility" (detailed explanation below, for now think "trading volume") is selected and executed.
 For this, the party whose solution proposal was selected must post sufficient information on-chain, so that other participants can quickly validate.
 
-Anyone can point out incorrect solutions on-chain within the so called *finalization* period .
-Within this finalization period, callouts are facilitated via so called fraud proofs.
-For any non-satisfied constraints of a solution (specified in detail below), a specific fraud proof can be generated and the fraud can be validated onchain.
+Anyone can point out incorrect solutions on-chain within the so called *finalization* period.
+Within this finalization period, callouts are facilitated via _fraud proofs_.
+For any non-satisfied constraints of a solution (specified in detail below), a specific fraud proof can be generated and the fraud can be validated on-chain.
 
 Due to the nature of fraud proofs, the system sets a crypto-economic incentive to only post valid solutions.
 
 State stored in the smart contract
 ==================================
 
-For each account, ERC20 token balances are represted in a Merkle tree constructed by the sha-hash operation.
-This "compressed" representation of all account balances by the Merkle root - called the balance-state-hash - is collision resistant and can thus be used to uniquely commit to the complete "uncompressed" state containing all balances explicitly. 
-The "uncompressed" state will be stored off-chain and all state transitions will be announced via smart contract events. 
+For each account, ERC20 token balances are represented in a Merkle tree constructed by the sha-hash operation.
+This succinct representation of all account balances by the Merkle root, called the balance-state-hash, is collision resistant and can thus be used to uniquely commit to the complete "uncompressed" state containing all balances explicitly. 
+The actual state will be stored off-chain and all state transitions will be announced via smart contract events. 
 Thus, the full state will be fully reproducible for any participant by replaying all blocks since the creation of the smart contract. 
-The following diagram shows how the "compressed" balance-state-hash is constructed:
+The following diagram shows how the succinct balance-state-hash is constructed:
 
 .. image:: balance-state-hash.png
 
 
 To allow **K** to be small, a bi-map of an accounts public key (on-chain address) to its **accountId** will be stored in the anchor contract as well. 
-The account index can be used to locate a users token balances in the Merkle-tree representing the state.
+The account index can be used to locate a users token balances in the Merkle tree representing the state.
 
 Furthermore, we store a bi-map of token address to its index **0 <= t <= T**, for each token that can be traded on the exchange.
 When specifying tokens inside orders, deposits and withdrawel requests, we use the token's index **0 <= t <= T** instead of the full address.
@@ -52,14 +52,14 @@ When specifying tokens inside orders, deposits and withdrawel requests, we use t
 As limit orders and deposits and withdrawal requests are collected they are not directly stored in the smart contract.
 Doing so would require a **SSTORE** EVM instruction for each item.
 This would be too gas-expensive.
-Instead the smart contract emits a smart contract event containing the relevant order information (account_id, from_token, to_token, buy_Amount, sell_Amount) and stores a rolling SHA hash.
+Instead the smart contract emits an event containing the relevant order information (accountId, sellToken, buyToken, buyAmount, sellAmount) and stores a rolling SHA hash.
 For a new order, the rolling hash is computed by hashing the previous rolling hash with the current order.
-Only after **O** orders are hashed via this rolling hash, the smart contract saves an ordercheckpoint hash, which is the current rolling hash.
-Storing ordercheckpoints allows to quickly lookup orders for later verification processes.
+Only after **O** orders are hashed via this rolling hash does the smart contract save an order-checkpoint hash, which is the current rolling hash.
+Storing order-checkpoints allows to quickly lookup orders for later verification processes.
 
 Any participants can apply pending deposit and withdrawal requests to the current account balance state.
 To do so, they provide a new state commitment that represents all account balances after the application of pending requests.
-Moreover, as the new state is stored on the smart contract, pending requests are not reseted directly, only after a longer finalization period.
+Moreover, as the new state is stored on the smart contract, pending requests are not reset directly, only after a longer finalization period.
 
 When a party applies withdrawal requests to the account balance state, they also provide the list of valid withdraws (in form of their Merkle root) which we store in the smart contract inside a mapping (**transitionId** -> **valid withdraw Merkle root**).
 Participants can later claim their withdraw by providing a merkle inclusion proof of their withdraw in any of the "valid withdraw merkle-roots".
@@ -71,12 +71,12 @@ Participants can provide state transitions that apply pending deposits and withd
 Since price finding and order matching is a computationally expensive task, the account state must not change while the optimization problem is ongoing, as this could potentially invalidate correct solutions (e.g. a withdraw could lead to insufficient balance for a matched trade).
 As soon as the matching of a closed batch is applied, pending withdrawls and deposits can again be applied to the state.
 
-To summarize, here is a list of state that is stored inside the smart contract:
-- Merkle-root-state-hash of all token balances 
+To summarize, here is a list of state that is storeorder-checkpointd inside the smart contract:
+- blanace-state-hash of all token balances 
 - Bi-Map of accounts public keys (ethereum addresses) to dƒusion accountId
 - Bi-Map of ERC20 token addresses to internal dƒusion tokenId that the exchange supports
 - Several rolling hashes of pending orders, withdrawls and deposit requests (SHA)
-- Map of stateTransitionId to pair of "valid withdrawel requests merkle-root" (SHA) and bitmap of already claimed withdraws
+- Map of stateTransitionId to pair of "valid withdrawal requests merkle-root" (SHA) and bitmap of already claimed withdraws
 - Current state of the batch auction (e.g. *price-finding* vs. *order-collection*)
 
 
@@ -85,14 +85,14 @@ Batch Auction Workflow
 
 The trading workflow consists of the following sequential processes:
 
-0. Account opening, deposits & withdrawals
+0. Account registration, deposits & withdrawals
 1. On-Chain order collection
 2. Finding the batch price: optimization of batch trading utility (off-chain)
 3. Verifying batch price and trade execution 
 4. Restart with step 1
 
 
-Account opening & token registration
+Account & token registration
 ------------------------------------
 
 Registering accounts
@@ -182,21 +182,21 @@ TODO
 On-Chain order collection
 -------------------------
 
-All orders are encoded as limit sell orders: **(accountId, fromTokenIndex, toTokenIndex, buyAmount, sellAmount, validUntilAuctionId, flagIsBuy, flagIsCancelation, signature)**.
+All orders are encoded as limit sell orders: **(accountId, fromTokenIndex, toTokenIndex, buyAmount, sellAmount, validUntilAuctionId, IsBuyFlag, cancelationFlag, signature)**.
 The order should be read in the following way: the user occupying the specified *accountId* would like to sell the token *fromTokenIndex* for *toTokenIndex* for at most the ratio *buyAmount* / *sellAmount*.
-Additionally, the user would like to buy at most *buyAmount* tokens if the *flag_isBuy* is true, otherwise, he would like to sell at most *sellAmount* tokens.
+Additionally, the user would like to buy at most *buyAmount* tokens if the *IsBuyFlag* is true, otherwise, he would like to sell at most *sellAmount* tokens.
 Any placed order is placed into an order stream, a queue data type.
 Any order in the orderstream is valid until the auction with the id *validUntilAuctionId* is reached or the order is popped out of the queue data, due to a new insert.
-Additionally, an order can be resubmitted with the positive *flagIsCancelation* and then the order is also considered to be canceled. 
+Additionally, an order can be resubmitted with the positive *cancelationFlag* and then the order is also considered to be canceled. 
 It does not matter, whether the cancelation order is before or after the actual order, in any case, the order is canceled.
 If we would not have this logic, then anyone could just replay canceled orders.
 
-The order stream is queue able to hold 2**24 placed orders or order cancelations.
+The order stream is a queue able to hold 2**24 placed orders or order cancelations.
 The order stream is finite, as any solutions need to index orders with a certain amount of bits (24).
 Orders in the order stream are batched into smaller batches of size 2**7, and for each of these batches, the rolling order hash is stored on-chain.
 Each solution will just be able to consider the orders from the order stream stored in the last 2**(24-7) rolling order batches.
 
-The *signature* must sign the order with the private key of the *accountID*.
+The *signature* must be provided by owner and is signed by its private key of the *accountID*.
 
 The anchor smart contract on ethereum will offer the following function:
 
@@ -250,7 +250,7 @@ However, many heuristic approaches might exist to find reasonable solutions in a
 
 Since posting the complete solution (all prices and traded volumes) would be too gas expensive to put on-chain for each candidate solution, participants only submit the 'traders utility' they claim there solution is able to achieve, the new balance-state-hash after the auction settlement and a bond.
 The anchor contract will collect the best submissions for **C** minutes and will select the solution with the maximal 'traders utility' as the proposed solution. 
-This proposed solution will become a - for the present being - a valid solution, if the solution submitter will load all details of his solution onchain within another **C/2** minutes.
+This proposed solution will become a - for the present being - a valid solution, if the solution submitter will load all details of his solution on-chain within another **C/2** minutes.
 If he does not do it, he will slashed and in the next **C/2** minutes anyone can submit another full solution and the best fully submitted solution will be accepted by the anchor contract.
 
 This means the uniform clearing price of the auction is calculated in a permission-less decentralized way.  
@@ -392,15 +392,15 @@ Order cancelation
 -----------------
 - provide unique reference to canceled order in solution
 - provide unique reference to cancelation: provide index and stored rolling order hash for cancelation
-- verify that cancelation happend after order placement
-- verify that cancelation is valid by reconstructing rolling order hash
+- verify that cancelation is valid by reconstructing rolling order hash 
 
 Order already settled in previous auction
 -----------------------------------------
 - provide unique reference to solution with settled order and its order index
 - resubmit as payload the whole referenced solution and validate the order was touched with positive trading volume
 - validate the order was part of current solution
-Note: this means that a settled order can never be used in the system again with the exact order data. If we want to allow it, we should use nonces.
+Note: this means that a settled order can never be used in the system again with the exact order data (Even, when it is only touched by an eplsion).
+If we want to allow it, we should use nonces.
 
 Fraud-Proofs for deposits and withdrawals
 =========================================
