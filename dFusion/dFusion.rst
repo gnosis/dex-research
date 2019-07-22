@@ -34,24 +34,25 @@ Due to the nature of fraud proofs, the system sets a crypto-economic incentive t
 State stored in the smart contract
 ==================================
 
-For each account, ERC20 token balance are merklized in a Merkle tree with the sha-hash operation in the anchor smart contract.
-This "compressed" representation of all account balances is collision resistant and can thus be used to uniquely commit to the complete "uncompressed" state containing all balances explicitly. 
+For each account, ERC20 token balances are represted in a Merkle tree constructed by the sha-hash operation.
+This "compressed" representation of all account balances by the Merkle root - called the balance-state-hash - is collision resistant and can thus be used to uniquely commit to the complete "uncompressed" state containing all balances explicitly. 
 The "uncompressed" state will be stored off-chain and all state transitions will be announced via smart contract events. 
 Thus, the full state will be fully reproducible for any participant by replaying all blocks since the creation of the smart contract. 
-The following diagram shows how the "compressed" state hash is constructed:
+The following diagram shows how the "compressed" balance-state-hash is constructed:
 
 .. image:: balance-state-hash.png
 
 
 To allow **K** to be small, a bi-map of an accounts public key (on-chain address) to its **accountId** will be stored in the anchor contract as well. 
-The account index can be used to locate a users token balances in the state.
+The account index can be used to locate a users token balances in the Merkle-tree representing the state.
 
 Furthermore, we store a bi-map of token address to its index **0 <= t <= T**, for each token that can be traded on the exchange.
 When specifying tokens inside orders, deposits and withdrawel requests, we use the token's index **0 <= t <= T** instead of the full address.
 
 As limit orders and deposits and withdrawal requests are collected they are not directly stored in the smart contract.
 Doing so would require a **SSTORE** EVM instruction for each item.
-This would be too gas-expensive. Instead the smart contract emits a smart contract event containing the relevant order information (account_id, from_token, to_token, buy_Amount, sell_Amount) and stores a rolling SHA hash.
+This would be too gas-expensive.
+Instead the smart contract emits a smart contract event containing the relevant order information (account_id, from_token, to_token, buy_Amount, sell_Amount) and stores a rolling SHA hash.
 For a new order, the rolling hash is computed by hashing the previous rolling hash with the current order.
 Only after **O** orders are hashed via this rolling hash, the smart contract saves an ordercheckpoint hash, which is the current rolling hash.
 Storing ordercheckpoints allows to quickly lookup orders for later verification processes.
@@ -69,8 +70,6 @@ Each bit in that maps denotes if the withdraw has alreay been claimed.
 Participants can provide state transitions that apply pending deposits and withdrawals only while the order collection process is ongoing (the current batch is not yet frozen).
 Since price finding and order matching is a computationally expensive task, the account state must not change while the optimization problem is ongoing, as this could potentially invalidate correct solutions (e.g. a withdraw could lead to insufficient balance for a matched trade).
 As soon as the matching of a closed batch is applied, pending withdrawls and deposits can again be applied to the state.
-
-*// TODO state for snark challenge/response, e.g. hashBatchInfo*
 
 To summarize, here is a list of state that is stored inside the smart contract:
 - Merkle-root-state-hash of all token balances 
@@ -192,12 +191,12 @@ Additionally, an order can be resubmitted with the positive *flagIsCancelation* 
 It does not matter, whether the cancelation order is before or after the actual order, in any case, the order is canceled.
 If we would not have this logic, then anyone could just replay canceled orders.
 
-The order stream is made up of last 2**24 placed orders or order cancelations.
+The order stream is queue able to hold 2**24 placed orders or order cancelations.
 The order stream is finite, as any solutions need to index orders with a certain amount of bits (24).
 Orders in the order stream are batched into smaller batches of size 2**7, and for each of these batches, the rolling order hash is stored on-chain.
 Each solution will just be able to consider the orders from the order stream stored in the last 2**(24-7) rolling order batches.
 
-The *batchId* and *signature* allow a third party to submit an order on behalf of others (saving gas when batching multiple orders together).
+The *signature* must sign the order with the private key of the *accountID*.
 
 The anchor smart contract on ethereum will offer the following function:
 
@@ -223,7 +222,8 @@ The anchor smart contract on ethereum will offer the following function:
 
 This function will update the rolling hash of pending orders, chaining all orders with a valid signature. 
 This function is callable by any party. 
-However, it is possible that “decentralized operators” accept orders from users, bundle them and then submit them all together in one function call. 
+It is possible that “decentralized operators” accept orders from users, bundle them and then submit them all together in one function call. 
+This allows for big gas savings, when batching multiple orders together.
 
 Notice, that the orders are only sent over as transaction payload, but will not be “stored” in the EVM (to save gas).
 All relevant information is emitted as events.
@@ -248,17 +248,14 @@ Calculating the uniform clearing prices is an np-hard optimization problem and m
 While we are unlikely to find a global optimum, the procedure is still fair, as everyone can submit their best solution.
 However, many heuristic approaches might exist to find reasonable solutions in a short timeframe.
 
-Since posting the complete solution (all prices and traded volumes) would be too gas expensive to put on-chain for each candidate solution, participants only submit the 'traders utility' they claim there solution is able to achieve and a bond.
+Since posting the complete solution (all prices and traded volumes) would be too gas expensive to put on-chain for each candidate solution, participants only submit the 'traders utility' they claim there solution is able to achieve, the new balance-state-hash after the auction settlement and a bond.
 The anchor contract will collect the best submissions for **C** minutes and will select the solution with the maximal 'traders utility' as the proposed solution. 
 This proposed solution will become a - for the present being - a valid solution, if the solution submitter will load all details of his solution onchain within another **C/2** minutes.
 If he does not do it, he will slashed and in the next **C/2** minutes anyone can submit another full solution and the best fully submitted solution will be accepted by the anchor contract.
 
 This means the uniform clearing price of the auction is calculated in a permission-less decentralized way.  
 Each time a solution is submitted to the anchor contract, the submitter also needs to bond themselves so that they can be penalized if their solutions later turns out incorrect.
-The participant providing the winning solution will later also have to provide the updated account balances that result from applying their order matching.
 In return for their efforts, solution providers will be rewarded with a fraction of transaction fees that are collected for each order.
-
-
 
 
 Providing data for fraud proofs of solutions
