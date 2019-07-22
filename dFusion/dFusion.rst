@@ -186,7 +186,7 @@ All orders are encoded as limit sell orders: **(accountId, buyTokenId, sellToken
 The order should be read in the following way: the user occupying the specified *accountId* would like to sell the token *buyTokenId* for *sellTokenId* for at most the ratio *buyAmount* / *sellAmount*.
 Additionally, the user would like to buy at most *buyAmount* tokens if the *flag_isBuy* is true, otherwise, he would like to sell at most *sellAmount* tokens.
 Any placed order is placed into an order stream, a queue data type.
-Any order in the orderstream is valid until the auction with the id *validUntilAuctionId* is reached or the order is popped out of the queue data, due to a new insert.
+Any order in the order stream is valid until the auction with the id *validUntilAuctionId* is reached or the order is popped out of the queue data, due to a new insert.
 Additionally, an order can be resubmitted with the positive *flagIsCancelation* and then the order is also considered to be canceled. 
 It does not matter, whether the cancelation order is before or after the actual order, in any case, the order is canceled.
 If we would not have this logic, then anyone could just replay canceled orders.
