@@ -191,7 +191,7 @@ Additionally, an order can be resubmitted with the positive *flagIsCancelation* 
 It does not matter, whether the cancelation order is before or after the actual order, in any case, the order is canceled.
 If we would not have this logic, then anyone could just replay canceled orders.
 
-The order stream is queue able to hold 2**24 placed orders or order cancelations.
+The order stream is a queue able to hold 2^24 placed orders or order cancelations.
 The order stream is finite, as any solutions need to index orders with a certain amount of bits (24).
 Orders in the order stream are batched into smaller batches of size 2**7, and for each of these batches, the rolling order hash is stored on-chain.
 Each solution will just be able to consider the orders from the order stream stored in the last 2**(24-7) rolling order batches.
