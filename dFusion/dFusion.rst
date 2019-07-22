@@ -244,7 +244,7 @@ A new batch could immediately start collecting new orders while the previous one
 To process a batch, participants compute the uniform clearing price maximizing the trading utility between all trading pairs. 
 The traders utility of an order is defined as the difference between the uniform clearning price and the limit price, multipied by the volume of the order with respect to some reference token. 
 The exact procedure is described `here <https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf>`_. 
-Calculating the uniform clearing prices is an np-hard optimization problem and most likely the global optimum will not be found in the pre-defined short time frame of 3-10 minutes.
+Calculating the uniform clearing prices is an np-hard optimization problem and most likely the global optimum will not be found in the pre-defined time frame of 3-10 minutes.
 While we are unlikely to find a global optimum, the procedure is still fair, as everyone can submit their best solution.
 However, many heuristic approaches might exist to find reasonable solutions in a short timeframe.
 
