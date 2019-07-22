@@ -220,8 +220,7 @@ The anchor smart contract on ethereum will offer the following function:
     }
 
 
-This function will update the rolling hash of pending orders, chaining all orders with a valid signature. 
-This function is callable by any party. 
+This function will update the rolling hash of pending orders, chaining all orders with a valid signature and is callable by any party.
 It is possible that “decentralized operators” accept orders from users, bundle them and then submit them all together in one function call. 
 This allows for big gas savings, when batching multiple orders together.
 
