@@ -262,14 +262,14 @@ Providing data for fraud proofs of solutions
 --------------------------------------------------------------------------
 
 The submitter of a solution needs to post the full solution into the ethereum chain as calldata payload. 
-The payload will contain: (new balance state, prices, touched orders, trading volume per order, intermediate state hashes).
-The solution is a new stateHash with the updated account balances, a price vector **P**:
+The payload will contain: (new balance-state-hash, prices, touched orders, trading volume per order, intermediate state hashes).
+The solution is a new balance-state-hash with the updated account balances, a price vector **P**:
 
 
 =================  =================  =====  ================= 
- Index_0           Index_1            ...    Index_S
+                   Index_1            ...    Index_S
 =================  =================  =====  =================
-sizeVector(=S)     P_1, token_index   ...    P_S, token_index
+(price, index)     P_1, token_index   ...    P_S, token_index
 =================  =================  =====  =================
 
 of all prices relative to a reference token **Token_1** with token_index = 0.
@@ -283,9 +283,9 @@ Each price is a 32-bit number and each token_index is a 10-bit number.
 The touched orders is a vector of the following format:
 
 =================  =================  =====  ================= 
- Index_0           Index_1            ...      Index_K
+                   Index_1            ...      Index_K
 =================  =================  =====  =================
-sizeVector(=K)     orderIndex_1       ...    orderIndex_K
+orders             orderIndex_1       ...    orderIndex_K
 =================  =================  =====  =================
 
 The orderIndex is always referring to the orderIndex in the orderstream.
@@ -356,7 +356,7 @@ State Transition
 
 Utility
 -------
-- verify via a merkle proof that hte last intermediate-state-root does not hold the claimed utility
+- verify via a merkle proof that the last intermediate-state-root does not hold the claimed utility
 
 Conservation of value
 ---------------------
@@ -478,7 +478,7 @@ The fraud proof is similar to the deposit fraud proof.
 Fee model
 =========
 
-TBD
+TBD; https://docs.google.com/document/d/1-AFNjDT9wbg3yT5eV8HRkTi9aMBSfn0ZtLlRl6jwtsM/edit
 
 
 Feasibility Study
