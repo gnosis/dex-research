@@ -242,7 +242,7 @@ Finding the batch price: optimization of batch trading utility (off-chain)
 After a certain time-frame, anyone can trigger a "batch-freeze" and a snap-shot of the latest order-stream is made.
 A new batch could immediately start collecting new orders while the previous one is being processed.
 To process a batch, participants compute the uniform clearing price maximizing the trading utility between all trading pairs. 
-The traders utility of an order is defined as the difference between the uniform clearning price and the limit price, multipied by the volume of the order with respect to some reference token. 
+The trader's utility of an order is defined as the difference between the uniform clearing price and the limit price, multiplied by the volume of the order with respect to some reference token. 
 The exact procedure is described `here <https://github.com/gnosis/dex-research/blob/master/BatchAuctionOptimization/batchauctions.pdf>`_. 
 Calculating the uniform clearing prices is an np-hard optimization problem and most likely the global optimum will not be found in the pre-defined time frame of 3-10 minutes.
 While we are unlikely to find a global optimum, the procedure is still fair, as everyone can submit their best solution.
