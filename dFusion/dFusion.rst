@@ -295,7 +295,7 @@ Each orderIndex is a 24 bit number.
 
 The size of orders in the batch is bound by the amount of orders that we can verify on-chain within one fraud-proof.
 Currently, the limit should be 1024 orders.
-Solutons with any K< 2**10 can be valid solutions and maximizing the traders utility.
+Solutons with any K < 2^10 can be valid solutions and maximizing the traders utility.
 
 Along with the orders, the solution submitter also has to post a vector **V** of **buyVolumes** and **sellVolumes** for each order:
 
