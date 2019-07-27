@@ -334,7 +334,7 @@ Fraud-Proofs for auction settlements
 
 There are a variety of fraud-proofs:
 
-State Transition & Utility & Conservation of value updates 
+State Transition, Utility & Conservation of Value Updates 
 ---------------------------------------------------------
 - Reprovide the solution as payload
 - For each order processed, verify the order from order-stream by reconstructing the stored order rolling hash of the referenced batch
