@@ -260,7 +260,7 @@ In return for their efforts, solution providers will be rewarded with a fraction
 Providing data for fraud proofs of solutions
 --------------------------------------------------------------------------
 
-The submitter of a solution needs to post the full solution into the ethereum chain as calldata payload. 
+The submitter of a solution must post the full solution onto the ethereum chain as calldata/payload. 
 The payload will contain: (new balance-state-hash, prices, touched orders, trading volume per order, intermediate state hashes).
 The solution is a new balance-state-hash with the updated account balances, a price vector **P**:
 
