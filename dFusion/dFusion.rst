@@ -337,7 +337,7 @@ There are a variety of fraud-proofs:
 State Transition & Utility & Conservation of value updates 
 ---------------------------------------------------------
 - Reprovide the solution as payload
-- For each order processed, verify the order from orderstream by reconstructing the stored order rolling hash of the referenced batch
+- For each order processed, verify the order from order-stream by reconstructing the stored order rolling hash of the referenced batch
 - Verify hashed volume calldata matches committed volume hash of solution
 - For each volume:
 - Find the account + buy and sell token balance of the order belonging to this volume
