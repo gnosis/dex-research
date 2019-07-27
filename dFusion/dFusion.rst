@@ -247,7 +247,7 @@ The exact procedure is described `here <https://github.com/gnosis/dex-research/b
 Calculating the uniform clearing prices is an np-hard optimization problem and most likely the global optimum will not be found in the pre-defined time frame of 3-10 minutes.
 While we are unlikely to find a global optimum, the procedure is still fair, as everyone can submit their best solution.
 However, many heuristic approaches might exist to find reasonable solutions in a short timeframe.
-Since posting the complete solution (all prices and traded volumes) would be too gas expensive to put on-chain for each candidate solution, participants only submit the 'traders utility' they claim there solution is able to achieve, the new balance-state-hash after the auction settlement and a bond.
+Since posting the complete solution (all prices and traded volumes) would be too gas expensive to put on-chain for each candidate solution, participants only submit the 'traders utility' they claim there solution is able to achieve, the new balance-state-hash after the auction settlement along with a bond.
 The anchor contract will collect the best submissions for **C** minutes and will select the solution with the maximal 'traders utility' as the proposed solution. 
 This proposed solution will become a - for the present being - a valid solution, if the solution submitter will load all details of his solution on-chain within another **C/2** minutes.
 If he does not do it, he will slashed and in the next **C/2** minutes anyone can submit another full solution and the best fully submitted solution will be accepted by the anchor contract.
