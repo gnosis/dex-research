@@ -290,7 +290,7 @@ orders             orderIndex_1       ...    orderIndex_K
 The orderIndex is always referring to the order's index in the order-stream.
 Since during the batch closing a snap-shot of the latest order batch is taken, we can refer to any order in the stream relative to that snap-shot.
 The orderIndex 2^24 will reference to the last order in the batch.
-And the orderIndex 0 will refere to the order submitted 2**24 order before the last one.
+And the orderIndex 0 will refer to the order submitted 2^24 order before the last one.
 Each orderIndex is a 24 bit number.
 
 The size of orders in the batch is bound by the amount of orders that we can verify on-chain within one fraud-proof.
