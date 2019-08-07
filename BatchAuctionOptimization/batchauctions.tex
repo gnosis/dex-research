@@ -10,7 +10,7 @@
 \usepackage{amssymb}
 \usepackage{amsthm}          % Provides 'proof' environment.
 \usepackage[english]{babel}  % For defining 'theorem/corollary/lemma' envs.
-\usepackage{bm}              % Provides bold \pi
+\usepackage{bm}              % Provides bold \pi via \bm{}.
 \usepackage{booktabs}
 \usepackage{hyperref}
 \usepackage{todonotes}
@@ -191,8 +191,8 @@ Additionally, we introduce an artificial token~$ \tau_0 $ that shall be referred
 For convenience of notation, we use $ \mathcal{I}^t := \{ 1 \ldots n \} $ to denote the indices
 of our token set.
 
-Pairwise exchange rates between two tokens $ \tau_j $ and $ \tau_k $ will be denoted by $ p_{j|k} $,
-meaning the price of one unit of $ \tau_j $ measured in units of $ \tau_k $.
+The pairwise exchange rates between two tokens $ \tau_j $ and $ \tau_k $ will be denoted by
+$ p_{j|k} $, meaning the price of one unit of $ \tau_j $ measured in units of $ \tau_k $.
 As an example, if $ p_{j|k} = 10 $, one would need to pay an amount of $ 10 $ units of $ \tau_k $
 in order to purchase one unit of $ \tau_j $.
 
@@ -200,7 +200,6 @@ Let there be a set $ \orders = \{ \omega_1 \ldots \omega_N \} $ of $ N $ orders 
 processed and let $ \iorders := \{ 1 \ldots N \} $ denote its set of indices.
 Every order is specified as a tuple $ \omega = (j,k,\overline{x},\overline{y},\pi) $ whose elements
 are to be understood as follows:
-More precisely, we define and understand the elements of every such tuple as follows:
 \begin{align*}
   j &\in \itokens &&
     \ldots \quad \tau_j \> \text{is the token to be bought,}\\
@@ -276,11 +275,11 @@ Using this universal notation, we can express a variety of different order types
   \vspace{.2cm}\newline
   The market participant sets both a fixed maximum buy amount~$\overline{x}$
   and sell amount~$\overline{y}$, but no limit price $\pi$.
-  Hence, the trader expresses a willingness to a buy a certain amount of $\tau_j$ independent
+  Hence, the trader expresses a willingness to a buy up to a certain amount of $\tau_j$ independent
   of the price per unit, but limits the total amount of $\tau_k$ that needs to be paid.
 \end{enumerate}
 
-\figref{fig:buy_sell_demand} illustrates the characteristic buy- and sell-demand profiles of the
+\figref{fig:buy_sell_demand} illustrates the characteristic buy- and sell-profiles of the
 three different limit order types depending on the exchange rate~$p_{j|k}$.
 
 Please note that orders with $j=k$, \ie identical buy- and sell-token, imply trading with oneself.
@@ -313,13 +312,13 @@ it might make sense to explicitely require $j \neq k$ from a semantic perspectiv
     \end{tikzpicture}
   \end{subfigure}
   \caption{
-    Buy- and sell-demand profiles for limit orders (types 1/2/3).
-    The graphs show the maximum amounts of tokens that can be bought and sold with respect to the
-    exchange rate~$p_{j|k}$.
+    Buy- and sell-profiles for limit orders (types 1/2/3).
+    The graphs show the transacted amounts of tokens with respect to the exchange rate~$p_{j|k}$
+    in the case that the order is fully executed.
     The maximum buy-amount is computed as $\min\{\overline{x},\overline{y}/p_{j|k}\}$, whereas the
     maximum sell-amount equals $\min\{\overline{y},\overline{x} \cdot p_{j|k}\}$.
     The graphs look similar for market orders (types 4/5/6), with the only difference being the
-    absence of a limit price $\pi$.}
+    absence of a limit price~$\pi$.}
   \label{fig:buy_sell_demand}
 \end{figure}
 
@@ -340,12 +339,16 @@ it might make sense to explicitely require $j \neq k$ from a semantic perspectiv
 
 \paragraph{Objectives}
 
-Having collected a batch of buy and sell orders for our set of tokens, we ultimately want to
-compute exchange rates for all token pairs.
-Therefore, the following optimization criteria could be used:
+For a given batch of orders~$\mathcal{O}$ on our set of tokens~$\mathcal{T}$, it is our goal to
+compute the exchange rates~$p_{j|k}$ for all token pairs~$(\tau_j,\tau_k)$ together with an order
+matching that maximizes one of the following optimization criteria:
 \begin{itemize}
-  \item maximize the amount of trade that is enabled (\wrt some reference token)
-  \item maximize \emph{trader welfare}, \eg defined as difference of paid price vs. limit price
+  \item maximize \emph{total trading volume}, \ie the amount of trade that is enabled (\wrt
+  the reference token)
+  \item maximize \emph{social surplus/welfare}, defined as the product of tokens bought/sold and
+  the valuation in terms of limit price per order
+  \item maximize \emph{total traders' utility}, defined as the difference between price paid vs.
+  limit price per order
 \end{itemize}
 
 
@@ -368,7 +371,7 @@ high level as follows:
   for all token triples $ (\tau_j,\tau_k,\tau_l) $: $ p_{j|k} \cdot p_{k|l} = p_{j|l} $.
 \end{itemize}
 
-\newpage
+\vspace{.8cm}
 \begin{lemma}
   (arbitrage freeness) $ \Rightarrow $ (price coherence).
 \end{lemma}
@@ -407,6 +410,7 @@ Here is a list of research questions that we would like to answer.
 \end{itemize}
 \end{comment}
 
+\newpage
 \paragraph{Example}
 
 A typical instance of our batch auction problem could look like shown in 
@@ -480,6 +484,7 @@ Applying the arbitrage-freeness and price-coherence conditions directly, we can 
 exchange rate between two tokens $ \tau_j $ and $ \tau_k $ as
 \begin{align}
   p_{j|k} = p_{j|0} \cdot p_{0|k} = \frac{p_{j|0}}{p_{k|0}} = \frac{p_j}{p_k}.
+  \label{eq:price_decomposition}
 \end{align}
 Let $ \mathbf{p} \in \mathbb{R}^n_{> 0} $ be a vector containing all prices $ p_j $.
 
