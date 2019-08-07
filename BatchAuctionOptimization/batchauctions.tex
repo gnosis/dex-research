@@ -1343,6 +1343,96 @@ If larger problems are to be considered, we can think of the following heuristic
 \section{Extensions}
 \label{sec:extensions}
 
+\subsection{Fee model}
+\label{subsec:fee_model}
+
+While the proposed trading mechanism guarantees fair prices and preserves value for all market participants, it does not yet consider trading fees to be paid towards the market operator.
+In most continuous orderbook-based exchanges, a trading fee is simply levied as a percentage of the trade that is executed.
+The approach described in the following adopts this common practice.
+Moreover, it allows for fees to be paid out in a designated \emph{fee token} only and thus avoids for the fees to be denominated in every possible token that is present in the batch iteration.
+
+Let $\varphi \in [0,1]$ be the fee percentage for every trade and $\tau^{(\varphi)}$ the fee token.
+For a single order $\omega = (j,k,\overline{x},\overline{y},\pi)$, we had defined the constraint set \eqref{eq:order_model_generic} in \secref{sec:models} describing the required restrictions depending on whether $\omega$ is executed or not.
+One of our goals is to satisfy the limit price of an order even after the deduction of fees, \ie the constraint $y \le \pi \cdot x$ still needs to hold.
+We interpret the fee as a deduction from the buy amount $x$ (as opposed to a surcharge on top of the sell amount $y$), so the uniform clearing price condition changes to $x = y \cdot \frac{p_k}{p_j} \cdot (1-\varphi)$.
+
+Altogether, this yields the following modified constraint sets:
+\begin{align}
+  \mathfrak{C}^1_{(\varphi)} := \left\{
+  \begin{array}{rll}
+    x &\le & \overline{x} \\
+    y &\le & \overline{y} \\
+    x \cdot p_j &= & y \cdot p_k \cdot (1-\varphi) \\[1mm]
+    \frac{p_j}{p_k} &\le & \pi \cdot (1-\varphi)
+  \end{array}
+  \right\}
+  \quad
+  \text{and}
+  \quad
+  \mathfrak{C}^0_{(\varphi)} := \left\{
+  \begin{array}{rll}
+    x &= & 0 \\
+    y &= & 0 \\[1mm]
+    \frac{p_j}{p_k} &> & \pi \cdot (1-\varphi)
+  \end{array}
+  \right\}
+  \label{eq:order_model_generic_fee}
+\end{align}
+
+The token balance constraint \eqref{eq:nlp_tokenbalance} as in the nonlinear programming formulation remains similar for all tokens except the fee token $\tau^{(\varphi)}$, for which it is relaxed to
+\begin{align}
+  \sum\limits_{i \in \iorders} t^b_{i,j} \, x_i
+  &\le \sum\limits_{i \in \iorders} t^s_{i,j} \, y_i
+  && \tau_j = \tau^{(\varphi)}.
+  \tag{\ref{eq:nlp_tokenbalance}'}
+\end{align}
+This allows for more tokens~$\tau^{(\varphi)}$ to be sold than bought across all executed orders.
+The difference represents the total fee amount that is paid towards the operator.
+
+In the mixed-integer model I, the constraint set \eqref{eq:order_model_mip1} needs to be modified as follows in order to accomodate the fee model:
+\begin{align}
+  \tilde{\mathfrak{C}}^1_{(\varphi)} := \left\{
+  \begin{array}{rlll}
+    (1-\varphi) \cdot v &\le & \overline{x} \cdot p_j \\
+    v &\le & \overline{y} \cdot p_k \\[1mm]
+    \frac{p_j}{p_k} &\le & \pi \cdot (1-\varphi)
+  \end{array}
+  \right\}
+  \quad
+  \text{and}
+  \quad
+  \tilde{\mathfrak{C}}^0_{(\varphi)} := \left\{
+  \begin{array}{rll}
+    v &= & 0 \\[1mm]
+    \frac{p_j}{p_k} &> & \pi \cdot (1-\varphi)
+  \end{array}
+  \right\}
+  \label{eq:order_model_mip1_fee}
+\end{align}
+
+For this model, we had shown that token balance is equivalent to volume balance for every token.
+Considering fees, the respective constraint \eqref{eq:mip1_tokenbalance} changes to
+\begin{equation}
+  \begin{aligned}
+    \sum\limits_{i \in \iorders} t^b_{i,j} \, v_i \cdot (1-\varphi)
+    &= \sum\limits_{i \in \iorders} t^s_{i,j} \, v_i
+    &&\hspace{2cm} \forall \> \tau_j \in \tokens \setminus \tau^{(\varphi)} \\[2mm]
+    \sum\limits_{i \in \iorders} t^b_{i,j} \, v_i \cdot (1-\varphi)
+    &\le \sum\limits_{i \in \iorders} t^s_{i,j} \, v_i
+    &&\hspace{2cm} \tau_j = \tau^{(\varphi)}.
+  \end{aligned}
+  \tag{\ref{eq:mip1_tokenbalance}'}
+\end{equation}
+
+Please note that it is an easy extension to consider multiple fee tokens instead of only one.
+
+
+
+
+
+\newpage
+\subsection{Further ideas}
+
 The problem can possibly be extended in various directions:
 \begin{itemize}
   \item Add accounts/balances to the model.
