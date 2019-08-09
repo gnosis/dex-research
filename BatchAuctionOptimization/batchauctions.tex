@@ -180,8 +180,10 @@ In this section, we want to give a high-level description of the problem that we
 thereby introducing some general notation and giving an overview of the constraints and properties
 that we will focus on.
 
-\vspace{-.3cm}
-\paragraph{Data}
+\subsection{Model components}
+\label{subsec:model_components}
+
+\paragraph{Tokens \& exchange rates}
 
 Let $ \tokens := \{ \tau_1 \ldots \tau_n \} $ denote the set of the $ n $ tokens that we want to
 consider.
@@ -195,6 +197,8 @@ The pairwise exchange rates between two tokens $ \tau_j $ and $ \tau_k $ will be
 $ p_{j|k} $, meaning the price of one unit of $ \tau_j $ measured in units of $ \tau_k $.
 As an example, if $ p_{j|k} = 10 $, one would need to pay an amount of $ 10 $ units of $ \tau_k $
 in order to purchase one unit of $ \tau_j $.
+
+\paragraph{Orders}
 
 Let there be a set $ \orders = \{ \omega_1 \ldots \omega_N \} $ of $ N $ orders in the batch to be
 processed and let $ \iorders := \{ 1 \ldots N \} $ denote its set of indices.
@@ -235,7 +239,6 @@ Using this universal notation, we can express a variety of different order types
   and a limit exchange rate~$\pi$, but does not have a limit on the amount of tokens~$\tau_j$
   to be obtained.
   The higher the exchange rate~$p_{k|j}$, the more tokens~$\tau_j$ the trader receives.
-  \newpage
 
   \item \emph{Double-sided limit orders} as $(j,k,\overline{x},\overline{y},\pi)$
     with $\overline{x} < +\infty$, $\overline{y} < +\infty$ and $\pi < +\infty$:
@@ -337,34 +340,39 @@ it might make sense to explicitely require $j \neq k$ from a semantic perspectiv
 \end{observation}
 
 
-\paragraph{Objectives}
+\subsection{Variables}
+\label{subsec:variables}
 
-For a given batch of orders~$\mathcal{O}$ on our set of tokens~$\mathcal{T}$, it is our goal to
-compute the exchange rates~$p_{j|k}$ for all token pairs~$(\tau_j,\tau_k)$ together with an order
-matching that maximizes one of the following optimization criteria:
+The goal of our approach is to determine the exchange rates between all token pairs that allow for the best possible matching of orders (according to one of the metrics suggested in \secref{subsec:objectives}).
+Hence, both the exchange rates as well as the traded token amounts per order represent the generic set of variables for our problem.
+
+For every order $\omega = (j,k,\overline{x},\overline{y},\pi) \in \orders$, we introduce two variables $x \in \mathbb{R}_{\ge 0}$ and $y \in \mathbb{R}_{\ge 0}$ that denote the amount of tokens~$\tau_j$ bought and the amount of tokens~$\tau_k$ sold, respectively.
+Obviously, these need to satisfy the specified order amounts, \ie $x \le \overline{x}$ and $y \le \overline{y}$.
+
+Working directly with the exchange rates~$p_{j|k}$ as variables for all token pairs $(\tau_j,\tau_k)$ leads to nonlinear dependencies in the constraints that we are aiming to satisfy.
+Hence, for every token~$\tau_j \in \tokens$, we introduce a new variable $p_j := p_{j|0}$ denoting the price of~$\tau_j$ expressed in units of the reference token~$\tau_0$.
+The price~$p_0$ of the reference token itself can be fixed to some constant in order to remove the excess degree of freedom.
+Without loss of generality, we will use~$p_0 = 1$ throughout this paper.
+The relationship between the exchange rate and the price variables will be derived in \secref{subsec:constraints}.
+
+
+\subsection{Constraints}
+\label{subsec:constraints}
+
+The solution that we are trying to find needs to satisfy several requirements that can be stated on a high level as follows:
 \begin{itemize}
-  \item maximize \emph{total trading volume}, \ie the amount of trade that is enabled (\wrt
-  the reference token)
-  \item maximize \emph{social surplus/welfare}, defined as the product of tokens bought/sold and
-  the valuation in terms of limit price per order
-  \item maximize \emph{total traders' utility}, defined as the difference between price paid vs.
-  limit price per order
-\end{itemize}
-
-
-\paragraph{Constraints}
-
-The solution that we are aiming at needs to satisfy several requirements that can be stated on a
-high level as follows:
-\begin{itemize}
+  \item \emph{(maximum buy and sell amount)}:\\
+  for every order $\omega = (j,k,\overline{x},\overline{y},\pi) \in \orders$:
+  the amount of tokens bought and sold must not exceed the specified limits, \ie $x \le \overline{x}$ and $y \le \overline{y}$.
   \item \emph{(limit price)}:\\
-  for all orders
-  $ \omega = (j,k,\overline{x},\overline{y},\pi) \in \orders $:
-  the order can only be executed (fully or fractionally) if the exchange rate satisfies the
-  limit price, \ie $ p_{j|k} \le \pi $.
+  for every order $\omega = (j,k,\overline{x},\overline{y},\pi) \in \orders$:
+  the order can only be executed (fully or fractionally) if the exchange rate satisfies the limit price, \ie $ p_{j|k} \le \pi $.
+  \item \emph{(uniform clearing price)}:\\
+  for every order $\omega = (j,k,\overline{x},\overline{y},\pi) \in \orders$:
+  the order is executed using the exchange rate~$p_{j|k}$ which is uniquely determined for each token pair~$(\tau_j,\tau_k)$, \ie, $y = x \cdot p_{j|k}$.
   \item \emph{(token balance)}:\\
-  for every token $ \tau \in \tokens $: the amount of tokens $ \tau $ that were bought must
-  equal the amount of tokens $ \tau $ that were sold across all orders.
+  for every token $ \tau \in \tokens $: 
+  the amount of tokens $ \tau $ that were bought must equal the amount of tokens $ \tau $ that were sold across all orders.
   \item \emph{(price coherence)}:\\
   for all token pairs $ (\tau_j,\tau_k) $: $ p_{j|k} \cdot p_{k|j} = 1 $.
   \item \emph{(arbitrage freeness)}:\\
@@ -392,8 +400,105 @@ high level as follows:
 \end{proof}
 \vspace{-.4cm}
 
-Notice that the above constraints also imply $ p_{j|j} = 1 $ for every
-token~$ \tau_j \in \tokens $.
+Notice that the above constraints also imply $ p_{j|j} = 1 $ for every token~$ \tau_j \in \tokens $.
+
+\paragraph{(Relative) Exchange rates vs. (absolute) token prices}
+
+Moreover, the arbitrage-freeness and price-coherence conditions help establish a relation between the exchange rate variable~$p_{j|k}$ for token pair~$(\tau_j,\tau_k)$ and the price variables~$p_j$ and $p_k$ for the individual tokens (as defined in \secref{subsec:variables}):
+\begin{align}
+  p_{j|k} = p_{j|0} \cdot p_{0|k} = \frac{p_{j|0}}{p_{k|0}} = \frac{p_j}{p_k}.
+  \label{eq:price_decomposition}
+\end{align}
+Consequently, working with token price variables rather than pairwise exchange rates automatically guarantees arbitrage-freeness across all tokens.
+Moreover, the uniform clearing price condition can be rewritten as $\frac{p_j}{p_k} \le \pi$, while the uniform clearing price constraint becomes $x \cdot p_j = y \cdot p_k$.
+Both conditions together yield an equivalent expression for the limit price: $x \cdot \pi \ge y$.
+
+\paragraph{Reference token}
+
+We now have some freedom to decide what precisely the artificial reference token should represent.
+For example, we could select one particular $ \tau_j \in \tokens $ to be the \emph{numeraire}, \ie
+\begin{subequations}
+\begin{align}
+  p_0 &= p_j.
+  \label{eq:refToken_1}
+\end{align}
+Then, all trading volume would be computed \wrt $ \tau_j $, making this the principal token in the batch auction.
+Alternatively and more generally, we could also identify $ \tau_0 $ with a weighted sum of all
+participating tokens in $ \tokens $, \ie
+\begin{align}
+  p_0 &= \sum\limits_{j \in \itokens} \gamma_j \cdot p_j,
+  \label{eq:refToken_2}
+\end{align}
+\end{subequations}
+with weights $ \gamma_j > 0 $.
+This way, it would be possible to give similar importance to all tokens, \eg by using weights
+$ \gamma_j = 1 / (n \cdot p_j^\mathrm{old}) $, where $ p_j^\mathrm{old} $ denotes the price of
+token $ \tau_j $ found in the previous batch auction iteration.
+
+\vspace{.2cm}
+\begin{observation}
+The choice of representation of the reference token has an influence on the solution.
+This can be seen by considering a single token pair $ (\tau_j,\tau_k) $ with only two buy orders
+$ \omega_1 = (j,k,1.0,+\infty,2.0) $ and $ \omega_2 = (k,j,1.5,+\infty,1.0) $.
+Both orders can be matched if $ p_{j|k} \in [1,2] $.
+However, if we choose token $ \tau_j $ to be the reference token, a maximum of $ 1.0 \, \tau_j $
+can be transacted for prices $ p_{j|k} \in [1,1.5] $, whereas the maximum trading volume of
+$ 1.5 \, \tau_k $ can be achieved when $ p_{j|k} \in [1.5,2] $.
+\end{observation}
+
+
+\subsection{Objectives}
+\label{subsec:objectives}
+
+As mentioned previously, for a given batch of orders~$\mathcal{O}$ on the set of tokens~$\mathcal{T}$, it is our goal to determine the exchange rates~$p_{j|k}$ for all token pairs~$(\tau_j,\tau_k)$ together with an order matching such that a certain optimization criterion is maximized.
+We are considering the following three objective functions:
+
+\paragraph{Trading volume}
+
+The most obvious optimization criterion would be to target a solution that enables as much trade as possible.
+Due to their different prices, we can not simply maximize for the total number of tokens traded, but need a common scale as a measure of value.
+Hence, for every order~$\omega = (j,k,\overline{x},\overline{y},\pi) \in \orders$, a new variable~$v \in \mathbb{R}_{\ge 0}$ representing the \emph{trading volume} is introduced, defined as
+\begin{align}
+  v := x \cdot p_j = y \cdot p_k.
+  \label{eq:volume}
+\end{align}
+In words, the trading volume measures the value of all transactions in terms of units of the reference token~$\tau_0$.
+The objective function comprises the sum of the trading volumes of all orders.
+
+\paragraph{Social surplus/welfare}
+
+As a downside, the trading volume does not take the limit prices of orders into account.
+For orders on the same token pair, traders might expect the ones with the best limit prices to be filled with preference over those whose limit prices are very close to the determined exchange rate.
+A measure that captures the valuation of the order executed by the trader is called \emph{social surplus} or \emph{social welfare}, denoted by a variable~$w \in \mathbb{R}_{\ge 0}$ per order.
+It uses the amount~$x$ of tokens~$\tau_j$ bought, determines how many tokens~$\tau_k$ the trader would have been ready to spend (via the limit price~$\pi$), and values this amount with the token price~$p_k$:
+\begin{align}
+  w &:= x \cdot \pi \cdot p_k.
+  \label{eq:welfare}
+\end{align}
+Again, the objective function is the sum of all $w$.
+
+\paragraph{Trader's utility}
+
+Finally, combining trading volume and valuation, another measure called \emph{trader's utility} could be used as objective.
+We will denote it by $u \in \mathbb{R}_{\ge 0}$ and it can be considered in two variants:
+\begin{itemize}
+  \item the difference between the amount that the trader would have been ready to spend for an amount of~$x$ buy-tokens~$\tau_j$ and the amount~$y$ that is actually spent (weighted by the price~$p_k$ of the sell-token~$\tau_k$):
+  \begin{subequations}
+  \begin{align}
+    u := (x \cdot \pi - y) \cdot p_k
+    \label{eq:utility_a}
+  \end{align}
+  \item the difference between the amount~$x$ of tokens~$\tau_j$ bought and the amount that the trader would have accepted as a minimum for spending~$y$ tokens~$\tau_k$ (now weighted by the price~$p_j$):
+  \begin{align}
+    u := (x - y/\pi) \cdot p_j
+    \label{eq:utility_b}
+  \end{align}
+  \label{eq:utility}
+  \end{subequations}
+\end{itemize}
+
+Notice that definition \eqref{eq:utility_a} yields $u = w - v$.
+
 
 \begin{comment}
 \paragraph{Properties}
@@ -411,7 +516,7 @@ Here is a list of research questions that we would like to answer.
 \end{comment}
 
 \newpage
-\paragraph{Example}
+\subsection{Example}
 
 A typical instance of our batch auction problem could look like shown in 
 \figref{fig:order-token-graph}.
@@ -456,7 +561,7 @@ We introduce two data matrices
 For now, we are only considering orders of one token against one other, so there must be exactly
 one entry equal to $ 1 $ per row (order) in both $ \mathbf{T}^b $ and $ \mathbf{T}^s $.
 An extension to so-called \emph{basket orders} where multiple tokens are traded against multiple
-others is discussed as an extension \secref{sec:extensions}.
+others is discussed as an extension \secref{subsec:basket_orders}.
 
 Let $ (\overline{x}_i) =: \overline{\mathbf{x}} \in \mathbb{R}^N_{\ge 0} $ and 
 $ (\overline{y}_i) =: \overline{\mathbf{y}} \in \mathbb{R}^N_{\ge 0} $ contain the maximum amounts
@@ -470,61 +575,66 @@ executed (according to the definition in \subsecref{sec:problem}).
 \vspace{-.2cm}
 \paragraph{Variables}
 
-Primarily, we want to determine exchange rates between all token pairs.
-However, if we directly considered those exchange rates being variables, modelling
-arbitrage-freeness constraints of type \eqref{eq:arbitrage_freeness} automatically leads to many
-multiplications being required.
-This may result in unnecessary limitations to the tractable problem size as well as numerical
-instability.
-In order to circumvent this issue, we can instead represent all token prices only with respect to
-the single (artificial) reference token $ \tau_0 $.
-Therefore, let $ p_j := p_{j|0} $ denote the price of token $ \tau_j $ expressed in units of
-$ \tau_0 $ (hence, $ p_0 = 1 $).
-Applying the arbitrage-freeness and price-coherence conditions directly, we can express the
-exchange rate between two tokens $ \tau_j $ and $ \tau_k $ as
+Let $(p_j) =: \mathbf{p} \in \mathbb{R}^n_{> 0}$ be a vector containing all token prices to be determined.
+For the orders, we use the following notation:
+\begin{align*}
+  (x_i) &=: \mathbf{x} \in \mathbb{R}^N_{\ge 0} && \ldots\>\text{number of tokens bought}\\
+  (y_i) &=: \mathbf{y} \in \mathbb{R}^N_{\ge 0} && \ldots\>\text{number of tokens sold}\\[2mm]
+  (v_i) &=: \mathbf{v} \in \mathbb{R}^N_{\ge 0} && \ldots\>\text{trading volume}\\
+  (w_i) &=: \mathbf{w} \in \mathbb{R}^N_{\ge 0} && \ldots\>\text{social surplus}\\
+  (u_i) &=: \mathbf{u} \in \mathbb{R}^N_{\ge 0} && \ldots\>\text{trader's utility}\\
+\end{align*}
+
+
+\paragraph{Constraints}
+
+We need to distinguish two different behaviours for every order: Either the exchange rate
+on the respective token pair satisfies its limit price (and thus the order may be executed), or it
+does not (thus the order needs to remain untouched).
+Optionally, we could incorporate a minimum fraction of execution, denoted by a parameter
+$r^\Min \in [0,1]$, for the case that an order may be executed.
+This parameter may be set globally for all orders, or for every order individually.
+In the following, however, we assume that there is no minimum order execution fraction imposed,
+\ie $r^\Min = 0$.
+We will discuss the impact of $r^\Min>0$ in \secref{sec:extensions}.
+
+In general, for an order given as $ \omega = (j,k,\overline{x},\overline{y},\pi) $, this yields
+the following two sets of constraints:
 \begin{align}
-  p_{j|k} = p_{j|0} \cdot p_{0|k} = \frac{p_{j|0}}{p_{k|0}} = \frac{p_j}{p_k}.
-  \label{eq:price_decomposition}
+  \mathfrak{C}^1 := \left\{
+  \begin{array}{rll}
+    x &\le & \overline{x} \\
+    y &\le & \overline{y} \\
+    x \cdot p_j &= & y \cdot p_k \\[1mm]
+    \frac{p_j}{p_k} &\le & \pi
+  \end{array}
+  \right\}
+  \quad
+  \text{and}
+  \quad
+  \mathfrak{C}^0 := \left\{
+  \begin{array}{rll}
+    x &= & 0 \\
+    y &= & 0 \\[1mm]
+    \frac{p_j}{p_k} &> & \pi
+  \end{array}
+  \right\}
+  \label{eq:order_model_generic}
 \end{align}
-Let $ \mathbf{p} \in \mathbb{R}^n_{> 0} $ be a vector containing all prices $ p_j $.
 
-We now have some freedom to decide what precisely the artificial reference token should represent.
-For example, we could select one particular $ \tau_j \in \tokens $ to be the \emph{numeraire}, \ie
-\begin{subequations}
-\begin{align}
-  p_0 &= p_j.
-  \label{eq:refToken_1}
-\end{align}
-Then, all trading volume would be computed \wrt $ \tau_j $ (which we will explain later in the
-model formulation sections), making this the principal token in the batch auction.
-Alternatively and more generally, we could also identify $ \tau_0 $ with a weighted sum of all
-participating tokens in $ \tokens $, \ie
-\begin{align}
-  p_0 &= \sum\limits_{j \in \itokens} \gamma_j \cdot p_j,
-  \label{eq:refToken_2}
-\end{align}
-\end{subequations}
-with weights $ \gamma_j > 0 $.
-This way, it is possible to give similar importance to all tokens.
-In the following, we will use \eqref{eq:refToken_2} together with weights
-$ \gamma_j = 1 / (n \cdot p_j^\mathrm{old}) $, where $ p_j^\mathrm{old} $ denotes the price of
-token $ \tau_j $ found in the previous batch auction iteration. 
+\paragraph{Objective}
 
-\todo[inline]{Implications of unavailable $ p_j^\mathrm{old} $?!}
+As introduced in \secref{subsec:objectives}, we consider three different objectives:
+\begin{align*}
+  && &\max\sum_{i \in \iorders} v_i && \ldots\>\text{total trading volume}&&\\
+  && &\max\sum_{i \in \iorders} w_i && \ldots\>\text{total social surplus}&&\\
+  && &\max\sum_{i \in \iorders} u_i && \ldots\>\text{total traders' utility}&&
+\end{align*}
 
-\vspace{.2cm}
-\begin{observation}
-The choice of representation of the reference token has an influence on the solution.
-This can be seen by considering a single token pair $ (\tau_j,\tau_k) $ with only two buy orders
-$ \omega_1 = (j,k,1.0,+\infty,2.0) $ and $ \omega_2 = (k,j,1.5,+\infty,1.0) $.
-Both orders can be matched if $ p_{j|k} \in [1,2] $.
-However, if we choose token $ \tau_j $ to be the reference token, a maximum of $ 1.0 \, \tau_j $
-can be transacted for prices $ p_{j|k} \in [1,1.5] $, whereas the maximum trading volume of
-$ 1.5 \, \tau_k $ can be achieved when $ p_{j|k} \in [1.5,2] $.
-\end{observation}
 
-Additionally, we want to bound the deviation of the new exchange rates $ p_{j|k} $ from the
-previously computed exchange rates $ p_{j|k}^\mathrm{old} $.
+\paragraph{Optional conditions}
+
+In some situations, it might make sense to bound the deviation of the new exchange rates $p_{j|k}$ from the previously computed exchange rates $ p_{j|k}^\mathrm{old} $.
 Therefore, let $ p^\mathrm{old}_j $ denote the price of token~$ \tau_j $ found in the previous
 batch auction iteration.
 Using a maximum fluctuation parameter $ \delta > 0 $, we impose the conditions
@@ -592,100 +702,14 @@ token~$ \tau_j $, so let us require $ p_j \in [\underline{p}_j,\overline{p}_j] $
 All price bounds shall be stored in vectors $\underline{\mathbf{p}}$ and $\overline{\mathbf{p}}$,
 respectively.
 
-In addition to computing optimal token prices $\mathbf{p}$, we also want to determine the status
-of execution for every order, \ie the amount of tokens that were bought and sold.
-Therefore, the number of tokens bought in an order $\omega_i$ shall be denoted by $x_i$, with
-$(x_i) =: \mathbf{x} \in \mathbb{R}^N_{\ge 0}$.
-Conversely, $(y_i) =: \mathbf{y} \in \mathbb{R}^N_{\ge 0}$ shall represent the amounts of tokens
-sold.
-
-We need to distinguish two different behaviours for every order: Either the exchange rate
-on the respective token pair satisfies its limit price (and thus the order may be executed), or it
-does not (thus the order needs to remain untouched).
-Optionally, we could incorporate a minimum fraction of execution, denoted by a parameter
-$r^\Min \in [0,1]$, for the case that an order may be executed.
-This parameter may be set globally for all orders, or for every order individually.
-In the following, however, we assume that there is no minimum order execution fraction imposed,
-\ie $r^\Min = 0$.
-We will discuss the impact of $r^\Min>0$ in \secref{sec:extensions}.
-
-In general, for an order given as $ \omega = (j,k,\overline{x},\overline{y},\pi) $, this yields
-the following two sets of constraints:
-\begin{align}
-  \mathfrak{C}^1 := \left\{
-  \begin{array}{rll}
-    x &\le & \overline{x} \\
-    y &\le & \overline{y} \\
-    x \cdot p_j &= & y \cdot p_k \\[1mm]
-    \frac{p_j}{p_k} &\le & \pi
-  \end{array}
-  \right\}
-  \quad
-  \text{and}
-  \quad
-  \mathfrak{C}^0 := \left\{
-  \begin{array}{rll}
-    x &= & 0 \\
-    y &= & 0 \\[1mm]
-    \frac{p_j}{p_k} &> & \pi
-  \end{array}
-  \right\}
-  \label{eq:order_model_generic}
-\end{align}
-
-\paragraph{Objective}
-
-Our primary objective shall be to determine token prices/exchange rates such that the total
-feasible \emph{trading volume} is maximized.
-Thereby, trading volume refers to the sum of all tokens traded across all orders, weighted by their
-respective price, \ie it measures the value of all transactions in terms of units of the reference
-token $ \tau_0 $.
-Thus, for every order $ \omega = (j,k,\overline{x},\overline{y},\pi) $, we introduce an additional
-variable $ v \ge 0 $, for which we require
-\begin{align}
-  v = x \cdot p_j \qquad \text{and} \qquad v = y \cdot p_k
-  \label{eq:trading_volume}
-\end{align}
-The trading volumes of all orders shall be stored in a vector
-$ \mathbf{v} \in \mathbb{R}^N_{\ge 0} $.
-It is then our objective to maximize $ \sum_{i \in \iorders} v_i $.
-
-Alternatively, we want to consider optimizing the total \emph{trading surplus}
-(or \emph{traders' welfare}) which is defined as follows for the different order types:
-\begin{itemize}
-  \item Limit buy order $\omega = (j,k,\overline{x},+\infty,\pi)$:
-  the trading surplus~$w$ measures the value of the difference between the amount~$x \cdot \pi$
-  of tokens $\tau_k$ that the trader would have been ready to spend for obtaining $x$
-  tokens~$\tau_j$, and the amount~$y$ that is actually spent:
-  \begin{align*}
-    w &= ( x \cdot \pi - y ) \> p_k
-    %\label{eq:trading_surplus_1}
-  \end{align*}
-
-  \item Limit sell order $\omega = (j,k,+\infty,\overline{y},\pi)$:
-  the trading surplus~$w$ measures the value of the difference between the amount~$x$ of tokens
-  $\tau_j$ that is purchased in return for $y$ tokens~$\tau_k$, and the minimum
-  amount~$ y / \pi $ that the trader would have accepted:
-  \begin{align*}
-    w &= ( x - y / \pi ) \> p_j% \\
-    %  &= x \cdot p_j - y \cdot \pi \cdot p_j \\
-    %  &= v - y \cdot \pi \cdot p_k
-    %\label{eq:trading_surplus}\notag
-  \end{align*}
-
-  \item \todo[inline]{Definition of welfare for all order types.}
-\end{itemize}
-
-\todo[inline]{More research on trading surplus (linear formulation, relation to volume, etc.)!}
-
-
 \newpage
 \subsection{Nonlinear programming model}
 \label{subsec:NLPmodel}
 
-When looking at the sets of constraints \eqref{eq:order_model_generic}, the most intuitive model
-seems to be a nonlinear program.
+When looking at the sets of constraints \eqref{eq:order_model_generic}, the most intuitive model seems to be a nonlinear program.
 As we will see, it is possible to avoid binary variables.
+For simplicity, we will state this (and all the following formulations) using total trading volume as objective function.
+The other objectives can be used by inserting and calculating the respective variables.
 
 \begin{subequations}
 \begin{align}
@@ -720,22 +744,16 @@ As we will see, it is possible to avoid binary variables.
   && \forall \> i \in \iorders
   \label{eq:nlp_limit_pi}
   \\[2mm]
-  n
-  &= \sum\limits_{j \in \itokens} \frac{1}{p^\mathrm{old}_j} \cdot p_j,
+  \sum\limits_{j \in \itokens} \gamma_j \cdot p_j
+  &= 1
   \label{eq:nlp_reftoken}
   \\[1mm]
   p_j
-  &\le \left(1+\delta\right) \frac{p^\mathrm{old}_j}{p^\mathrm{old}_k} \, p_k
-  && \forall j,k \in \itokens \times \itokens
-  \label{eq:nlp_maxfluct}
-  \\[2mm]
+  &\in [\,\underline{p_j},\overline{p_j}\,]
+  && \forall \> j \in \itokens
+  \\[1mm]
   x_i, y_i, v_i &\in \mathbb{R}_{\ge 0}
   && \forall \> i \in \iorders
-  \\[1mm]
-  p_j
-  &\in \left[ \left(\frac{1}{1+\delta}\right) \> p^\mathrm{old}_j, (1+\delta) \> p^\mathrm{old}_j
-  \right]
-  && \forall \> j \in \itokens
 \end{align}
 \label{eq:nlp}
 \end{subequations}
@@ -766,9 +784,7 @@ corresponding constraint is trivially satisfied.
 Altogether, the constraints~\eqref{eq:nlp_buyvolume}--\eqref{eq:nlp_limit_pi} capture both
 cases of \eqref{eq:order_model_generic} simultaneously.
 
-Finally, as described earlier, the constraints \eqref{eq:nlp_reftoken} and \eqref{eq:nlp_maxfluct}
-specify the representation of the reference token and enforce a maximum fluctuation of exchange
-rates on all token pairs.
+Finally, as described earlier, the constraint \eqref{eq:nlp_reftoken} specifies the representation of the reference token.
 
 
 \newpage
@@ -781,11 +797,8 @@ alternative to the NLP model presented above.
 Thereby, the challenge is to find an equivalent linear formulation for 
 \eqref{eq:order_model_generic}.
 
-The key idea is to avoid explicitely computing the values $x$ and $y$ for every order
-$\omega = (j,k,\overline{x},\overline{y},\pi)$, but only working with the trading volume $v$ as
-defined in \eqref{eq:trading_volume} instead.
-With uniform clearing prices, $x$ and $y$ can be computed unambiguously from the value of $v$
-later on.
+The key idea is to avoid explicitely computing the values $x$ and $y$ for every order~$\omega = (j,k,\overline{x},\overline{y},\pi)$, but only working with the trading volume~$v$ as defined in \eqref{eq:volume} instead.
+With uniform clearing prices, $x$ and $y$ can be computed unambiguously from the value of~$v$ later on.
 The order constraints \eqref{eq:order_model_generic} can be expressed as follows:
 \begin{align}
   \tilde{\mathfrak{C}}^1 := \left\{
@@ -806,6 +819,9 @@ The order constraints \eqref{eq:order_model_generic} can be expressed as follows
   \right\}
   \label{eq:order_model_mip1}
 \end{align}
+
+Please notice that this step is not possible for the social surplus~$w$ as in \eqref{eq:welfare} and the trader's utility~$u$ as in \eqref{eq:utility}. 
+Hence, we have not found a linear formulation for that maximize these two optimization criteria.
 
 In order to reformulate \eqref{eq:order_model_mip1} in terms of a mixed-integer linear program,
 we first introduce a binary variable $ z \in \{0,1\} $ for every order and associate its states to
@@ -913,22 +929,17 @@ substitution for \eqref{eq:mip1_orderdisj}, the full MIP model can be stated as:
   && \forall \> i \in \iorders
   \label{eq:mip1_orderdisj} 
   \\[2mm]
-  n
-  &= \sum\limits_{j \in \itokens} \frac{1}{p^\mathrm{old}_j} \cdot p_j,
+  \sum\limits_{j \in \itokens} \gamma_j \cdot p_j
+  &= 1
   \label{eq:mip1_reftoken}
   \\[1mm]
   p_j
-  &\le \left(1+\delta\right) \frac{p^\mathrm{old}_j}{p^\mathrm{old}_k} \, p_k
-  && \forall j,k \in \itokens \times \itokens
-  \label{eq:mip1_maxfluct}
-  \\[2mm]
+  &\in [\,\underline{p_j},\overline{p_j}\,]
+  && \forall \> j \in \itokens
+  \\[1mm]
   v_i
   &\in \mathbb{R}_{\ge 0}
   && \forall \> i \in \iorders
-  \\[1mm]
-  p_j
-  &\in \left[ \frac{1} {1+\delta} \> p^\mathrm{old}_j, (1+\delta) \> p^\mathrm{old}_j \right]
-  && \forall \> j \in \itokens
 \end{align}
 \label{eq:mip1}
 \end{subequations}
@@ -1150,17 +1161,12 @@ token is involved.
   &\hspace{-1cm}\bigvee\limits_{l \in \{0 \ldots m\}} \tilde{\mathfrak{C}}^{(l)}_{j,k}
   && \forall \> (j,k) \in \itokenpairs
   \\[3mm]
-  n
-  &= \sum\limits_{j \in \itokens} \frac{1}{p^\mathrm{old}_j} \> p_j,
-  \label{eq:mip2_reftoken}
-  \\[2mm]
+  \sum\limits_{j \in \itokens} \gamma_j \cdot p_j
+  &= 1
+  \label{eq:mip1_reftoken}
+  \\[1mm]
   p_j
-  &\le \left(1+\delta\right) \frac{p^\mathrm{old}_j}{p^\mathrm{old}_k} \, p_k
-  && \forall j,k \in \itokens \times \itokens
-  \label{eq:mip2_maxfluct}
-  \\[3mm]
-  p_j
-  &\in \left[ \frac{1}{1+\delta} \> p^\mathrm{old}_j, (1+\delta) \> p^\mathrm{old}_j \right]
+  &\in [\,\underline{p_j},\overline{p_j}\,]
   && \forall \> j \in \itokens
   \\[3mm]
   v_{j,k}^\mathrm{abs}, v_{j,k}^\mathrm{net}
@@ -1343,6 +1349,11 @@ If larger problems are to be considered, we can think of the following heuristic
 \section{Extensions}
 \label{sec:extensions}
 
+\subsection{Accounts and balances}
+\label{subsec:accounts_balances}
+
+...
+
 \subsection{Fee model}
 \label{subsec:fee_model}
 
@@ -1427,6 +1438,131 @@ Considering fees, the respective constraint \eqref{eq:mip1_tokenbalance} changes
 Please note that it is an easy extension to consider multiple fee tokens instead of only one.
 
 
+
+
+\newpage
+\subsection{Basket orders}
+\label{subsec:basket_orders}
+
+In some cases, traders might not only want to exchange one token against one other token, but
+instead trade collections of tokens directly against each other.
+As a typical example, a trader could want to buy a certain amount of different tokens for a maximum
+total price, without being interested in the particular price of every individual token.
+We refer to this order type as \emph{basket order}.
+
+For being able to use basket orders in our models, we first need to generalize the order
+definition.
+A basket of tokens shall be represented by a vector $\bm{\beta} \in \mathbb{R}^n_{\ge 0}$, where
+$\beta_j \in \bm{\beta}$ specifies the amount of token $\tau_j$ in the basket.
+In other words, a basket of tokens can be understood as a list of tuples
+$(\beta_j, \tau_j)_{i=j}^n$.
+
+Similar as in \secref{sec:problem}, a basket order shall be defined as a tuple
+$\omega = (\bm{\beta}^b, \bm{\beta}^s, \overline{x}, \overline{y}, \pi)$, with the meaning of the
+elements being as follows:
+\begin{align*}
+  \bm{\beta}^b &\in \mathbb{R}^n_{\ge 0} &&
+    \ldots \quad (\beta^b_j,\tau_j)_{j=1}^n \> \text{is the basket of tokens to be bought,}\\
+  \bm{\beta}^s &\in \mathbb{R}^n_{\ge 0} &&
+    \ldots \quad (\beta^s_j,\tau_j)_{j=1}^n \> \text{is the basket of tokens to be sold,}\\
+  \overline{x} &\in \mathbb{R}_{\ge 0} \cup \{+\infty\} &&
+    \ldots \quad \text{maximum units of basket} \> (\beta^b_j,\tau_j)_{j=1}^n \> \text{to be
+    bought,}\\
+  \overline{y} &\in \mathbb{R}_{\ge 0} \cup \{+\infty\} &&
+    \ldots \quad \text{maximum units of basket} \> (\beta^s_j,\tau_j)_{j=1}^n \> \text{to be
+    sold,}\\
+  \pi &\in \mathbb{R}_{>0} \cup \{+\infty\} &&
+    \ldots \quad \text{limit exchange rate for order execution, \ie}
+    \> p_{\bm{\beta}^b|\bm{\beta}^s} \le \pi.
+\end{align*}
+
+With the same arguments as in \secref{sec:models}, the exchange rate~$p_{\bm{\beta}^b|\bm{\beta}^s}$
+between the two baskets of tokens can be written as the quotient of two prices with respect to the
+abstract reference token $\tau_0$, \ie
+\begin{align}
+  p_{\bm{\beta}^b|\bm{\beta}^s} =
+  p_{\bm{\beta}^b|0} \cdot p_{0|\bm{\beta}^s} =
+  \frac{p_{\bm{\beta}^b|0}}{p_{\bm{\beta}^s|0}} =:
+  \frac{p_{\bm{\beta}^b}}{p_{\bm{\beta}^s}}.
+  \tag{\ref{eq:price_decomposition}'}
+\end{align}
+Hence, $p_{\bm{\beta}^b}$ and $p_{\bm{\beta}^s}$ denote the price of one unit of the buy- or
+sell-basket, respectively, measured in units of $\tau_0$.
+
+Moreover, the price $p_{\bm{\beta}}$ of a basket of tokens simply equals the sum of the individual
+token prices $p_j$, $j=1 \ldots n$, weighted by the elements in $\bm{\beta}$, \ie
+\begin{align}
+  p_{\bm{\beta}} = \sum\limits_{j=1}^n \beta_j \> p_j.
+\end{align}
+
+With this and using the same variables $x \ge 0$ and $y \ge 0$, we can rephrase the generic order
+constraints \eqref{eq:order_model_generic} to
+\begin{align}
+  \mathfrak{C}^1_\beta := \left\{
+  \begin{array}{rll}
+    x &\le & \overline{x} \\
+    y &\le & \overline{y} \\[1mm]
+    x \cdot p_{\bm{\beta^b}} &= & y \cdot p_{\bm{\beta^s}} \\[2mm]
+    \frac{p_{\bm{\beta^b}}}{p_{\bm{\beta^s}}} &\le & \pi
+  \end{array}
+  \right\}
+  \quad
+  \text{and}
+  \quad
+  \mathfrak{C}^0_\beta := \left\{
+  \begin{array}{rll}
+    x &= & 0 \\
+    y &= & 0 \\[2mm]
+    \frac{p_{\bm{\beta^b}}}{p_{\bm{\beta^s}}} &> & \pi
+  \end{array}
+  \right\}.
+  \tag{\ref{eq:order_model_generic}'}
+  \label{eq:basket_order_model_generic}
+\end{align}
+
+In the context of an entire batch auction, we store the token
+weights~$\bm{\beta^b}$ and $\bm{\beta^s}$ of every in order in matrices
+$\mathbf{B}^b := (\bm{\beta^b}_i) = (\beta^b_{i,j}) \in \mathbb{R}_{\ge 0}^{N \times n}$ and
+$\mathbf{B}^s := (\bm{\beta^s}_i) = (\beta^s_{i,j}) \in \mathbb{R}_{\ge 0}^{N \times n}$.
+
+This now allows us to treat basket orders in the nonlinear model \eqref{eq:nlp} as any other
+orders, with only redefining the two data matrices
+$\mathbf{T}^b := \mathbf{B}^b$ and $\mathbf{T}^s := \mathbf{B}^s$.
+
+Unfortunately, we currently do not see a straighforward way to use basket orders in combination
+with the mixed-integer model I \eqref{eq:mip1}, which is based on volume variables $v \ge 0$.
+The trading volume for a single order would need to be defined as
+\begin{align}
+  v = x \cdot p_{\bm{\beta}^b} = x \cdot \sum\limits_{j=1}^n \beta_j^b \> p_j
+  \qquad \text{and} \qquad
+  v = y \cdot p_{\bm{\beta}^s} = x \cdot \sum\limits_{j=1}^n \beta_j^s \> p_j
+  \tag{\ref{eq:trading_volume}'}
+  \label{eq:basket_trading_volume}
+\end{align}
+
+Then, the constraint sets \eqref{eq:order_model_mip1} translate to
+\begin{align}
+  \tilde{\mathfrak{C}}^1_\beta := \left\{
+  \begin{array}{rlll}
+    v &\le & \overline{x} \cdot p_{\bm{\beta^b}} \\
+    v &\le & \overline{y} \cdot p_{\bm{\beta^s}} \\[1mm]
+    \frac{p_{\bm{\beta^b}}}{p_{\bm{\beta^s}}} &\le & \pi
+  \end{array}
+  \right\}
+  \quad
+  \text{and}
+  \quad
+  \tilde{\mathfrak{C}}^0_\beta := \left\{
+  \begin{array}{rll}
+    v &= & 0 \\[1mm]
+    \frac{p_{\bm{\beta^b}}}{p_{\bm{\beta^s}}} &> & \pi
+  \end{array}
+  \right\}.
+  \tag{\ref{eq:order_model_mip1}'}
+  \label{eq:basket_order_model_mip1}
+\end{align}
+
+The problem arises, however, 
 
 
 
