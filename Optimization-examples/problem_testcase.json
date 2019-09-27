@@ -1,0 +1,57 @@
+{
+    "metadata": {
+        "interfaceVersion": "1.1",
+        "numberFormat": "float",
+        "description": "System of 4 stable tokens (+ fee token) with standing orders and a single market order."
+    },
+    "tokens": [
+        "FEE",
+        "S1"
+    ],
+    "accounts": {
+        "0x0000": {
+            "FEE": 20020.0
+        },
+        "0x0001": {
+            "S1": 20020.0
+        }
+    },
+    "orders": {
+        "standing_sell_FEE_for_S1": {
+            "sellToken": "FEE",
+            "buyToken": "S1",
+            "maxSellAmount": 20020.0,
+            "maxBuyAmount": null,
+            "limitRate": [
+                [
+                    20020.0,
+                    "FEE"
+                ],
+                [
+                    10000.0,
+                    "S1"
+                ]
+            ],
+            "accountID": "0x0001",
+            "listIdx": null
+        },
+        "standing_sell_S1_for_FEE": {
+            "sellToken": "S1",
+            "buyToken": "FEE",
+            "maxSellAmount": 10010.0,
+            "maxBuyAmount": null,
+            "limitRate": [
+                [
+                    10010.0,
+                    "S1"
+                ],
+                [
+                    19980.0,
+                    "FEE"
+                ]
+            ],
+            "accountID": "0x0001",
+            "listIdx": null
+        }
+    }
+}
