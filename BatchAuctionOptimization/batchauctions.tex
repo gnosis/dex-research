@@ -97,6 +97,7 @@
 \newtheorem{corollary}{Corollary}[theorem]
 \newtheorem{lemma}[theorem]{Lemma}
 \newtheorem{observation}[theorem]{Observation}
+\newtheorem{example}[theorem]{Example}
 
 %%%%%%%%%%%%%%
 %% DOCUMENT %%
@@ -1437,6 +1438,27 @@ Considering fees, the respective constraint \eqref{eq:mip1_tokenbalance} changes
 
 Please note that it is an easy extension to consider multiple fee tokens instead of only one.
 
+\begin{example}
+  Let us consider a set of three tokens~$\mathcal{T} = \{\tau_1,\tau_2,\tau_3\}$ with $\tau^{(\phi)} = \tau_1$, and limit sell orders~$\mathcal{O} = \{\omega_1,\omega_2,\omega_3\}$ with
+  \begin{align*}
+    \omega_1 &= (3,1,+\infty,10,1/19.8) \\
+    \omega_2 &= (2,3,+\infty,200,200/0.99) \\
+    \omega_3 &= (1,2,+\infty,1,1/9.9) \\
+  \end{align*}
+  a) $\varphi = 0$: without a fee, the prices $p_1 = 20$, $p_2 = 1$, and $p_3 = 200$ allow for the following execution of the orders:
+  \begin{align*}
+    (x_1,y_1) &= (200,10), \\
+    (x_2,y_2) &= (1,200), \\
+    (x_3,y_3) &= (10,1).
+  \end{align*}
+  b) $\varphi = 0.01$: with a 1\% fee, the same prices as above lead to
+  \begin{align*}
+    (x_1^{'},y_1^{'}) &= (198,10), \\
+    (x_2^{'},y_2^{'}) &= (0.9801,198), \\
+    (x_3^{'},y_3^{'}) &= (9.70299,0.9801).
+  \end{align*}
+  Hence, a total amount of $(10-9.70299) = 0.29701$ tokens~$\tau_1$ is spent as fees and the individual exchange rate that the traders receive for any order is slightly lower as in a).
+\end{example}
 
 
 
