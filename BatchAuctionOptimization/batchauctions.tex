@@ -486,12 +486,12 @@ We will denote it by $u \in \mathbb{R}_{\ge 0}$ and it can be considered in two 
   \item the difference between the amount that the trader would have been ready to spend for an amount of~$x$ buy-tokens~$\tau_j$ and the amount~$y$ that is actually spent (weighted by the price~$p_k$ of the sell-token~$\tau_k$):
   \begin{subequations}
   \begin{align}
-    u := (x \cdot \pi - y) \cdot p_k
+    u_A := (x \cdot \pi - y) \cdot p_k
     \label{eq:utility_a}
   \end{align}
-  \item the difference between the amount~$x$ of tokens~$\tau_j$ bought and the amount that the trader would have accepted as a minimum for spending~$y$ tokens~$\tau_k$ (now weighted by the price~$p_j$):
+  \item the difference between the amount~$x$ of tokens~$\tau_j$ bought and the amount that the trader would have accepted as a minimum for spending~$y$ tokens~$\tau_k$ (weighted by~$p_j$):
   \begin{align}
-    u := (x - y/\pi) \cdot p_j
+    u_B := (x - y/\pi) \cdot p_j
     \label{eq:utility_b}
   \end{align}
   \label{eq:utility}
@@ -499,6 +499,25 @@ We will denote it by $u \in \mathbb{R}_{\ge 0}$ and it can be considered in two 
 \end{itemize}
 
 Notice that definition \eqref{eq:utility_a} yields $u = w - v$.
+
+The uniform clearing price condition ($x \cdot p_j = y \cdot p_k$) allows to rewrite formulation~\eqref{eq:utility_a} as $u_A = x \cdot (\pi \cdot p_k - p_j)$, making it intuitively more suitable for buy orders.
+Analogously, definition~\eqref{eq:utility_b} becomes $u^B = y \cdot (p_k - \frac{p_j}{\pi})$ and will primarily be used for sell orders.
+
+By definition, both utility functions evaluate to zero if~$p_{j|k} = \pi$, \ie whenever the exchange rate between the tokens~$\tau_j$ and $\tau_k$ equals the limit price of the order.
+This means that any market participant would be indifferent to trading at limit price or not trading at all.
+If this seems undesirable and trading opportunities should always be favoured over no trade, the utility functions can slightly be adjusted to return positive values for all exchange rates satisfying the limit price:
+\begin{subequations}
+\begin{align}
+  u_A^{(\alpha)} &:= (x \cdot \pi - \frac{y}{1+\alpha}) \cdot p_k
+  = x \cdot (\pi \cdot p_k - \frac{p_j}{1+\alpha}))
+  \tag{\ref{eq:utility_a}'}\label{eq:utility_a_adjusted},\\[3mm]
+  u_B^{(\alpha)} &:= ((1+\alpha) \cdot x - \frac{y}{\pi}) \cdot p_j
+  = y \cdot ((1+\alpha) \cdot p_k - \frac{p_j}{\pi})
+  \tag{\ref{eq:utility_b}'}\label{eq:utility_b_adjusted},
+\end{align}
+\label{eq:utility_adjusted}
+\end{subequations}
+for some parameter $\alpha > 0$.
 
 
 \begin{comment}
@@ -1460,6 +1479,22 @@ Please note that it is an easy extension to consider multiple fee tokens instead
   Hence, a total amount of $(10-9.70299) = 0.29701$ tokens~$\tau_1$ is spent as fees and the individual exchange rate that the traders receive for any order is slightly lower as in a).
 \end{example}
 
+As a short note on the impact of fees on the trader's utility, it can be stated that the definitions~\eqref{eq:utility_a} and \eqref{eq:utility_b} remain unaffected.
+However, the reformulations via the uniform clearing price condition change to
+\begin{subequations}
+\begin{align*}
+  u_A &= x \cdot (\pi \cdot p_k - \frac{p_j}{1-\varphi})), \\[2mm]
+  u_B &= y \cdot ((1-\varphi) \cdot p_k - \frac{p_j}{\pi}).
+\end{align*}
+\end{subequations}
+These can be combined with the $\alpha$-adjustment as in~\eqref{eq:utility_a_adjusted} and \eqref{eq:utility_b_adjusted} to always favor trade execution over no trade in the case that $\frac{p_j}{p_k} = \pi \cdot (1-\varphi)$.
+For example, with $\alpha^* = \frac{\varphi}{2 \cdot (1-\varphi)}$, we obtain
+\begin{subequations}
+\begin{align*}
+  u_A^{(\alpha^*)} &= x \cdot (\pi \cdot p_k - \frac{p_j}{1-\frac{\varphi}{2}})), \\[2mm]
+  u_B^{(\alpha^*)} &= y \cdot ((1-\frac{\varphi}{2}) \cdot p_k - \frac{p_j}{\pi}).
+\end{align*}
+\end{subequations}
 
 
 \newpage
