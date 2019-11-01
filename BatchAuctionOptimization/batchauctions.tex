@@ -519,6 +519,34 @@ If this seems undesirable and trading opportunities should always be favoured ov
 \end{subequations}
 for some parameter $\alpha > 0$.
 
+\paragraph{Disregarded utility}
+
+Trader's utility as objective criterion assigns some value to all orders that are executed.
+However, it does not account for orders that were \emph{not} (fully) executed even though their limit price was satisfied, \ie because their was no matching counterpart.
+In some cases, the resulting prices seem somewhat arbitrary.
+For example, if two orders of different size on one token pair can be matched directly according to their limit prices, it is unclear what the optimal exchange rate will be.
+It could either be equal to one of the two limit prices or lie somewhere inbetween.
+In this case, our intuition is that the larger of the two orders should determine the optimal exchange rate.
+For this purpose, we introduce the concept of \emph{disregarded utility}, that essentially represents the difference between the maximum utility that a trader could get at given prices, and the actual utility gained by the proposed order execution.
+
+We define the maximum utility as
+\begin{subequations}
+\begin{align}
+  u_A^{\max} &:= \max\{\overline{x} \cdot (\pi \cdot p_k - p_j); \> 0\}
+  &&\text{if }\overline{x} < +\infty
+  \label{eq:utility_a_max},\\[3mm]
+  u_B^{\max} &:= \max\{\overline{y} \cdot (p_k - \frac{p_j}{\pi}); \> 0\}
+  &&\text{if }\overline{y} < +\infty
+  \label{eq:utility_b_max}.
+\end{align}
+\label{eq:utility_adjusted}
+\end{subequations}
+
+Disregarded utility can then be written as $u_{\{A|B\}}^{\max} - u_{\{A|B\}}$.
+
+Notice that the $\alpha$-adjustment as described in the case of pure trader's utility can straight-forwardly be incorporated into the disregarded utility formulas as well.
+
+It is an open question if there always exists a solution with zero disregarded utility.
 
 \begin{comment}
 \paragraph{Properties}
@@ -644,11 +672,12 @@ the following two sets of constraints:
 
 \paragraph{Objective}
 
-As introduced in \secref{subsec:objectives}, we consider three different objectives:
+As introduced in \secref{subsec:objectives}, we consider four different objectives:
 \begin{align*}
   && &\max\sum_{i \in \iorders} v_i && \ldots\>\text{total trading volume}&&\\
   && &\max\sum_{i \in \iorders} w_i && \ldots\>\text{total social surplus}&&\\
-  && &\max\sum_{i \in \iorders} u_i && \ldots\>\text{total traders' utility}&&
+  && &\max\sum_{i \in \iorders} u_i && \ldots\>\text{total traders' utility}&&\\
+  && &\min\sum_{i \in \iorders} (u^{\max}_i - u_i) && \ldots\>\text{disregarded utility}&&\\
 \end{align*}
 
 
@@ -1495,6 +1524,7 @@ For example, with $\alpha^* = \frac{\varphi}{2 \cdot (1-\varphi)}$, we obtain
   u_B^{(\alpha^*)} &= y \cdot ((1-\frac{\varphi}{2}) \cdot p_k - \frac{p_j}{\pi}).
 \end{align*}
 \end{subequations}
+The same can be applied to disregarded utility as objective criterion by modifying the equations~\eqref{eq:utility_a_max} and \eqref{eq:utility_b_max} accordingly.
 
 
 \newpage
