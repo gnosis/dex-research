@@ -1,4 +1,4 @@
-# DEX Notes
+# DEX Notebooks
 
 Project with a collection of interactive notes and examples as Jupyter
 notebooks to help with batch auction and solution visualization. Since Github
@@ -7,8 +7,7 @@ here :D.
 
 ## Table of Contents
 
-1. CD-Haircut
-2. Market Maker and Limit Order
+1. [Market Maker and Limit Order](work/limit-order.ipynb)
 
 ## Running Locally
 
