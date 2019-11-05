@@ -178,4 +178,5 @@ research/
 
 .DS_Store
 *.pdf
-
+# Jupyter notebook temporary files
+.ipynb_checkpoints/
