@@ -328,16 +328,10 @@ it might make sense to explicitely require $j \neq k$ from a semantic perspectiv
 
 \vspace{.3cm}
 \begin{observation}
-  Assuming that the trader has constant utility for an arbitrary amount of buy-tokens~$\tau_j$,
-  the following argument can be used to convert a limit buy order to a limit sell order:
-  Consider a limit buy order $ (j,k,\overline{x},+\infty,\pi) $, which reveals that the trader
-  would be ready to sell at most $ \pi \cdot \overline{x} $ tokens $ \tau_k $ in exchange for
-  tokens $ \tau_j $.
-  Then, the trader would not object to receiving more than $ \overline{x} $ tokens $ \tau_j $ for a
-  maximum of $ \pi \cdot \overline{x} $ tokens $ \tau_k $, \ie if the exchange rate $ p_{j|k} $ is
-  lower than $ \pi $.
-  Hence, the trader would only benefit from submitting a sell order
-  $ (k,j,+\infty,\pi \cdot \overline{x},\frac{1}{\pi}) $.
+  Assuming that the trader has constant utility for an arbitrary amount of buy-tokens~$\tau_j$, the following argument can be used to convert a limit buy order to a limit sell order:
+  Consider a limit buy order~$(j,k,\overline{x},+\infty,\pi)$, which reveals that the trader would be ready to spend at most $\pi \cdot \overline{x}$ tokens~$\tau_k$ in exchange for a maximum of tokens~$\tau_j$.
+  Then, the trader would not object to receiving more than $\overline{x}$ tokens~$\tau_j$ for a maximum of~$\pi \cdot \overline{x}$ tokens~$\tau_k$, \ie in case the exchange rate~$p_{j|k}$ is strictly lower than~$\pi$.
+  Hence, the trader would only benefit from submitting a sell order~$(j,k,+\infty,\pi \cdot \overline{x},\pi)$.
 \end{observation}
 
 
