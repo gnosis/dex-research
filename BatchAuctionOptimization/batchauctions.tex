@@ -107,7 +107,7 @@
   Multi-token Batch Auctions with Uniform Clearing Prices\\
   - \\
   \Large Features and Models}
-\author{Tom Walther \\ tom@gnosis.pm}
+\author{Tom Walther \\ tom.walther@gnosis.io}
 
 \date{\today}
 
@@ -1643,8 +1643,82 @@ Then, the constraint sets \eqref{eq:order_model_mip1} translate to
   \label{eq:basket_order_model_mip1}
 \end{align}
 
-The problem arises, however, 
+The problem arises, however, \ldots
 
+
+\newpage
+\subsection{Functional order amounts}
+
+In \secref{subsec:model_components}, we have defined an order as a tuple~
+$\omega = (j,k,\overline{x},\overline{y},\pi)$,
+where the maximum buy and sell amounts~
+$\overline{x}, \overline{y} \in \mathbb{R}_{\ge 0} \cup \{+\infty\}$
+are fixed given constants.
+However, there might be situations in which the trader is willing to buy or sell less or more units
+of some token depending on how favorable the token prices are.
+In this section, as an example, we will investigate a linear dependency between the maximum sell
+amount of an order the exchange rate $p_{j|k} = p_j/p_k$ between the buy-token~$\tau_j$ and the
+sell-token~$\tau_k$: 
+\begin{align}
+  \overline{y}(p_j, p_k) := a \cdot \frac{p_j}{p_k} + b,
+\end{align}
+where $a, b \in \mathbb{R}$ are constants.
+In order to be meaningful, we should require~$a \le 0$, so that fewer tokens are sold when the
+buy-token~$\tau_j$ becomes more expensive, and $a \cdot \pi + b \ge 0$, so that a non-negative
+amount of tokens~$\tau_k$ can be sold when the limit price is satisfied.
+Notice that a constant maximum sell amount is a special case with~$a = 0$ and~$b = \overline{y}$.
+
+Using a volume variable~$v = y \cdot p_k$ as in our MIP model~\eqref{eq:mip1}, we can reformulate
+the above as
+\begin{align}
+  \overline{v}(p_j, p_k) := \overline{y}(p_j, p_k) \cdot p_k = a \cdot p_j + b \cdot p_k,
+\end{align}
+which describes a hyperplane in the space~$(p_j, p_k, v)$ of token prices and trading volume.
+As a result, the constraint set for a limit sell order changes to
+\begin{align}
+  \tilde{\mathfrak{C}}^1 := \left\{
+  \begin{array}{rlll}
+    v &\le & a \cdot p_j + b \cdot p_k \\[1mm]
+    \frac{p_j}{p_k} &\le & \pi
+  \end{array}
+  \right\}
+  \quad
+  \text{and}
+  \quad
+  \tilde{\mathfrak{C}}^0 := \left\{
+  \begin{array}{rll}
+    v &= & 0 \\[1mm]
+    \frac{p_j}{p_k} &> & \pi
+  \end{array}
+  \right\}
+    \tag{\ref{eq:order_model_mip1}''}
+  \label{eq:order_model_functional_sell_amount}
+\end{align}
+Notice that we can even add a constant global maximum sell amount~$\overline{y}$
+to~$\tilde{\mathfrak{C}}^1$ without complicating the MIP model.
+
+With all this, a variety of new sell-profiles of a limit sell order can be expressed, \eg:
+
+\begin{figure}[h!]
+  \begin{subfigure}{0.25\textwidth}
+    \input{figures/tex/functional_sell_demand_1.tex}
+    \caption{$a \cdot \pi + b = 0$}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{0.25\textwidth}
+    \input{figures/tex/functional_sell_demand_2.tex}
+    \caption{$a \cdot \pi + b > 0$}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{0.25\textwidth}
+    \input{figures/tex/functional_sell_demand_3.tex}
+    \caption{additional $\overline{y}$}
+  \end{subfigure}
+  \caption{
+    Limit sell orders with functional maximum sell amounts.
+    }
+  \label{fig:functional_sell_demand}
+\end{figure}
 
 
 \newpage
