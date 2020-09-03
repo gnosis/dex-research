@@ -1639,7 +1639,6 @@ Then, the constraint sets \eqref{eq:order_model_mip1} translate to
     \frac{p_{\bm{\beta^b}}}{p_{\bm{\beta^s}}} &> & \pi
   \end{array}
   \right\}.
-  \tag{\ref{eq:order_model_mip1}'}
   \label{eq:basket_order_model_mip1}
 \end{align}
 
@@ -1657,7 +1656,7 @@ are fixed given constants.
 However, there might be situations in which the trader is willing to buy or sell less or more units
 of some token depending on how favorable the token prices are.
 In this section, as an example, we will investigate a linear dependency between the maximum sell
-amount of an order the exchange rate $p_{j|k} = p_j/p_k$ between the buy-token~$\tau_j$ and the
+amount of an order and the exchange rate $p_{j|k} = p_j/p_k$ between the buy-token~$\tau_j$ and the
 sell-token~$\tau_k$: 
 \begin{align}
   \overline{y}(p_j, p_k) := a \cdot \frac{p_j}{p_k} + b,
@@ -1691,7 +1690,6 @@ As a result, the constraint set for a limit sell order changes to
     \frac{p_j}{p_k} &> & \pi
   \end{array}
   \right\}
-    \tag{\ref{eq:order_model_mip1}''}
   \label{eq:order_model_functional_sell_amount}
 \end{align}
 Notice that we can even add a constant global maximum sell amount~$\overline{y}$
@@ -1720,6 +1718,71 @@ With all this, a variety of new sell-profiles of a limit sell order can be expre
   \label{fig:functional_sell_demand}
 \end{figure}
 
+
+\newpage
+\subsection{Enforcing zero disregarded utility}
+
+From a perspective of mathematical economics, our batch auction exchange approach closely relates the so-called \textsc{Arrow-Debreu Model} of a competitive economy \cite{ARROW-DEBREU_1954:existence-equilibrium}.
+General equilibrium theory has shown that this model type always allows for a competitive equilibrium (or \textsc{Walrasian Equilibrium} as first introduced in \cite{WALRAS_1896:elements}), given by a vector of prices and an allocation of goods for every agent, that is characterized as follows:
+\begin{enumerate}
+  \item Each agent's allocation maximizes their personal utility function given the prices.
+  \item The market clears, \ie for every good that is traded, the total allocation equals the aggregate endowment over all agents.
+\end{enumerate}
+
+In \secref{subsec:objectives}, we have introduced the concept of disregarded utility as a potential objective function to be minimized.
+Applying the equilibrium theory to our context, we can even go one step further: a competitive equilibrium translates to a solution that does not contain any disregarded utility.
+In particular, this means that every order needs to be fully matched as soon as the computed prices for the tokens specified strictly satisfy the order's limit price.
+Only at exactly the limit price, \ie at the point of indifference, an order may be partially settled.
+In this section, we want to investigate how we can enforce disregarded to be zero for every order in our MIP model \eqref{eq:mip1}, \ie incorporate this requirement via linear constraints and additional variables.
+For simplicity, we will restrict our considerations to limit sell orders.
+
+In general, requiring disregarded utility to be zero extends the order constraints \eqref{eq:order_model_mip1} to a disjunction of three sets
+\begin{align}
+  \tilde{\mathfrak{C}}^0 := \left\{
+  \begin{array}{rll}
+    v &= & 0 \\[1mm]
+    \frac{p_j}{p_k} &> & \pi
+  \end{array}
+  \right\}
+  \>
+  \lor
+  \>
+  \tilde{\mathfrak{C}}^{1,a} := \left\{
+  \begin{array}{rlll}
+    v &\le & \overline{y} \cdot p_k \\[1mm]
+    \frac{p_j}{p_k} &= & \pi
+  \end{array}
+  \right\}
+  \>
+  \lor
+  \>
+  \tilde{\mathfrak{C}}^{1,b} := \left\{
+  \begin{array}{rlll}
+    v &= & \overline{y} \cdot p_k \\[1mm]
+    \frac{p_j}{p_k} &< & \pi
+  \end{array}
+  \right\},
+  \label{eq:order_model_mip1_zero_disregarded_utility}
+\end{align}
+where $\tilde{\mathfrak{C}}^{1,a}$ and $\tilde{\mathfrak{C}}^{1,b}$ refer to the cases that prices are equal to or strictly satisfy the limit price of the order, respectively.
+
+In order to reformulate \eqref{eq:order_model_mip1_zero_disregarded_utility} in terms of a mixed-integer linear program, we now need two binary variabels $z_1, z_2 \in \{0,1\}$ for every order and associate their states to the constraint sets as $\{z_1 = z_2 = 0\} \Leftrightarrow \tilde{\mathfrak{C}}^0$, $\{z_1 = 1, z_2 = 0\} \Leftrightarrow \tilde{\mathfrak{C}}^{1,a}$, and $\{z_1 = z_2 = 1\} \Leftrightarrow \tilde{\mathfrak{C}}^{1,b}$.
+The constraints can be modelled via a similar big-M approach as presented in \eqref{eq:order_model_mip1_bigM}:
+\begin{subequations}
+\begin{align}
+  p_j &\ge \pi \, p_k
+    + (\underline{p}_j - \pi \, \overline{p}_k) \, z_1 \\[1mm]
+  p_j &\ge \pi \, p_k
+    + (\underline{p}_j - \pi \, \overline{p}_k) \, z_2 \\[1mm]
+  p_j &\le \pi \, p_k
+    + (\overline{p}_j - \pi \, \underline{p}_k) \, (1-z_1) \\[1mm]
+  v &\le \overline{y} \, p_k \\[1mm]
+  v &\le \overline{y} \, \overline{p}_k \, z_1 \\[1mm]
+  v &\ge \overline{y} \, (p_k - \overline{p}_k \, (1-z_2)) \\[1mm]
+  z_2 &\le z_1
+\end{align}
+\label{eq:order_model_mip1_bigM}
+\end{subequations}
 
 \newpage
 \subsection{Further ideas}
@@ -1754,27 +1817,5 @@ The problem can possibly be extended in various directions:
 \newpage
 \bibliographystyle{plain}
 \bibliography{literature}
-
-%\begin{thebibliography}{2}
-%%
-%\bibitem {balas:DP}
-%Balas, E.:
-%Disjunctive Programming.
-%Annals of Discrete Mathematics 5, 3--51 (1979).
-%\url{doi:10.1016/S0167-5060(08)70342-X}
-%
-%\bibitem {budish:HFT}
-%Budish, E., Cramton, P., Shim, J.:
-%The High-Frequency Trading Arms Race: Frequent Batch Auctions as a Market Design Response.
-%The Quarterly Journal of Economics 130(4), 1547--1621 (2015)
-%\url{doi:10.2139/ssrn.2388265}
-%
-%\bibitem {engelbrecht:multi_unit_auctions}
-%Engelbrecht-Wiggans, R., Kahn, C.:
-%Multi-unit auctions with uniform prices
-%Economic Theory 12, 227--258 (1998), Springer-Verlag
-%\url{doi:10.1007/s001990050220}
-%%
-%\end{thebibliography}
 
 \end{document}
