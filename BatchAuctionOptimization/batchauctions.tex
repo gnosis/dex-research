@@ -72,16 +72,22 @@
 \newcommand*{\Min}{\mathrm{min}}
 \newcommand*{\Max}{\mathrm{max}}
 
+\newcommand*{\token}{\tau}                  % Symbol for a token.
 \newcommand*{\tokens}{\mathcal{T}}          % Set of tokens.
+\newcommand*{\order}{\omega}                % Symbol for an order.
 \newcommand*{\orders}{\mathcal{O}}          % Set of orders.
 \newcommand*{\buyorders}{\mathcal{O}^b}     % Set of buy orders.
 \newcommand*{\sellorders}{\mathcal{O}^s}    % Set of sell orders.
+\newcommand*{\uniswaps}{\mathcal{U}}        % Set of Uniswap pools.
+\newcommand*{\uniswap}{\nu}                 % Symbol for a Uniswap pool.
 \newcommand*{\itokens}{\mathcal{I}^t}       % Set of token indices.
 \newcommand*{\itokenpairs}{\mathcal{I}^p}   % Set of token index pairs.
 \newcommand*{\iutokenpairs}{\tilde{\mathcal{I}}^p}   % Set of token index pairs.
 \newcommand*{\iorders}{\mathcal{I}^o}       % Set of order indices.
 \newcommand*{\ibuyorders}{\mathcal{I}^b}    % Set of buy order indices.
 \newcommand*{\isellorders}{\mathcal{I}^s}   % Set of sell order indices.
+\newcommand*{\iuniswaps}{\mathcal{I}^u}     % Set of pool indices.
+
 
 % Macros for references etc.
 \newcommand*{\figref}[1]{\hyperref[{#1}]{Figure~\ref*{#1}}}
@@ -1078,7 +1084,7 @@ and observed remarkable performance gains.
 
 In the previous MIP model \eqref{eq:mip1}, we have modelled the constraints of every order
 separately, \ie we have used one binary disjunctive formulation per order that controls its
-behavior in case it may or may not be executed.
+behaviour in case it may or may not be executed.
 On top of that, we have used the equations \eqref{eq:valid_inequality_A} to indicate the
 dependencies between orders on the same token pair.
 However, we can also encode these dependencies deeper into the model by considering order volumes
@@ -1783,6 +1789,189 @@ The constraints can be modelled via a similar big-M approach as presented in \eq
 \end{align}
 \label{eq:order_model_mip1_bigM}
 \end{subequations}
+
+
+\newpage
+\subsection{Incorporating constant-product liquidity pools}
+
+In addition to orders submitted by users, we want to introduce the concept of automated market makers (AMMs) to our exchange model.
+AMMs are passive market participants, standing ready to exchange tokens while acting on a predefined set of rules.
+By doing so, they provide liquidity to the market and enable trade even when there are no coinciding user orders available.
+
+\paragraph{Uniswaps}
+
+A very simple yet effective type of AMM is based on a constant-product formula on a pair of two tokens, used by the popular \textsc{Uniswap} protocol.
+
+Let there be a set $\uniswaps = \{\uniswap_1 \ldots \uniswap_M\}$ of $M$ Uniswap pools and let $\iuniswaps := \{1 \ldots M\}$ denote its set of indices.
+Every pool is specified as a tuple $\uniswap = (j,k,b_1,b_2,\Phi)$ whose elements mean the following:
+\begin{align*}
+  j &\in \itokens &&
+    \ldots \quad \token_j \> \text{is the first pool token}\\
+  k &\in \itokens &&
+    \ldots \quad \token_k \> \text{is the second pool token}\\
+  b_1 &\in \mathbb{R}_{>0} &&
+    \ldots \quad \text{current pool balance of} \> \token_j\\
+  b_2 &\in \mathbb{R}_{>0} &&
+    \ldots \quad \text{current pool balance of} \> \token_k\\
+  \Phi &\in [0,1] &&
+    \ldots \quad \text{liquidity provider fee percentage}
+\end{align*}
+
+We refer to the ratio of the pool balances $b_1 / b_2$ as the \emph{marginal exchange rate} of the pool.
+The rule that specifies the behaviour of the pool simply keeps the product of the pool balances at a constant value $\kappa$ on every trade (hence, $\kappa$ is also referred to as the \emph{invariant}):
+\begin{align}
+  b_1 \cdot b_2 = \kappa
+  \label{eq:uniswap_invariant}
+\end{align}
+
+This formula has the desirable property that larger trades (relative to reserves) will be executed at worse exchange rates than smaller ones.
+Moreover, liquidity pools may charge a relative fee $\Phi$, taken from the token amount that is sold to the pool, which is added to the reserves.
+Thus, every usage of the pool actually increases the value of $\kappa$.
+
+Let $x_1 \in \mathbb{R}$ and $x_2 \in \mathbb{R}$ denote the balance updates (\ie trading amounts) of the pool tokens $\token_j$ and $\token_k$, respectively.
+A positive update refers to the pool buying an amount of tokens, a negative update to selling.
+Pools can never sell all of their inventory, thus $x_1 \ge -b_1$ and $x_2 \ge -b_2$.
+The ratio of the balance updates $x_1 / x_2$ is referred to as \emph{effective exchange rate}.
+Ignoring fees for a start, $(x_1, x_2)$ needs to follow the constant-product rule:
+$(b_1 + x_1) \cdot (b_2 + x_2) = \kappa$.
+This immediately implies $x_1 \cdot x_2 \le 0$, \ie one of the tokens always needs to be bought when the other one is sold.
+With fees, the feasible behaviour of a Uniswap pool can be described by the union of the following constraint sets:
+\begin{subequations}
+  \begin{align}
+    \mathfrak{C}^0 &:= \left\{
+    \begin{array}{c}
+      x_1 = 0 \\
+      x_2 = 0
+    \end{array}
+    \right\}
+    && \ldots \quad \text{no trade}
+    \label{eq:uniswap_model_generic_0}
+    \\[2mm]
+    \mathfrak{C}^1 &:= \left\{
+    \begin{array}{c}
+      x_1 > 0 \\[1mm]
+      -b_2 < x_2 < 0 \\[1mm]
+      (b_1 + (1-\Phi)\> x_1) \cdot (b_2 + x_2) = \kappa
+    \end{array}
+    \right\}
+    && \ldots \quad \text{buy $\token_j$, sell $\token_k$}
+    \label{eq:uniswap_model_generic_1}
+    \\[2mm]
+    \mathfrak{C}^2 &:= \left\{
+    \begin{array}{c}
+      -b_1 < x_1 < 0 \\[1mm]
+      x_2 > 0 \\[1mm]
+      (b_1 + x_1) \cdot (b_2 + (1-\Phi)\> x_2) = \kappa
+    \end{array}
+    \right\}
+    && \ldots \quad \text{sell $\token_j$, buy $\token_k$}
+    \label{eq:uniswap_model_generic_2}
+  \end{align}
+  \label{eq:uniswap_model_generic}
+\end{subequations}
+
+This disjunction as well as the last equations in both $\mathfrak{C}^1$ and $\mathfrak{C}^2$ are nonlinear.
+Our goal in the following will be to derive a MIP formulation that we can use in combination with the model for user (limit) orders.
+
+First of all, we introduce two binary variables $z_1, z_2 \in [0,1]$ for controlling which of the constraint sets is active:
+\begin{align*}
+  (z_1 = z_2 = 0) \ &\Rightarrow \ \mathfrak{C}^0\\
+  (z_1 = 1) \ &\Rightarrow \ \mathfrak{C}^1\\
+  (z_2 = 1) \ &\Rightarrow \ \mathfrak{C}^2\\[1mm]
+  z_1 + z_2 &\le 1
+\end{align*}
+
+Furthermore, we will work with volume variables instead of token amounts directly.
+For a Uniswap pool $\uniswap = (j,k,b_1,b_2,\Phi)$, let $v_1^b, v_1^s, v_2^b, v_2^s \in \mathbb{R}_{\ge 0}$ denote the buy- and sell-volumes of token $\token_j$ and $\token_k$, respectively.
+With $x_i^+ = \max\{x_i,0\}$ and $x_i^- = -\min\{x_i,0\}$ for $i \in \{1,2\}$, these are defined as $v_1^b := x_1^+ p_j,\> v_1^s := x_1^- p_j,\> v_2^b := x_2^+ p_k,\> v_2^s := x_2^- p_k$.
+
+Similar to regular orders, we also want the balance updates of Uniswap pools to follow our uniform clearing prices, \ie $x_1 \cdot p_j = -x_2 \cdot p_k$.
+This implies $v_1^b = v_2^s$ and $v_1^s = v_2^b$.
+
+With all this, we are now going to transform the nonlinear constant-product equation in $\mathfrak{C}^1$ into a linear equivalent (analogous for $\mathfrak{C}^2$):
+\begin{align*}
+  && \kappa &= (b_1 + (1-\Phi) x_1) \cdot (b_2 + x_2) \\[1mm]
+  &\Leftrightarrow&
+  \kappa &= \underbrace{b_1 b_2}_{\kappa} + x_2 b_1 + (1-\Phi) x_1 b_2 + (1-\Phi) x_1 x_2 \\
+  &\Leftrightarrow&
+  0 &= x_2 b_1 + (1-\Phi) x_1 b_2 + (1-\Phi) x_1 x_2 \\[1mm]
+  \left[x_1 = -x2 \frac{p_k}{p_j}\right] &\Leftrightarrow&
+  0 &= x_2 b_1 - (1-\Phi) x_2 b_2 \frac{p_k}{p_j} - (1-\Phi) x_2^2 \frac{p_k}{p_j} \\[1mm]
+  \left[\cdot p_j\right]&\Leftrightarrow&
+  0 &= x_2 b_1 p_j - (1-\Phi) x_2 b_2 p_k - (1-\Phi) x_2^2 p_k \\[1mm]
+  \left[\colon x_2 \neq 0\right]&\Leftrightarrow&
+  0 &= b_1 p_j -(1-\Phi) b_2 p_k - (1-\Phi) \underbrace{x_2 p_k}_{-v_2^s} \\[1mm]
+  &\Leftrightarrow&
+  (1-\Phi) v_2^s &= (1-\Phi) b_2 p_k - b_1 p_j
+\end{align*}
+
+This can now be used to rewrite the constraint sets \eqref{eq:uniswap_model_generic}:
+\begin{subequations}
+  \begin{align}
+    \mathfrak{\tilde{C}}^0 &:= \left\{
+    \begin{array}{c}
+      v_1^b = v_1^s = 0 \\[1mm]
+      v_2^b = v_2^s = 0
+    \end{array}
+    \right\}
+    && \ldots \quad \text{no trade}
+    \tag{\ref{eq:uniswap_model_generic_0}'}
+    \\[2mm]
+    \mathfrak{\tilde{C}}^1 &:= \left\{
+    \begin{array}{c}
+      v_1^b = v_2^s > 0 \\[1mm]
+      v_1^s = v_2^b = 0 \\[1mm]
+      (1-\Phi) v_2^s = (1-\Phi) b_2 p_k - b_1 p_j
+    \end{array}
+    \right\}
+    && \ldots \quad \text{buy $\token_j$, sell $\token_k$}
+    \tag{\ref{eq:uniswap_model_generic_1}'}
+    \\[2mm]
+    \mathfrak{\tilde{C}}^2 &:= \left\{
+    \begin{array}{c}
+      v_1^b = v_2^s = 0 \\[1mm]
+      v_1^s = v_2^b > 0 \\[1mm]
+      (1-\Phi) v_1^s = (1-\Phi) b_1 p_j - b_2 p_k
+    \end{array}
+    \right\}
+    && \ldots \quad \text{sell $\token_j$, buy $\token_k$}
+    \tag{\ref{eq:uniswap_model_generic_2}'}
+  \end{align}
+  \label{eq:uniswap_model_linear}
+\end{subequations}
+
+In order to handle the disjunction $\mathfrak{\tilde{C}}^0 \cup \mathfrak{\tilde{C}}^1 \cup \mathfrak{\tilde{C}}^2$ in a MIP model, we can again resort to standard big-M modelling techniques as in previous sections.
+
+As mentioned, the current model for Uniswap pools ensures that the balance updates comply with the computed uniform clearing prices whenever the pool is used.
+However, interacting with a pool is not mandatory, \ie it does not have to be used even when the computed exchange rate on the respective token pair deviates from the ratio of the pool balances.
+This behaviour can be controlled by adding another constraint to the model.
+Let $\Psi \in [0,1]$ define a margin around the current marginal exchange rate of the pool in which it does not need to be used and outside of which it becomes mandatory.
+This can be translated into the following implications (which in turn can be expressed using big-M constraints):
+\begin{subequations}
+  \begin{align}
+    \left(\frac{p_j}{p_k} < \frac{b_2}{b_1} \cdot (1-\Psi)\right)
+    \ &\Rightarrow \
+    (z_1 = 1)
+    &&\Leftrightarrow &
+    (z_1 = 0) \ &\Rightarrow \ \left(b_1 p_j \ge b_2 p_k (1-\Psi)\right)
+    \\[1mm]
+    \left(\frac{p_k}{p_j} < \frac{b_1}{b_2} \cdot (1-\Psi)\right)
+    \ &\Rightarrow \
+    (z_2 = 1)
+    &&\Leftrightarrow &
+    (z_2 = 0) \ &\Rightarrow \ \left(b_2 p_k \ge b_1 p_j (1-\Psi)\right)
+  \end{align}
+\end{subequations}
+
+\paragraph{Balancer}
+
+The idea of constant-product liquidity pools can be generalized to $m \ge 2$ tokens.
+Let $\mathbf{j} := (j_1, \ldots, j_m)$ refer to the tokens $(\token_{j_1}, \ldots, \token_{j_m})$, and let $\mathbf{b} := (b_1, \ldots, b_m)$ denote their respective pool balances.
+Moreover, we introduce a weight vector $\bm{\alpha} := (\alpha_1, \ldots, \alpha_m)$ with $\sum_{i=1}^m \alpha_i = 1$.
+Then, the constant-product formula governing the behaviour of the pool becomes
+\begin{align}
+  \prod_{i=1}^m b_i^{\alpha_i} = \kappa
+\end{align}
 
 \newpage
 \subsection{Further ideas}
