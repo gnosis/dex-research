@@ -1,0 +1,379 @@
+{
+    "metadata": {
+        "interfaceVersion": "1.1",
+        "numberFormat": "float",
+        "description": "System of 4 stable tokens (+ fee token) with standing orders and a single market order."
+    },
+    "tokens": [
+        "FEE",
+        "S1",
+        "S2",
+        "S3",
+        "S4",
+        "FT"
+    ],
+    "accounts": {
+        "0x0000": {
+            "FEE": 10.0
+        },
+        "0x0001": {
+            "S1": 1000.0
+        },
+        "0x0002": {
+            "S2": 1000.0
+        },
+        "0x0003": {
+            "S3": 1000.0
+        },
+        "0x0004": {
+            "S4": 1000.0
+        },
+        "0x1000": {
+            "S1": 1000.0
+        }
+    },
+    "orders": {
+        "standing_sell_S1_for_S2": {
+            "sellToken": "S1",
+            "buyToken": "S2",
+            "maxSellAmount": 1000.0,
+            "maxBuyAmount": null,
+            "limitRate": [
+                [
+                    1000.0,
+                    "S1"
+                ],
+                [
+                    1001.0,
+                    "S2"
+                ]
+            ],
+            "accountID": "0x0001",
+            "listIdx": null
+        },
+        "standing_sell_S1_for_S3": {
+            "sellToken": "S1",
+            "buyToken": "S3",
+            "maxSellAmount": 1000.0,
+            "maxBuyAmount": null,
+            "limitRate": [
+                [
+                    1000.0,
+                    "S1"
+                ],
+                [
+                    1001.0,
+                    "S3"
+                ]
+            ],
+            "accountID": "0x0001",
+            "listIdx": null
+        },
+        "standing_sell_S1_for_S4": {
+            "sellToken": "S1",
+            "buyToken": "S4",
+            "maxSellAmount": 1000.0,
+            "maxBuyAmount": null,
+            "limitRate": [
+                [
+                    1000.0,
+                    "S1"
+                ],
+                [
+                    1001.0,
+                    "S4"
+                ]
+            ],
+            "accountID": "0x0001",
+            "listIdx": null
+        },
+        "standing_sell_S2_for_S1": {
+            "sellToken": "S2",
+            "buyToken": "S1",
+            "maxSellAmount": 1000.0,
+            "maxBuyAmount": null,
+            "limitRate": [
+                [
+                    1000.0,
+                    "S2"
+                ],
+                [
+                    1001.0,
+                    "S1"
+                ]
+            ],
+            "accountID": "0x0002",
+            "listIdx": null
+        },
+        "standing_sell_S2_for_S3": {
+            "sellToken": "S2",
+            "buyToken": "S3",
+            "maxSellAmount": 1000.0,
+            "maxBuyAmount": null,
+            "limitRate": [
+                [
+                    1000.0,
+                    "S2"
+                ],
+                [
+                    1001.0,
+                    "S3"
+                ]
+            ],
+            "accountID": "0x0002",
+            "listIdx": null
+        },
+        "standing_sell_S2_for_S4": {
+            "sellToken": "S2",
+            "buyToken": "S4",
+            "maxSellAmount": 1000.0,
+            "maxBuyAmount": null,
+            "limitRate": [
+                [
+                    1000.0,
+                    "S2"
+                ],
+                [
+                    1001.0,
+                    "S4"
+                ]
+            ],
+            "accountID": "0x0002",
+            "listIdx": null
+        },
+        "standing_sell_S3_for_S1": {
+            "sellToken": "S3",
+            "buyToken": "S1",
+            "maxSellAmount": 1000.0,
+            "maxBuyAmount": null,
+            "limitRate": [
+                [
+                    1000.0,
+                    "S3"
+                ],
+                [
+                    1001.0,
+                    "S1"
+                ]
+            ],
+            "accountID": "0x0003",
+            "listIdx": null
+        },
+        "standing_sell_S3_for_S2": {
+            "sellToken": "S3",
+            "buyToken": "S2",
+            "maxSellAmount": 1000.0,
+            "maxBuyAmount": null,
+            "limitRate": [
+                [
+                    1000.0,
+                    "S3"
+                ],
+                [
+                    1001.0,
+                    "S2"
+                ]
+            ],
+            "accountID": "0x0003",
+            "listIdx": null
+        },
+        "standing_sell_S3_for_S4": {
+            "sellToken": "S3",
+            "buyToken": "S4",
+            "maxSellAmount": 1000.0,
+            "maxBuyAmount": null,
+            "limitRate": [
+                [
+                    1000.0,
+                    "S3"
+                ],
+                [
+                    1001.0,
+                    "S4"
+                ]
+            ],
+            "accountID": "0x0003",
+            "listIdx": null
+        },
+        "standing_sell_S4_for_S1": {
+            "sellToken": "S4",
+            "buyToken": "S1",
+            "maxSellAmount": 1000.0,
+            "maxBuyAmount": null,
+            "limitRate": [
+                [
+                    1000.0,
+                    "S4"
+                ],
+                [
+                    1001.0,
+                    "S1"
+                ]
+            ],
+            "accountID": "0x0004",
+            "listIdx": null
+        },
+        "standing_sell_S4_for_S2": {
+            "sellToken": "S4",
+            "buyToken": "S2",
+            "maxSellAmount": 1000.0,
+            "maxBuyAmount": null,
+            "limitRate": [
+                [
+                    1000.0,
+                    "S4"
+                ],
+                [
+                    1001.0,
+                    "S2"
+                ]
+            ],
+            "accountID": "0x0004",
+            "listIdx": null
+        },
+        "standing_sell_S4_for_S3": {
+            "sellToken": "S4",
+            "buyToken": "S3",
+            "maxSellAmount": 1000.0,
+            "maxBuyAmount": null,
+            "limitRate": [
+                [
+                    1000.0,
+                    "S4"
+                ],
+                [
+                    1001.0,
+                    "S3"
+                ]
+            ],
+            "accountID": "0x0004",
+            "listIdx": null
+        },
+        "standing_sell_FEE_for_S1": {
+            "sellToken": "FEE",
+            "buyToken": "S1",
+            "maxSellAmount": 10.0,
+            "maxBuyAmount": null,
+            "limitRate": [
+                [
+                    1.0,
+                    "FEE"
+                ],
+                [
+                    1.0,
+                    "S1"
+                ]
+            ],
+            "accountID": "0x0000",
+            "listIdx": null
+        },
+        "standing_sell_FEE_for_S2": {
+            "sellToken": "FEE",
+            "buyToken": "S2",
+            "maxSellAmount": 10.0,
+            "maxBuyAmount": null,
+            "limitRate": [
+                [
+                    1.0,
+                    "FEE"
+                ],
+                [
+                    1.0,
+                    "S2"
+                ]
+            ],
+            "accountID": "0x0000",
+            "listIdx": null
+        },
+        "standing_sell_FEE_for_S3": {
+            "sellToken": "FEE",
+            "buyToken": "S3",
+            "maxSellAmount": 10.0,
+            "maxBuyAmount": null,
+            "limitRate": [
+                [
+                    1.0,
+                    "FEE"
+                ],
+                [
+                    1.0,
+                    "S3"
+                ]
+            ],
+            "accountID": "0x0000",
+            "listIdx": null
+        },
+        "standing_sell_FEE_for_S4": {
+            "sellToken": "FEE",
+            "buyToken": "S4",
+            "maxSellAmount": 10.0,
+            "maxBuyAmount": null,
+            "limitRate": [
+                [
+                    1.0,
+                    "FEE"
+                ],
+                [
+                    1.0,
+                    "S4"
+                ]
+            ],
+            "accountID": "0x0000",
+            "listIdx": null
+        },
+        "market_sell_S1_for_S2": {
+            "sellToken": "S1",
+            "buyToken": "S2",
+            "maxSellAmount": 10.0,
+            "maxBuyAmount": null,
+            "limitRate": [
+                [
+                    1.0,
+                    "S1"
+                ],
+                [
+                    0.9,
+                    "S2"
+                ]
+            ],
+            "accountID": "0x1000",
+            "listIdx": null
+        },
+        "market_sell_FT_for_S2": {
+            "sellToken": "S1",
+            "buyToken": "FT",
+            "maxSellAmount": 100000.0,
+            "maxBuyAmount": null,
+            "limitRate": [
+                [
+                    1.0,
+                    "S1"
+                ],
+                [
+                    0.91,
+                    "S2"
+                ]
+            ],
+            "accountID": "0x1000",
+            "listIdx": null
+        },
+        "connect_FT_": {
+            "sellToken": "FT",
+            "buyToken": "S2",
+            "maxSellAmount": 100000.0,
+            "maxBuyAmount": null,
+            "limitRate": [
+                [
+                    1.0,
+                    "S1"
+                ],
+                [
+                    1.0,
+                    "S2"
+                ]
+            ],
+            "accountID": "0x1000",
+            "listIdx": null
+        }
+    }
+}

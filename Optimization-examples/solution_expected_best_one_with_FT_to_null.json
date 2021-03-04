@@ -1,0 +1,28 @@
+{
+    "metadata": {
+        "interfaceVersion": "1.1",
+        "numberFormat": "float",
+        "description": "System of 4 stable tokens (+ fee token) with standing orders and a single market order.",
+        "feeToken": "FEE",
+        "feePercentage": 0.001
+    },
+    "prices": {
+        "FEE": 1.0,
+        "S1": 0.999,
+        "S2": 1.001001001,
+        "S3": 1.0,
+        "S4": 1.0,
+        "FT": 0.00000001
+    },
+    "orders": {
+        "market_sell_S1_for_S2": {
+            "execBuyAmount": 9.97002999001
+        },
+        "standing_sell_FEE_for_S1": {
+            "execBuyAmount": 0.01999
+        },
+        "standing_sell_S2_for_S1": {
+            "execBuyAmount": 9.98001
+        }
+    }
+}
